@@ -10,7 +10,7 @@
 - **Encrypted content** — the content creator's original content, encrypted client-side and uploaded to Bulletin Chain (accessed via its IPFS-compatible CID).
 - **Content-lock-key** — the symmetric key used to encrypt a specific piece of content. One per content item.
 - **Buyer encryption key** — an x25519 keypair the buyer generates in their browser. The private half stays in the sandbox; the public half is registered on-chain so the chain-service can wrap content-lock-keys to it.
-- **Chain-service** — an off-chain component co-located with the parachain collator. Holds a master keypair `(SVC_PUB, SVC_PRIV)`. Observes purchase events and re-wraps content-lock-keys from `SVC_PUB` to the buyer's encryption key. Implemented as an off-chain worker; external-daemon fallback.
+- **Chain-service** — an off-chain daemon co-located with the parachain collator. Holds a master keypair `(SVC_PUB, SVC_PRIV)`. Observes purchase events and re-wraps content-lock-keys from `SVC_PUB` to the buyer's encryption key.
 **Identity model.** Both content creators and buyers are identified solely by their Polkadot account address. No People chain integration, no out-of-band identity binding — the platform is fully pseudonymous.
 
 ## 2. Architecture overview
@@ -38,7 +38,7 @@ Each phase is demoable on its own.
 ### Phase 2 — Content encryption with a browser-held session key registered on-chain
 - Creator encrypts content client-side before upload (see [Encryption model](#7-encryption-model-phase-2)).
 - Pallet gains `EncryptionKeys` (buyer x25519 pubkeys) and `WrappedKeys` (buyer-specific wrapped content-lock-keys) storage.
-- Chain-service (off-chain worker preferred; external daemon fallback) automates key re-wrapping on payment events.
+- Chain-service daemon automates key re-wrapping on payment events.
 - Buyer frontend decrypts in pure JS, using a session private key held in sandbox-local storage.
 - Access control becomes cryptographic.
 
@@ -97,7 +97,7 @@ struct Listing<T: Config> {
 **Phase 2**
 - `register_encryption_key(pubkey: [u8; 32])` — writes `EncryptionKeys[caller]`.
 - `create_listing` gains a `locked_content_lock_key` parameter.
-- `grant_access(listing_id, buyer, wrapped_key)` — origin must equal `ServiceAccountId`. Writes `WrappedKeys[(listing_id, buyer)]`.
+- `grant_access(listing_id, buyer, wrapped_key)` — origin must satisfy `T::ServiceOrigin` (see [Service origin](#service-origin) below). Writes `WrappedKeys[(listing_id, buyer)]`. Marked `Pays::No` so the chain-service account does not pay transaction fees.
 
 **Phase 4** (deferred — see §3)
 - `regrant_access(listing_ids)` — signed origin (the buyer). Session-key recovery; emits events the chain-service observes to re-wrap each listing's content-lock-key under the caller's newly registered encryption key.
@@ -107,6 +107,26 @@ struct Listing<T: Config> {
 - `PurchaseCompleted { listing_id, buyer, creator }`
 - `EncryptionKeyRegistered { account }` *(Phase 2)*
 - `AccessGranted { listing_id, buyer }` *(Phase 2)*
+
+### Service origin
+
+`grant_access` is authorized via a custom origin rather than an inline account-equality check. This separates *who is allowed to call* from *what the call does* — the same pattern `pallet-treasury` and `pallet-collective` use for their specialized origins.
+
+The pallet exposes an associated type on its `Config`:
+
+```rust
+type ServiceOrigin: EnsureOrigin<OriginFor<Self>>;
+```
+
+The runtime binds it to an `EnsureServiceAccount<Runtime>` struct that implements `EnsureOrigin` by calling `ensure_signed(origin)?` and comparing the signer against `ServiceAccountId::get()`. Any other signer fails with `BadOrigin`.
+
+Inside `grant_access`, authorization is a single line:
+
+```rust
+T::ServiceOrigin::ensure_origin(origin)?;
+```
+
+Combined with `Pays::No` on the dispatchable, the daemon is authorized to call but does not pay fees. Because only `ServiceOrigin` can make the call, the fee-free path is not a spam vector. For pallet tests, the mock runtime binds `ServiceOrigin` to `EnsureSignedBy<Alice, _>` instead.
 
 ### Validation rules
 
@@ -124,7 +144,7 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 ### Fee model
 - Content creators set a fixed flat price per listing. No tiers, no promotional pricing, no per-buyer negotiation.
 - No platform fee, no treasury cut. The buyer's payment is transferred in full to the creator as part of `purchase`.
-- Transaction fees are paid by each extrinsic's caller — the standard Polkadot default. The creator pays the fee for `create_listing`, the buyer pays the fee for `purchase`, and the chain-service account pays the fee for `grant_access` and `regrant_access`. No fee sponsorship or fee-wrapping mechanism.
+- Transaction fees are paid by each extrinsic's caller — the standard Polkadot default. The creator pays the fee for `create_listing` and the buyer pays the fee for `purchase` (and, in Phase 4, for `regrant_access`). `grant_access` is marked `Pays::No`: the chain-service account is authorized via `ServiceOrigin` but is not charged for the call. The account only requires a one-time existential deposit; no ongoing top-ups. Since only `ServiceOrigin` can call, the fee-free path is not a spam vector.
 
 ## 5. Encryption model (Phase 2)
 
@@ -132,9 +152,9 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 
 - **`SVC_PUB` / `SVC_PRIV`** — x25519 keypair used solely for wrapping and unwrapping content-lock-keys.
   - `SVC_PUB` is published on-chain via the `ServicePublicKey` storage item; set once in the genesis config; immutable thereafter. Creators fetch it via PAPI before sealing `locked_content_lock_key`.
-  - `SVC_PRIV` is stored outside the Substrate keystore (the keystore's APIs are signing-oriented, not suitable for x25519 decryption) as a single key file on the collator filesystem. `chmod 600`, owner = node user. Path passed to the chain-service component at startup via CLI flag or env var. No passphrase protection in the PoC.
+  - `SVC_PRIV` is held by the daemon as a single key file on disk (`chmod 600`, daemon-owned directory `chmod 700`). Path passed to the daemon at startup via CLI flag or env var. No passphrase protection in the PoC.
   - Rotation is out of scope.
-- **`SERVICE_ACCOUNT_KEY`** — separate sr25519 keypair held in the Substrate keystore (standard Polkadot pattern). Signs `grant_access` and the chain-service's response to `regrant_access` events. The corresponding AccountId is stored on-chain in `ServiceAccountId` (genesis-set). The account must be funded to pay its own tx fees.
+- **`SERVICE_ACCOUNT_KEY`** — separate sr25519 keypair held by the daemon as a key file (not in the Substrate keystore, since the daemon is an external process, not a node plugin). Signs `grant_access` and the chain-service's response to `regrant_access` events. The corresponding AccountId is stored on-chain in `ServiceAccountId` (genesis-set) and is the only signer accepted by the pallet's `ServiceOrigin`. The account needs a one-time existential deposit to exist, but does not pay transaction fees (`grant_access` is marked `Pays::No`).
 - **Buyer encryption keypair** — x25519 generated client-side in the buyer's browser. Private half persisted to sandbox-local storage; public half registered on-chain via `register_encryption_key`.
 - **Content-lock-key** — random symmetric key generated client-side, one per content item. Never stored or transmitted in the clear.
 
@@ -151,11 +171,11 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 3. Pallet transfers funds (if user has enough funds), records the purchase, emits `PurchaseCompleted`.
 
 ### Chain-service grant flow
-1. Off-chain worker (or daemon fallback) observes `PurchaseCompleted(listing_id, buyer)`.
+1. Daemon observes `PurchaseCompleted(listing_id, buyer)` via a PAPI/subxt event subscription to the parachain.
 2. Reads `Listings[listing_id].locked_content_lock_key` and `EncryptionKeys[buyer]`.
 3. Unseals the content-lock-key with `SVC_PRIV`.
 4. Seals the content-lock-key to the buyer's x25519 pubkey → `wrapped_key`.
-5. Submits `grant_access(listing_id, buyer, wrapped_key)` from the chain-service account.
+5. Submits `grant_access(listing_id, buyer, wrapped_key)` signed with `SERVICE_ACCOUNT_KEY`; the extrinsic is authorized by `ServiceOrigin` and marked `Pays::No`.
 
 ### Buyer decryption flow
 1. Frontend subscribes to `WrappedKeys[(listing_id, buyer)]`.
@@ -181,7 +201,8 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 - **Phase 1–2 frontend.** Built as a static bundle, pinned on **IPFS** (via `w3.storage` or equivalent), and registered on **DotNS** (`.dot` domain resolving to the IPFS CID). Bulletin Chain is deliberately not used for bundle hosting — its ~14-day retention is incompatible with the PoC demo window. The stack template's `scripts/deploy-frontend.sh` provides a working reference; DotNS registration + content-hash updates use the `dotns` CLI from `paritytech/dotns-sdk`. Full trace in `docs/research/frontend-deploy.md`.
 - **Phase 3 infrastructure.** Parachain registers on Paseo (collator, parachain slot, HRMP channel to Asset Hub for XCM). Real ops lift, planned for when Phase 3 is active.
 - **Operational setup (chain-service keys).**
-  - Operator generates the x25519 SVC keypair (`SVC_PRIV` / `SVC_PUB`) on a secure machine. `SVC_PUB` bytes are embedded in the genesis config under `ServicePublicKey`; `SVC_PRIV` is written to the collator's filesystem at a locked-down path (file `chmod 600`, directory `chmod 700`, owner = node user).
-  - Operator generates (or reuses) the sr25519 service account keypair. The private key is inserted into the Substrate keystore via `author_insertKey` or by placing the key file in the keystore directory. The corresponding AccountId is embedded in the genesis config under `ServiceAccountId`.
-  - Collator started with the standard keystore path plus a CLI flag (or env var) pointing to the x25519 private key file.
+  - Operator generates the x25519 SVC keypair (`SVC_PRIV` / `SVC_PUB`) on a secure machine. `SVC_PUB` bytes are embedded in the genesis config under `ServicePublicKey`.
+  - Operator generates (or reuses) the sr25519 service account keypair. The corresponding AccountId is embedded in the genesis config under `ServiceAccountId` and receives a one-time existential deposit transfer at setup time.
+  - Daemon configured with both key files (`SVC_PRIV` and the sr25519 service key) at locked-down paths (files `chmod 600`, daemon-owned directory `chmod 700`). Paths passed via CLI flags or env vars.
+  - Daemon runs as a separate process alongside the collator; it talks to the parachain via PAPI/subxt over the node's RPC endpoint. No keys live in the Substrate keystore.
   - No generated keys are ever committed to git.

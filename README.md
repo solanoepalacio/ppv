@@ -23,7 +23,8 @@ This is the value-prop framing, not a claim that the PoC delivers every row.
 | Component | Polkadot feature |
 |---|---|
 | Content registry + payments pallet | FRAME (Polkadot SDK) |
-| Chain-service automation | Off-Chain Workers (FRAME) — external daemon fallback |
+| Chain-service automation | External daemon using subxt + FRAME event subscription |
+| Chain-service authorization | Custom FRAME origin (`EnsureOrigin`) + `Pays::No` |
 | Batched first-purchase UX | `pallet-utility::batch_all` |
 | Frontend runtime | Polkadot Triangle host API + PAPI |
 | Browser↔phone signing relay | Statement Store (via TruAPI) |
@@ -34,7 +35,7 @@ This is the value-prop framing, not a claim that the PoC delivers every row.
 ## 4. Implementation Limitations
 
 - **Phase 1 paywall is UX-only.** Content is unencrypted on Bulletin; anyone with the CID can view it. Phase 2 upgrades this to cryptographic access control.
-- **Chain-service is a trusted custodian in Phase 2.** Whoever operates the collator + OCW can decrypt every piece of content. In production this would be replaced with threshold encryption, TEEs, or proxy re-encryption — out of scope for a learning PoC.
+- **Chain-service is a trusted custodian in Phase 2.** Whoever operates the chain-service daemon can decrypt every piece of content. In production this would be replaced with threshold encryption, TEEs, or proxy re-encryption — out of scope for a learning PoC.
 - **Chain-service lacks an encryption key rotation mechanism.** If the key is compromised it can't be rotated. If the node operator looses the key all encrypted content is lost forever.
 - **Buyer-purchase mapping is publicly observable.** `WrappedKeys[(listing_id, buyer)]` is on a public chain; anyone can see which accounts bought which listings. Pseudonymity is still a real improvement over the Web2 credit-card model, but it's not strong privacy.
 - **Session-key loss is a real failure mode.** Mitigated by `regrant_access`, at the cost of extra on-chain activity and chain-service work. Access recovery is planned for phase 4 (unlikely to be achieved during PBP).
