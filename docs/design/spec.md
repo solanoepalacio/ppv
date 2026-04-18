@@ -11,7 +11,6 @@
 - **Content-lock-key** — the symmetric key used to encrypt a specific piece of content. One per content item.
 - **Buyer encryption key** — an x25519 keypair the buyer generates in their browser. The private half stays in the sandbox; the public half is registered on-chain so the chain-service can wrap content-lock-keys to it.
 - **Chain-service** — an off-chain component co-located with the parachain collator. Holds a master keypair `(SVC_PUB, SVC_PRIV)`. Observes purchase events and re-wraps content-lock-keys from `SVC_PUB` to the buyer's encryption key. Implemented as an off-chain worker; external-daemon fallback.
-
 **Identity model.** Both content creators and buyers are identified solely by their Polkadot account address. No People chain integration, no out-of-band identity binding — the platform is fully pseudonymous.
 
 ## 2. Architecture overview
@@ -109,6 +108,14 @@ struct Listing<T: Config> {
 - `EncryptionKeyRegistered { account }` *(Phase 2)*
 - `AccessGranted { listing_id, buyer }` *(Phase 2)*
 
+### Validation rules
+
+Pallet extrinsics enforce the following preconditions; violations return a dispatch error:
+
+- `create_listing`: `price > 0`. Free content is out of scope for the PoC.
+- `purchase`: `buyer != creator`. Creators cannot purchase their own listings.
+- `purchase`: `Purchases[(listing_id, buyer)]` must not already exist. A given buyer can purchase any listing at most once.
+
 ### Batched first-purchase UX
 First purchase uses `pallet-utility::batch_all([register_encryption_key, purchase])` — single phone signature, atomic. Subsequent purchases use `purchase` directly.
 
@@ -178,4 +185,3 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
   - Operator generates (or reuses) the sr25519 service account keypair. The private key is inserted into the Substrate keystore via `author_insertKey` or by placing the key file in the keystore directory. The corresponding AccountId is embedded in the genesis config under `ServiceAccountId`.
   - Collator started with the standard keystore path plus a CLI flag (or env var) pointing to the x25519 private key file.
   - No generated keys are ever committed to git.
-
