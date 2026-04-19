@@ -25,12 +25,26 @@ Plan: [`docs/plans/P1a-pallet-runtime.md`](./plans/P1a-pallet-runtime.md) · Ove
 - [x] Task 15: Add thumbnail_cid to Listing + create_listing
 - [x] Task 16: Flip Purchases to StorageDoubleMap<AccountId, ListingId, BlockNumberFor<T>> + sync spec
 - [x] Task 17: Clean up template leftovers + register pallet benchmarks in runtime
-- [ ] Task 18: Release build + WASM artifact
+- [x] Task 18: Release build + WASM artifact
 - [ ] Task 19: Zombienet E2E smoke script
 
 ### P1b — Frontend MVP
 
-Plan: _not written yet_
+Plan: [`docs/plans/P1b-frontend.md`](./plans/P1b-frontend.md)
+
+- [ ] Task 1: Install @parity/bulletin-sdk + Vitest + regenerate PAPI descriptors
+- [ ] Task 2: Utility functions — bulletinCid + contentHash (TDD)
+- [ ] Task 3: Store refactor + useParachainProvider (Triangle/dev detection)
+- [ ] Task 4: App shell — nav, routes, account pill
+- [ ] Task 5: useContentRegistry PAPI hook
+- [ ] Task 6: useBulletinUpload (bulletin-sdk + IPFS fetch)
+- [ ] Task 7: Browse page + ListingCard + SkeletonCard
+- [ ] Task 8: VideoPlayer component (IPFS fetch + blake2b integrity)
+- [ ] Task 9: Listing Detail page (all states)
+- [ ] Task 10: Create page — video/thumbnail pickers + metadata form
+- [ ] Task 11: Create page — upload/submit flow + CreateChecklist
+- [ ] Task 12: My Purchases page
+- [ ] Task 13: TypeScript check + dev-server smoke test against Zombienet
 
 ### P1c — Deploy (IPFS + DotNS)
 
