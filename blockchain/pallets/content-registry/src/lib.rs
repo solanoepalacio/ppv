@@ -80,6 +80,9 @@ pub mod pallet {
 		pub price: BalanceOf<T>,
 		/// Content CID on Bulletin Chain (ciphertext in Phase 2, plaintext in Phase 1).
 		pub content_cid: BulletinCid,
+		/// CID of the auto-extracted thumbnail on Bulletin. Always unencrypted
+		/// (even in Phase 2) so the browse grid renders without keys.
+		pub thumbnail_cid: BulletinCid,
 		/// blake2b-256 of plaintext. Buyer frontend verifies after decryption.
 		pub content_hash: [u8; 32],
 		/// Display title.
@@ -147,6 +150,7 @@ pub mod pallet {
 		pub fn create_listing(
 			origin: OriginFor<T>,
 			content_cid: BulletinCid,
+			thumbnail_cid: BulletinCid,
 			content_hash: [u8; 32],
 			title: BoundedVec<u8, ConstU32<128>>,
 			description: BoundedVec<u8, ConstU32<2048>>,
@@ -164,6 +168,7 @@ pub mod pallet {
 				creator: creator.clone(),
 				price,
 				content_cid,
+				thumbnail_cid,
 				content_hash,
 				title,
 				description,

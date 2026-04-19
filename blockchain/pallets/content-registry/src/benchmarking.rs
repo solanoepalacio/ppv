@@ -19,6 +19,10 @@ mod benchmarks {
 		crate::pallet::BulletinCid { codec: 0x55, digest: [0x11u8; 32] }
 	}
 
+	fn sample_thumb_cid() -> crate::pallet::BulletinCid {
+		crate::pallet::BulletinCid { codec: 0x55, digest: [0xccu8; 32] }
+	}
+
 	#[benchmark]
 	fn create_listing() {
 		let caller: T::AccountId = whitelisted_caller();
@@ -31,6 +35,7 @@ mod benchmarks {
 		create_listing(
 			RawOrigin::Signed(caller.clone()),
 			sample_cid(),
+			sample_thumb_cid(),
 			[0u8; 32],
 			title,
 			desc,
@@ -57,6 +62,7 @@ mod benchmarks {
 		Pallet::<T>::create_listing(
 			RawOrigin::Signed(creator).into(),
 			sample_cid(),
+			sample_thumb_cid(),
 			[0u8; 32],
 			title,
 			desc,

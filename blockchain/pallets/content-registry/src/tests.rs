@@ -31,6 +31,7 @@ fn listings_storage_roundtrip() {
 			creator: ALICE,
 			price: 100,
 			content_cid: BulletinCid { codec: 0x55, digest: [0x11u8; 32] },
+			thumbnail_cid: BulletinCid { codec: 0x55, digest: [0xccu8; 32] },
 			content_hash: [0x22u8; 32],
 			title: b"hello".to_vec().try_into().unwrap(),
 			description: b"world".to_vec().try_into().unwrap(),
@@ -50,6 +51,10 @@ fn sample_cid() -> BulletinCid {
 	BulletinCid { codec: 0x55, digest: [0xaau8; 32] }
 }
 
+fn sample_thumb_cid() -> BulletinCid {
+	BulletinCid { codec: 0x55, digest: [0xccu8; 32] }
+}
+
 fn bvec<const N: u32>(bytes: &[u8]) -> BoundedVec<u8, ConstU32<N>> {
 	bytes.to_vec().try_into().unwrap()
 }
@@ -61,6 +66,7 @@ fn create_listing_works() {
 		assert_ok!(ContentRegistry::create_listing(
 			RuntimeOrigin::signed(ALICE),
 			sample_cid(),
+			sample_thumb_cid(),
 			[0x33u8; 32],
 			bvec::<128>(b"cool pdf"),
 			bvec::<2048>(b"a book i wrote"),
@@ -88,6 +94,7 @@ fn create_listing_fails_if_price_zero() {
 			ContentRegistry::create_listing(
 				RuntimeOrigin::signed(ALICE),
 				sample_cid(),
+				sample_thumb_cid(),
 				[0x33u8; 32],
 				bvec::<128>(b"free"),
 				bvec::<2048>(b""),
@@ -114,6 +121,7 @@ fn seed_listing(creator: AccountId, price: Balance) -> u64 {
 	assert_ok!(ContentRegistry::create_listing(
 		RuntimeOrigin::signed(creator),
 		sample_cid(),
+		sample_thumb_cid(),
 		[0x33u8; 32],
 		bvec::<128>(b"t"),
 		bvec::<2048>(b"d"),
@@ -203,6 +211,7 @@ fn create_listing_fails_on_id_overflow() {
 			ContentRegistry::create_listing(
 				RuntimeOrigin::signed(ALICE),
 				sample_cid(),
+				sample_thumb_cid(),
 				[0x33u8; 32],
 				bvec::<128>(b"t"),
 				bvec::<2048>(b"d"),
