@@ -150,6 +150,17 @@ fn purchase_works_and_transfers_funds() {
 }
 
 #[test]
+fn purchase_fails_if_buyer_is_creator() {
+	new_test_ext().execute_with(|| {
+		let listing_id = seed_listing(ALICE, 100);
+		assert_noop!(
+			ContentRegistry::purchase(RuntimeOrigin::signed(ALICE), listing_id),
+			crate::Error::<Test>::BuyerIsCreator,
+		);
+	});
+}
+
+#[test]
 fn create_listing_fails_on_id_overflow() {
 	new_test_ext().execute_with(|| {
 		NextListingId::<Test>::put(u64::MAX);

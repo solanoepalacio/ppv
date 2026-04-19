@@ -132,6 +132,8 @@ pub mod pallet {
 		ZeroPrice,
 		/// No listing exists for the given ID.
 		ListingNotFound,
+		/// Creators cannot purchase their own listings.
+		BuyerIsCreator,
 	}
 
 	#[pallet::call]
@@ -177,6 +179,8 @@ pub mod pallet {
 		pub fn purchase(origin: OriginFor<T>, listing_id: ListingId) -> DispatchResult {
 			let buyer = ensure_signed(origin)?;
 			let listing = Listings::<T>::get(listing_id).ok_or(Error::<T>::ListingNotFound)?;
+
+			ensure!(buyer != listing.creator, Error::<T>::BuyerIsCreator);
 
 			T::Currency::transfer(
 				&buyer,
