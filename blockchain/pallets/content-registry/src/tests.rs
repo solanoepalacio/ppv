@@ -186,6 +186,16 @@ fn purchase_fails_if_buyer_cannot_afford_it() {
 }
 
 #[test]
+fn purchase_fails_if_listing_missing() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			ContentRegistry::purchase(RuntimeOrigin::signed(BOB), 42),
+			crate::Error::<Test>::ListingNotFound,
+		);
+	});
+}
+
+#[test]
 fn create_listing_fails_on_id_overflow() {
 	new_test_ext().execute_with(|| {
 		NextListingId::<Test>::put(u64::MAX);

@@ -19,7 +19,7 @@ Plan: [`docs/plans/P1a-pallet-runtime.md`](./plans/P1a-pallet-runtime.md) · Ove
 - [x] Task 9: purchase validation — buyer ≠ creator
 - [x] Task 10: purchase validation — no double purchase
 - [x] Task 11: purchase validation — insufficient funds
-- [ ] Task 12: purchase validation — listing-not-found test
+- [x] Task 12: purchase validation — listing-not-found test
 - [ ] Task 13: Benchmarks for create_listing + purchase
 - [ ] Task 14: Wire Currency into runtime Config impl
 - [ ] Task 15: Release build + WASM artifact
