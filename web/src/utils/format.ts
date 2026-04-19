@@ -1,3 +1,13 @@
+export function truncateAddress(addr: string): string {
+  if (addr.length <= 12) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-6)}`;
+}
+
+export function formatDot(planck: bigint): string {
+  const dot = Number(planck) / 1e10;
+  return `${dot.toFixed(2)} DOT`;
+}
+
 /// Format a PAPI dispatch error into a human-readable string.
 export function formatDispatchError(err: unknown): string {
 	if (!err) return "Transaction failed";
