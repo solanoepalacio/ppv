@@ -5,7 +5,7 @@ A Cumulus-based parachain runtime built on `polkadot-sdk stable2512-3`. Compatib
 ## What's Included
 
 - **Core pallets**: System, Balances, Aura, Session, Sudo, XCM
-- **TemplatePallet** (index 50): Proof of Existence — see [`../pallets/template/`](../pallets/template/)
+- **ContentRegistry** (index 50): pay-per-view listings and purchase records — see [`../pallets/content-registry/`](../pallets/content-registry/)
 - **pallet-revive** (index 90): EVM and PVM smart contract execution with Ethereum RPC compatibility
 - **pallet-statement** + `sp-statement-store` runtime API for Statement Store support
 

@@ -21,7 +21,7 @@ const SAFE_XCM_VERSION: u32 = XCM_VERSION;
 pub const PARACHAIN_ID: u32 = 1000;
 
 /// Generate the session keys from individual elements.
-pub fn template_session_keys(keys: AuraId) -> SessionKeys {
+pub fn session_keys(keys: AuraId) -> SessionKeys {
 	SessionKeys { aura: keys }
 }
 
@@ -47,7 +47,7 @@ fn testnet_genesis(
 		session: SessionConfig {
 			keys: invulnerables
 				.into_iter()
-				.map(|(acc, aura)| { (acc.clone(), acc, template_session_keys(aura),) })
+				.map(|(acc, aura)| { (acc.clone(), acc, session_keys(aura),) })
 				.collect::<Vec<_>>(),
 		},
 		polkadot_xcm: PolkadotXcmConfig { safe_xcm_version: Some(SAFE_XCM_VERSION) },

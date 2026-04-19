@@ -6,7 +6,7 @@ A Polkadot SDK parachain built with FRAME and Cumulus, compatible with `polkadot
 
 | Path | What it contains |
 | --- | --- |
-| [`pallets/template/`](pallets/template/) | The Proof of Existence FRAME pallet |
+| [`pallets/content-registry/`](pallets/content-registry/) | The pay-per-view content registry FRAME pallet |
 | [`runtime/`](runtime/) | The parachain runtime built on `polkadot-sdk stable2512-3` |
 | [`chain_spec.json`](chain_spec.json) | Generated local chain spec used by the dev scripts and some Docker flows |
 | [`Dockerfile`](Dockerfile) | Lightweight runtime image that packages a pre-generated chain spec |
@@ -19,7 +19,7 @@ A Polkadot SDK parachain built with FRAME and Cumulus, compatible with `polkadot
 cargo build -p stack-template-runtime --release
 
 # Pallet unit tests
-cargo test -p pallet-template
+cargo test -p pallet-content-registry
 
 # All workspace tests including benchmarks
 SKIP_PALLET_REVIVE_FIXTURES=1 cargo test --workspace --features runtime-benchmarks
