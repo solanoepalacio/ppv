@@ -24,6 +24,7 @@ Plan: [`docs/plans/P1a-pallet-runtime.md`](./plans/P1a-pallet-runtime.md) · Ove
 - [ ] Task 14: Wire Currency into runtime Config impl
 - [ ] Task 15: Release build + WASM artifact
 - [ ] Task 16: Zombienet E2E smoke script
+- [ ] Task 17: Clean up template leftovers + register pallet benchmarks in runtime
 
 ### P1b — Frontend MVP
 

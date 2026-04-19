@@ -1525,12 +1525,106 @@ git commit -m "add E2E smoke script for content-registry"
 
 ---
 
+## Task 17 — Clean up stale template references + register pallet benchmarks in runtime
+
+The template→content-registry rename in Task 1 was deliberately mechanical; it left behind stale docs and a cosmetic function name. Also, Task 13 added pallet-level benchmarks but never registered them with the runtime's `define_benchmarks!` macro, so `frame-omni-bencher` wouldn't see them. Fix both.
+
+**Files:**
+- Modify: `blockchain/runtime/src/genesis_config_presets.rs`
+- Modify: `blockchain/runtime/README.md`
+- Modify: `blockchain/README.md`
+- Modify: `blockchain/runtime/src/benchmarks.rs`
+
+- [ ] **Step 1: Rename `template_session_keys` → `session_keys`**
+
+Edit `blockchain/runtime/src/genesis_config_presets.rs`. Rename the function defined at line 24 and the call site at line 50:
+
+```rust
+pub fn session_keys(keys: AuraId) -> SessionKeys {
+    SessionKeys { aura: keys }
+}
+```
+
+```rust
+        session: SessionConfig {
+            keys: invulnerables
+                .into_iter()
+                .map(|(acc, aura)| { (acc.clone(), acc, session_keys(aura),) })
+                .collect::<Vec<_>>(),
+        },
+```
+
+- [ ] **Step 2: Update `blockchain/runtime/README.md`**
+
+Replace the line documenting `TemplatePallet` (currently line 8) with one describing `ContentRegistry`:
+
+```markdown
+- **ContentRegistry** (index 50): pay-per-view listings and purchase records — see [`../pallets/content-registry/`](../pallets/content-registry/)
+```
+
+- [ ] **Step 3: Update `blockchain/README.md`**
+
+Replace the `pallets/template/` directory-guide row (currently line 9) with:
+
+```markdown
+| [`pallets/content-registry/`](pallets/content-registry/) | The pay-per-view content registry FRAME pallet |
+```
+
+And update the `cargo test` command (currently line 23):
+
+```bash
+# Pallet unit tests
+cargo test -p pallet-content-registry
+```
+
+- [ ] **Step 4: Register the pallet in the runtime's benchmark list**
+
+Edit `blockchain/runtime/src/benchmarks.rs`. Append one entry inside the `define_benchmarks!` macro:
+
+```rust
+polkadot_sdk::frame_benchmarking::define_benchmarks!(
+    [frame_system, SystemBench::<Runtime>]
+    [pallet_balances, Balances]
+    [pallet_session, SessionBench::<Runtime>]
+    [pallet_timestamp, Timestamp]
+    [pallet_message_queue, MessageQueue]
+    [pallet_sudo, Sudo]
+    [pallet_collator_selection, CollatorSelection]
+    [cumulus_pallet_parachain_system, ParachainSystem]
+    [cumulus_pallet_xcmp_queue, XcmpQueue]
+    [cumulus_pallet_weight_reclaim, WeightReclaim]
+    [pallet_content_registry, ContentRegistry]
+);
+```
+
+- [ ] **Step 5: Verify the runtime compiles with the benchmarks feature**
+
+Run: `cargo check -p stack-template-runtime --features runtime-benchmarks`
+Expected: OK.
+
+- [ ] **Step 6: Verify the runtime still compiles without the benchmarks feature**
+
+Run: `cargo check -p stack-template-runtime --features std`
+Expected: OK.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add blockchain/runtime/src/genesis_config_presets.rs blockchain/runtime/README.md blockchain/README.md blockchain/runtime/src/benchmarks.rs
+git commit -m "clean up template leftovers and register pallet-content-registry benchmarks"
+```
+
+**Out-of-scope for this task:** renaming the runtime crate (`stack-template-runtime`), updating workspace `Cargo.toml` `homepage`/`repository`, or changing the runtime `spec_name` / `impl_name`. Those are broader branding concerns and not blocking.
+
+---
+
 ## Done
 
-After Task 16 the deliverable for P1a is complete:
-- `pallet-content-registry` with `create_listing` + `purchase`, full unit-test coverage on happy paths and validation rules, benchmarks compile.
+After Task 17 the deliverable for P1a is complete:
+- `pallet-content-registry` with `create_listing` + `purchase`, full unit-test coverage on happy paths and validation rules, benchmarks compile and are registered with the runtime.
 - Runtime builds in release mode; WASM artifact produced.
 - Parachain runs under Zombienet and accepts extrinsics end-to-end.
+- No stray `template_*` references in docs or genesis.
 
 Next: P1b (frontend MVP), which reads this pallet via PAPI, uploads content to Bulletin Chain, and renders the listing/purchase/view UI inside the Triangle sandbox.
 
