@@ -288,6 +288,7 @@ impl pallet_statement::Config for Runtime {
 
 /// Configure the content-registry pallet.
 impl pallet_content_registry::Config for Runtime {
+	type Currency = Balances;
 	type WeightInfo = pallet_content_registry::weights::SubstrateWeight<Runtime>;
 }
 
