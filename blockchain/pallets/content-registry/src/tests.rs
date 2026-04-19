@@ -111,9 +111,9 @@ use crate::pallet::Purchases;
 #[test]
 fn purchases_storage_roundtrip() {
 	new_test_ext().execute_with(|| {
-		Purchases::<Test>::insert(0u64, BOB, ());
-		assert!(Purchases::<Test>::contains_key(0u64, BOB));
-		assert!(!Purchases::<Test>::contains_key(0u64, ALICE));
+		Purchases::<Test>::insert(BOB, 0u64, 5u64);
+		assert_eq!(Purchases::<Test>::get(BOB, 0u64), Some(5));
+		assert_eq!(Purchases::<Test>::get(ALICE, 0u64), None);
 	});
 }
 
@@ -144,7 +144,7 @@ fn purchase_works_and_transfers_funds() {
 
 		assert_eq!(Balances::free_balance(ALICE), alice_before + 300);
 		assert_eq!(Balances::free_balance(BOB), bob_before - 300);
-		assert!(Purchases::<Test>::contains_key(listing_id, BOB));
+		assert_eq!(Purchases::<Test>::get(BOB, listing_id), Some(10));
 
 		System::assert_last_event(
 			crate::Event::PurchaseCompleted {
@@ -189,7 +189,7 @@ fn purchase_fails_if_buyer_cannot_afford_it() {
 		// variant is awkward. assert_noop! would be stronger (asserts the whole
 		// storage root is unchanged) — this is a deliberate, weaker check.
 		assert!(ContentRegistry::purchase(RuntimeOrigin::signed(CHARLIE), listing_id).is_err());
-		assert!(!Purchases::<Test>::contains_key(listing_id, CHARLIE));
+		assert_eq!(Purchases::<Test>::get(CHARLIE, listing_id), None);
 	});
 }
 

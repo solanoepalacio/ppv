@@ -74,7 +74,7 @@ mod benchmarks {
 		#[extrinsic_call]
 		purchase(RawOrigin::Signed(buyer.clone()), 0u64);
 
-		assert!(Purchases::<T>::contains_key(0u64, &buyer));
+		assert!(Purchases::<T>::contains_key(&buyer, 0u64));
 	}
 
 	impl_benchmark_test_suite!(ContentRegistry, crate::mock::new_test_ext(), crate::mock::Test);

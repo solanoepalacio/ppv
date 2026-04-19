@@ -102,15 +102,17 @@ pub mod pallet {
 	pub type Listings<T: Config> =
 		StorageMap<_, Blake2_128Concat, ListingId, Listing<T>, OptionQuery>;
 
-	/// Set of (listing_id, buyer) pairs marking completed purchases.
+	/// Records each buyer's purchases, keyed (buyer, listing_id). Value is
+	/// the block number the purchase was completed at — used by the frontend's
+	/// "My Purchases" view to sort the buyer's library by purchase time.
 	#[pallet::storage]
 	pub type Purchases<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
-		ListingId,
-		Blake2_128Concat,
 		T::AccountId,
-		(),
+		Blake2_128Concat,
+		ListingId,
+		BlockNumberFor<T>,
 		OptionQuery,
 	>;
 
@@ -191,7 +193,7 @@ pub mod pallet {
 
 			ensure!(buyer != listing.creator, Error::<T>::BuyerIsCreator);
 			ensure!(
-				!Purchases::<T>::contains_key(listing_id, &buyer),
+				!Purchases::<T>::contains_key(&buyer, listing_id),
 				Error::<T>::AlreadyPurchased,
 			);
 
@@ -202,7 +204,8 @@ pub mod pallet {
 				ExistenceRequirement::KeepAlive,
 			)?;
 
-			Purchases::<T>::insert(listing_id, &buyer, ());
+			let now = frame_system::Pallet::<T>::block_number();
+			Purchases::<T>::insert(&buyer, listing_id, now);
 
 			Self::deposit_event(Event::PurchaseCompleted {
 				listing_id,
