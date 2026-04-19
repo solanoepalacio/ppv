@@ -97,6 +97,18 @@ pub mod pallet {
 	pub type Listings<T: Config> =
 		StorageMap<_, Blake2_128Concat, ListingId, Listing<T>, OptionQuery>;
 
+	/// Set of (listing_id, buyer) pairs marking completed purchases.
+	#[pallet::storage]
+	pub type Purchases<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		ListingId,
+		Blake2_128Concat,
+		T::AccountId,
+		(),
+		OptionQuery,
+	>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {

@@ -14,7 +14,7 @@ Plan: [`docs/plans/P1a-pallet-runtime.md`](./plans/P1a-pallet-runtime.md) · Ove
 - [x] Task 4: Add Listing struct + NextListingId + Listings storage
 - [x] Task 5: create_listing extrinsic (happy path)
 - [x] Task 6: create_listing validation — price > 0
-- [ ] Task 7: Add Purchases storage map
+- [x] Task 7: Add Purchases storage map
 - [ ] Task 8: purchase extrinsic (happy path)
 - [ ] Task 9: purchase validation — buyer ≠ creator
 - [ ] Task 10: purchase validation — no double purchase

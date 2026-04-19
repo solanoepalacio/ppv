@@ -99,6 +99,17 @@ fn create_listing_fails_if_price_zero() {
 	});
 }
 
+use crate::pallet::Purchases;
+
+#[test]
+fn purchases_storage_roundtrip() {
+	new_test_ext().execute_with(|| {
+		Purchases::<Test>::insert(0u64, BOB, ());
+		assert!(Purchases::<Test>::contains_key(0u64, BOB));
+		assert!(!Purchases::<Test>::contains_key(0u64, ALICE));
+	});
+}
+
 #[test]
 fn create_listing_fails_on_id_overflow() {
 	new_test_ext().execute_with(|| {

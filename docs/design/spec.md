@@ -64,13 +64,13 @@ Each phase is demoable on its own.
 // Phase 1
 NextListingId: StorageValue<u64>
 Listings:      StorageMap<ListingId, Listing<T>, OptionQuery>
-Purchases:     StorageMap<(ListingId, AccountId), BlockNumber, OptionQuery>
+Purchases:     StorageDoubleMap<ListingId, AccountId, (), OptionQuery>
 
 // Phase 2
 ServicePublicKey:  StorageValue<[u8; 32], ValueQuery>     // SVC_PUB (x25519); set at genesis, immutable
 ServiceAccountId:  StorageValue<AccountId, ValueQuery>    // sr25519 account authorized to call grant_access / regrant_access; set at genesis, immutable
 EncryptionKeys:    StorageMap<AccountId, [u8; 32], OptionQuery>
-WrappedKeys:       StorageMap<(ListingId, AccountId), BoundedVec<u8, ...>, OptionQuery>
+WrappedKeys:       StorageDoubleMap<ListingId, AccountId, BoundedVec<u8, ...>, OptionQuery>
 ```
 
 ### `Listing` struct
