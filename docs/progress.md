@@ -42,7 +42,7 @@ Plan: [`docs/plans/P1b-frontend.md`](./plans/P1b-frontend.md)
 - [x] Task 8: VideoPlayer component (IPFS fetch + blake2b integrity)
 - [x] Task 9: Listing Detail page (all states)
 - [x] Task 10: Create page — video/thumbnail pickers + metadata form
-- [ ] Task 11: Create page — upload/submit flow + CreateChecklist
+- [x] Task 11: Create page — upload/submit flow + CreateChecklist
 - [ ] Task 12: My Purchases page
 - [ ] Task 13: TypeScript check + dev-server smoke test against Zombienet
 
