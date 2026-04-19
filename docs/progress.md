@@ -36,12 +36,12 @@ Plan: [`docs/plans/P1b-frontend.md`](./plans/P1b-frontend.md)
 - [x] Task 2: Utility functions — bulletinCid + contentHash (TDD)
 - [x] Task 3: Store refactor + useParachainProvider (Triangle/dev detection)
 - [x] Task 4: App shell — nav, routes, account pill
-- [ ] Task 5: useContentRegistry PAPI hook
-- [ ] Task 6: useBulletinUpload (bulletin-sdk + IPFS fetch)
-- [ ] Task 7: Browse page + ListingCard + SkeletonCard
-- [ ] Task 8: VideoPlayer component (IPFS fetch + blake2b integrity)
-- [ ] Task 9: Listing Detail page (all states)
-- [ ] Task 10: Create page — video/thumbnail pickers + metadata form
+- [x] Task 5: useContentRegistry PAPI hook
+- [x] Task 6: useBulletinUpload (bulletin-sdk + IPFS fetch)
+- [x] Task 7: Browse page + ListingCard + SkeletonCard
+- [x] Task 8: VideoPlayer component (IPFS fetch + blake2b integrity)
+- [x] Task 9: Listing Detail page (all states)
+- [x] Task 10: Create page — video/thumbnail pickers + metadata form
 - [ ] Task 11: Create page — upload/submit flow + CreateChecklist
 - [ ] Task 12: My Purchases page
 - [ ] Task 13: TypeScript check + dev-server smoke test against Zombienet
