@@ -79,12 +79,17 @@ WrappedKeys:       StorageMap<(ListingId, AccountId), BoundedVec<u8, ...>, Optio
 struct Listing<T: Config> {
     creator: T::AccountId,
     price: BalanceOf<T>,
-    content_cid: [u8; 32],                          // Bulletin CID of ciphertext (Phase 2) or plaintext (Phase 1)
+    content_cid: BulletinCid,                       // Codec + blake2b-256 digest of stored bytes (ciphertext in Phase 2, plaintext in Phase 1).
     content_hash: [u8; 32],                         // blake2b-256 of plaintext
     title: BoundedVec<u8, ConstU32<128>>,
     description: BoundedVec<u8, ConstU32<2048>>,
     locked_content_lock_key: BoundedVec<u8, ...>,   // Phase 2: sealed to SVC_PUB. Empty in Phase 1.
     created_at: BlockNumberFor<T>,
+}
+
+struct BulletinCid {
+    codec:  u8,                                     // 0x55 (raw) for ≤2 MiB single-chunk, 0x70 (dag-pb) for chunked DAG manifests.
+    digest: [u8; 32],                               // blake2b-256. Full CID reconstructs as CIDv1 + codec + multihash(0xb220, 32, digest).
 }
 ```
 
@@ -160,10 +165,12 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 
 ### Creator upload flow
 1. Generate a random content-lock-key.
-2. Encrypt the content with the content-lock-key; upload ciphertext to Bulletin Chain; obtain CID.
-3. Compute `blake2b-256(plaintext)` for the hash field.
-4. Fetch `SVC_PUB` from the `ServicePublicKey` storage item via PAPI; seal the content-lock-key to it → `locked_content_lock_key`.
-5. Submit `create_listing(content_cid, content_hash, title, description, price, locked_content_lock_key)`.
+2. Encrypt the content with the content-lock-key. Compute the content CID offline via the SDK — no network call. The SDK returns CIDv1 + codec (`raw` 0x55 for single-chunk, `dag-pb` 0x70 for chunked DAG manifest) + 32-byte blake2b-256 digest. Both codec and digest are stored on the listing as `content_cid: BulletinCid`; the digest alone feeds `authorize_preimage`.
+3. Submit `authorize_preimage(hash, byte_length)` to Bulletin Chain, signed by `//Alice`, where `hash` is that 32-byte ciphertext digest. On Paseo testnet, `Alice` is in the `TransactionStorage::Authorizer` origin's `TestAccounts` set and is the sanctioned signer for authorize calls — no user signature or fee. (Mainnet Bulletin is not yet deployed; out of scope.) `scripts/verify-bulletin-faucet.ts` exercises this flow end-to-end against `wss://paseo-bulletin-rpc.polkadot.io`.
+4. Submit the store unsigned via `@parity/bulletin-sdk` — preimage authorization already gates the write. The SDK handles chunking (files >2 MiB), retries, and typed error recovery (`BulletinError.isRetryable`).
+5. Compute `blake2b-256(plaintext)` for the `content_hash` field.
+6. Fetch `SVC_PUB` from the `ServicePublicKey` storage item via PAPI; seal the content-lock-key to it → `locked_content_lock_key`.
+7. Submit `create_listing(content_cid, content_hash, title, description, price, locked_content_lock_key)`.
 
 ### Purchase flow
 1. If the buyer hasn't registered an encryption key yet, generate an x25519 keypair in the browser and persist the private half to sandbox local-storage.
@@ -171,7 +178,7 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 3. Pallet transfers funds (if user has enough funds), records the purchase, emits `PurchaseCompleted`.
 
 ### Chain-service grant flow
-1. Daemon observes `PurchaseCompleted(listing_id, buyer)` via a PAPI/subxt event subscription to the parachain.
+1. Daemon observes `PurchaseCompleted(listing_id, buyer)` via a subxt event subscription (types generated from parachain metadata via `subxt-codegen`).
 2. Reads `Listings[listing_id].locked_content_lock_key` and `EncryptionKeys[buyer]`.
 3. Unseals the content-lock-key with `SVC_PRIV`.
 4. Seals the content-lock-key to the buyer's x25519 pubkey → `wrapped_key`.
@@ -181,7 +188,7 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 1. Frontend subscribes to `WrappedKeys[(listing_id, buyer)]`.
 2. Once populated, reads the buyer's x25519 private key from sandbox local-storage.
 3. Unseals `wrapped_key` in pure JS → recovers the content-lock-key. Phone is not involved.
-4. Fetches ciphertext from Bulletin Chain via the content CID.
+4. Reconstructs the content CID from `Listings[listing_id].content_cid` (CIDv1 + `codec` + multihash(blake2b-256, `digest`)) and fetches ciphertext from any public IPFS gateway. Bulletin Chain reads are served over IPFS, not the parachain RPC.
 5. Decrypts the ciphertext using the content-lock-key.
 6. Recomputes `blake2b-256(plaintext)` and compares to `Listings[listing_id].content_hash`; surfaces a verified-content indicator.
 7. Renders.
@@ -189,9 +196,10 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 ## 6. Frontend model
 
 - **Polkadot Triangle sandbox.** The frontend runs inside an isolated shell provided by a Triangle host. No direct WebSocket or fetch — all chain access goes through PAPI providers supplied by the host.
+- **Bulletin client.** Writes use `@parity/bulletin-sdk`, which accepts the Triangle-provided PAPI provider (BYOC — SDK doesn't own the connection). Reads resolve via any public IPFS gateway. Promise-based API; no raw Observable handling needed.
 - **Signing.** Delegated to the paired mobile host via Statement Store relay. Every on-chain action is phone-confirmed.
 - **Decryption.** Performed in pure JS inside the sandbox using a browser-held x25519 private key. The Triangle host API does not expose a decryption primitive.
-- **Session-key persistence.** Buyer's x25519 private key is persisted to sandbox-local storage (localStorage or IndexedDB — to verify empirically which the sandbox permits during early Phase 2 work).
+- **Session-key persistence.** Buyer's x25519 private key is persisted via the host's `createLocalStorage` primitive — host-mediated, per-product key-scoped (namespaced by the host, not by the app). Direct access to browser `localStorage`/`IndexedDB` from inside the sandbox is prohibited; the host primitive is the only supported path.
 - **Session-key loss recovery.** Not handled in Phase 2 — key loss means permanent loss of access to past purchases. A smooth recovery flow is deferred to Phase 4 (§3).
 - **Account model.** One Polkadot account per user (the Triangle host account), accessed via the host's account APIs.
 
@@ -204,5 +212,5 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
   - Operator generates the x25519 SVC keypair (`SVC_PRIV` / `SVC_PUB`) on a secure machine. `SVC_PUB` bytes are embedded in the genesis config under `ServicePublicKey`.
   - Operator generates (or reuses) the sr25519 service account keypair. The corresponding AccountId is embedded in the genesis config under `ServiceAccountId` and receives a one-time existential deposit transfer at setup time.
   - Daemon configured with both key files (`SVC_PRIV` and the sr25519 service key) at locked-down paths (files `chmod 600`, daemon-owned directory `chmod 700`). Paths passed via CLI flags or env vars.
-  - Daemon runs as a separate process alongside the collator; it talks to the parachain via PAPI/subxt over the node's RPC endpoint. No keys live in the Substrate keystore.
+  - Daemon runs as a Rust binary (subxt) alongside the collator; it talks to the parachain via subxt over the node's RPC endpoint. No keys live in the Substrate keystore.
   - No generated keys are ever committed to git.
