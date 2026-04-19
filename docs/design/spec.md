@@ -142,8 +142,12 @@ Pallet extrinsics enforce the following preconditions; violations return a dispa
 - `purchase`: `buyer != creator`. Creators cannot purchase their own listings.
 - `purchase`: `Purchases[(listing_id, buyer)]` must not already exist. A given buyer can purchase any listing at most once.
 
-### Batched first-purchase UX
-First purchase uses `pallet-utility::batch_all([register_encryption_key, purchase])` — single phone signature, atomic. Subsequent purchases use `purchase` directly.
+### Batched first-write UX
+The first on-chain write that depends on an `EncryptionKeys[caller]` entry must register one first. This applies symmetrically to:
+- **First purchase** — `pallet-utility::batch_all([register_encryption_key, purchase])`.
+- **First listing creation** — `pallet-utility::batch_all([register_encryption_key, create_listing])`. Required because the chain-service wraps the content-lock-key for the creator on `ListingCreated` (see [Chain-service grant flow](#chain-service-grant-flow)), which needs the creator's x25519 pubkey to already be on-chain.
+
+Both batches produce a single phone signature and are atomic. Subsequent calls of either extrinsic use the plain extrinsic directly.
 
 Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't decode inner calls readably): replace with a one-time "Set up your account" step that registers the encryption key up-front. One extra signature, one-time.
 
@@ -176,8 +180,8 @@ Thumbnail extraction and upload apply to both Phase 1 and Phase 2; encryption an
 6. Submit two stores unsigned via `@parity/bulletin-sdk` — one for the thumbnail, one for the content. Preimage authorization already gates the writes. The SDK handles chunking (files >2 MiB), retries, and typed error recovery (`BulletinError.isRetryable`). The thumbnail is always stored unencrypted (even in Phase 2) so the browse grid can render without keys.
 7. Compute `blake2b-256(plaintext)` for the `content_hash` field.
 8. *(Phase 2 only)* Fetch `SVC_PUB` from the `ServicePublicKey` storage item via PAPI; seal the content-lock-key to it → `locked_content_lock_key`.
-9. Submit `create_listing(content_cid, thumbnail_cid, content_hash, title, description, price[, locked_content_lock_key])`. The `locked_content_lock_key` parameter is Phase 2 only.
-10. *(Phase 2 only)* After the extrinsic succeeds and the new `listing_id` is known, persist the plaintext content-lock-key in the sandbox's host-mediated local-storage keyed by `listing_id`. This is how the creator decrypts their own content for playback without going through the chain-service grant path — see [Creator playback flow](#creator-playback-flow).
+9. Submit `create_listing(content_cid, thumbnail_cid, content_hash, title, description, price[, locked_content_lock_key])`. The `locked_content_lock_key` parameter is Phase 2 only. On first-ever listing creation, this is batched with `register_encryption_key` via `pallet-utility::batch_all` — see [Batched first-write UX](#batched-first-write-ux).
+10. *(Phase 2 only)* The creator's frontend retains the plaintext content-lock-key in memory for the remainder of the current session, so the creator can play back the content they just uploaded without waiting for the chain-service to write `WrappedKeys[(listing_id, creator)]`. The key is **not** persisted to local-storage — on a fresh session the creator reads the wrapped key from chain like any buyer would.
 
 ### Purchase flow
 1. If the buyer hasn't registered an encryption key yet, generate an x25519 keypair in the browser and persist the private half to sandbox local-storage.
@@ -185,30 +189,35 @@ Thumbnail extraction and upload apply to both Phase 1 and Phase 2; encryption an
 3. Pallet transfers funds (if user has enough funds), records the purchase, emits `PurchaseCompleted`.
 
 ### Chain-service grant flow
-1. Daemon observes `PurchaseCompleted(listing_id, buyer)` via a subxt event subscription (types generated from parachain metadata via `subxt-codegen`).
-2. Reads `Listings[listing_id].locked_content_lock_key` and `EncryptionKeys[buyer]`.
-3. Unseals the content-lock-key with `SVC_PRIV`.
-4. Seals the content-lock-key to the buyer's x25519 pubkey → `wrapped_key`.
-5. Submits `grant_access(listing_id, buyer, wrapped_key)` signed with `SERVICE_ACCOUNT_KEY`; the extrinsic is authorized by `ServiceOrigin` and marked `Pays::No`.
 
-### Buyer decryption flow
-1. Frontend subscribes to `WrappedKeys[(listing_id, buyer)]`.
-2. Once populated, reads the buyer's x25519 private key from sandbox local-storage.
+The daemon subscribes to two events via subxt (types generated from parachain metadata via `subxt-codegen`): `PurchaseCompleted` and `ListingCreated`. Both dispatch the same wrap-and-grant routine, differing only in which account receives the wrapped key.
+
+**On `PurchaseCompleted(listing_id, buyer, creator)`** — target is the buyer.
+
+**On `ListingCreated(listing_id, creator, price)`** — target is the creator. This unifies creator playback with the regular decryption path: the creator reads their own wrapped key from `WrappedKeys[(listing_id, creator)]` the same way a buyer reads theirs.
+
+Shared steps (applied with the appropriate target):
+
+1. Read `Listings[listing_id].locked_content_lock_key` and `EncryptionKeys[target]`.
+2. Unseal the content-lock-key with `SVC_PRIV`.
+3. Seal the content-lock-key to the target's x25519 pubkey → `wrapped_key`.
+4. Submit `grant_access(listing_id, target, wrapped_key)` signed with `SERVICE_ACCOUNT_KEY`; the extrinsic is authorized by `ServiceOrigin` and marked `Pays::No`.
+
+Because creators batch `register_encryption_key` with their first `create_listing` (see [Batched first-write UX](#batched-first-write-ux)), `EncryptionKeys[creator]` is guaranteed to exist at the moment the daemon handles `ListingCreated`.
+
+### Buyer and creator decryption flow
+
+The same flow applies to any account that has a `WrappedKeys[(listing_id, account)]` entry, whether they obtained it by purchasing the listing or by creating it.
+
+1. Frontend subscribes to `WrappedKeys[(listing_id, currentAccount)]`.
+2. Once populated, reads the account's x25519 private key from sandbox local-storage.
 3. Unseals `wrapped_key` in pure JS → recovers the content-lock-key. Phone is not involved.
 4. Reconstructs the content CID from `Listings[listing_id].content_cid` (CIDv1 + `codec` + multihash(blake2b-256, `digest`)) and fetches ciphertext from any public IPFS gateway. Bulletin Chain reads are served over IPFS, not the parachain RPC.
 5. Decrypts the ciphertext using the content-lock-key.
 6. Recomputes `blake2b-256(plaintext)` and compares to `Listings[listing_id].content_hash`; surfaces a verified-content indicator.
 7. Renders.
 
-### Creator playback flow
-
-A creator must be able to watch their own listings without purchasing them (the pallet disallows `buyer == creator` on `purchase`). To avoid introducing a creator-specific grant path on-chain, playback uses the content-lock-key the creator already generated at upload time.
-
-1. At upload time (step 10 of [Creator upload flow](#creator-upload-flow)), the creator's frontend persists the plaintext content-lock-key to sandbox local-storage keyed by `listing_id`.
-2. When the creator opens their own listing, the frontend recognizes them as the creator (`Listings[listing_id].creator == currentAccount`) and reads the content-lock-key directly from local-storage.
-3. Ciphertext is fetched and decrypted exactly as in steps 4–7 of the buyer decryption flow above.
-
-No `WrappedKeys` entry is written for the creator, no `grant_access` call is made, and the chain-service is not involved. If the creator loses their local-storage entry they lose playback access to their own listing — same failure mode as the buyer-side session-key loss, acknowledged in `gaps.md` and deferred to Phase 4.
+**Creator fast-path for the same session.** Immediately after upload the creator's frontend holds the plaintext content-lock-key in memory (step 10 of [Creator upload flow](#creator-upload-flow)) and can play back their content without waiting for the daemon to write `WrappedKeys[(listing_id, creator)]`. On any fresh session the creator falls through to the normal decryption flow above.
 
 ## 6. Frontend model
 
