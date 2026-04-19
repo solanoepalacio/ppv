@@ -32,7 +32,7 @@ Plan: [`docs/plans/P1a-pallet-runtime.md`](./plans/P1a-pallet-runtime.md) · Ove
 
 Plan: [`docs/plans/P1b-frontend.md`](./plans/P1b-frontend.md)
 
-- [ ] Task 1: Install @parity/bulletin-sdk + Vitest + regenerate PAPI descriptors
+- [x] Task 1: Install @parity/bulletin-sdk + Vitest + regenerate PAPI descriptors
 - [ ] Task 2: Utility functions — bulletinCid + contentHash (TDD)
 - [ ] Task 3: Store refactor + useParachainProvider (Triangle/dev detection)
 - [ ] Task 4: App shell — nav, routes, account pill
