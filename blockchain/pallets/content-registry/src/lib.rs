@@ -45,6 +45,17 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 	}
 
+	/// Content identifier for a Bulletin Chain upload.
+	///
+	/// The full IPFS CID reconstructs as: CIDv1 + `codec` + multihash(0xb220, 32, `digest`).
+	/// - `codec = 0x55` (raw) for single-chunk uploads ≤ 2 MiB
+	/// - `codec = 0x70` (dag-pb) for chunked DAG manifests
+	#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	pub struct BulletinCid {
+		pub codec: u8,
+		pub digest: [u8; 32],
+	}
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {}
