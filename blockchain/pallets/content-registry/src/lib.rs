@@ -56,6 +56,35 @@ pub mod pallet {
 		pub digest: [u8; 32],
 	}
 
+	/// A published content listing.
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[scale_info(skip_type_params(T))]
+	pub struct Listing<T: Config> {
+		/// Account that published the listing and receives payment.
+		pub creator: T::AccountId,
+		/// Flat price in native token.
+		pub price: BalanceOf<T>,
+		/// Content CID on Bulletin Chain (ciphertext in Phase 2, plaintext in Phase 1).
+		pub content_cid: BulletinCid,
+		/// blake2b-256 of plaintext. Buyer frontend verifies after decryption.
+		pub content_hash: [u8; 32],
+		/// Display title.
+		pub title: BoundedVec<u8, ConstU32<128>>,
+		/// Display description.
+		pub description: BoundedVec<u8, ConstU32<2048>>,
+		/// Phase 2: content-lock-key sealed to `SVC_PUB`. Empty in Phase 1.
+		pub locked_content_lock_key: BoundedVec<u8, ConstU32<128>>,
+		/// Block number the listing was created at.
+		pub created_at: BlockNumberFor<T>,
+	}
+
+	#[pallet::storage]
+	pub type NextListingId<T: Config> = StorageValue<_, ListingId, ValueQuery>;
+
+	#[pallet::storage]
+	pub type Listings<T: Config> =
+		StorageMap<_, Blake2_128Concat, ListingId, Listing<T>, OptionQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {}

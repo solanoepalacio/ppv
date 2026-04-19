@@ -10,8 +10,8 @@ Plan: [`docs/plans/P1a-pallet-runtime.md`](./plans/P1a-pallet-runtime.md) · Ove
 
 - [x] Task 1: Rename pallet-template → pallet-content-registry
 - [x] Task 2: Strip PoE, add Currency to Config, wire balances into mock
-- [ ] Task 3: Add BulletinCid type
-- [ ] Task 4: Add Listing struct + NextListingId + Listings storage
+- [x] Task 3: Add BulletinCid type
+- [x] Task 4: Add Listing struct + NextListingId + Listings storage
 - [ ] Task 5: create_listing extrinsic (happy path)
 - [ ] Task 6: create_listing validation — price > 0
 - [ ] Task 7: Add Purchases storage map
