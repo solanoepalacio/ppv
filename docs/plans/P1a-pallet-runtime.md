@@ -1701,7 +1701,7 @@ npm run codegen
 cd ..
 ```
 
-Expected: `web/.papi/descriptors/` contains fresh `stack_template.ts` (or equivalent name from `polkadot-api.json`) with `pallets.ContentRegistry` in it.
+Expected: `web/.papi/descriptors/` contains fresh `ppview.ts` (or equivalent name from `polkadot-api.json`) with `pallets.ContentRegistry` in it.
 
 If the generator output uses a different symbol name (e.g. because the runtime crate is still called `ppview-runtime`), that's fine — we reference what the generator produced.
 
@@ -1721,8 +1721,8 @@ import {
     mnemonicToEntropy,
 } from "@polkadot-labs/hdkd-helpers";
 // Import path depends on the name chosen in web/.papi/polkadot-api.json.
-// If the descriptor key is "stack_template", this is:
-import { stack_template } from "../web/.papi/descriptors/dist";
+// If the descriptor key is "ppview", this is:
+import { ppview } from "../web/.papi/descriptors/dist";
 
 const PARACHAIN_WS = process.env.PARACHAIN_WS ?? "ws://127.0.0.1:9988";
 
@@ -1736,7 +1736,7 @@ function devSigner(path: string) {
 
 async function main() {
     const client = createClient(withPolkadotSdkCompat(getWsProvider(PARACHAIN_WS)));
-    const api = client.getTypedApi(stack_template);
+    const api = client.getTypedApi(ppview);
 
     const alice = devSigner("//Alice");
     const bob = devSigner("//Bob");
@@ -1791,7 +1791,7 @@ main().catch((e) => {
 ```
 
 Notes for the executing engineer:
-- The exact symbol `stack_template` comes from `web/.papi/polkadot-api.json`'s entry key. If it's different (e.g. `parachain`), adjust the import.
+- The exact symbol `ppview` comes from `web/.papi/polkadot-api.json`'s entry key. If it's different (e.g. `parachain`), adjust the import.
 - Field names (`create_listing` vs `createListing`, etc.) may be camelCased by PAPI. Match whatever the generator produced by opening `web/.papi/descriptors/dist/*.d.ts` and reading the typed API surface.
 - If `scripts/package.json` uses a different test runner (e.g. `tsx`, `bun`), invoke with that.
 

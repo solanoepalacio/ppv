@@ -47,7 +47,7 @@ check() {
     fi
 }
 
-echo "=== Polkadot Stack Template - Zombienet E2E Test ==="
+echo "=== Pay-Per-View - Zombienet E2E Test ==="
 echo ""
 log_info "Testing against $WS_URL and $ETH_URL"
 echo ""

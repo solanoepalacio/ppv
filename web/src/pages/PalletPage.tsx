@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useChainStore } from "../store/chainStore";
 import { devAccounts } from "../hooks/useAccount";
 import { getClient } from "../hooks/useChain";
-import { stack_template } from "@polkadot-api/descriptors";
+import { ppview } from "@polkadot-api/descriptors";
 import { Binary } from "polkadot-api";
 import FileDropZone from "../components/FileDropZone";
 import { hexHashToCid, ipfsUrl, checkIpfsAvailable } from "../utils/cid";
@@ -40,7 +40,7 @@ export default function PalletPage() {
 
 	function getApi() {
 		const client = getClient(wsUrl);
-		return client.getTypedApi(stack_template);
+		return client.getTypedApi(ppview);
 	}
 
 	const onFileHashed = useCallback((hash: `0x${string}`) => {

@@ -2,20 +2,20 @@ import { useCallback, useEffect, useRef } from "react";
 import { getClient, disconnectClient } from "./useChain";
 import { useChainStore } from "../store/chainStore";
 
-let stackTemplateDescriptorPromise: Promise<
-	(typeof import("@polkadot-api/descriptors"))["stack_template"]
+let ppviewDescriptorPromise: Promise<
+	(typeof import("@polkadot-api/descriptors"))["ppview"]
 > | null = null;
 
 let connectId = 0;
 
-async function getStackTemplateDescriptor() {
-	if (!stackTemplateDescriptorPromise) {
-		stackTemplateDescriptorPromise = import("@polkadot-api/descriptors").then(
-			({ stack_template }) => stack_template,
+async function getPpviewDescriptor() {
+	if (!ppviewDescriptorPromise) {
+		ppviewDescriptorPromise = import("@polkadot-api/descriptors").then(
+			({ ppview }) => ppview,
 		);
 	}
 
-	return stackTemplateDescriptorPromise;
+	return ppviewDescriptorPromise;
 }
 
 export function useConnection() {
@@ -36,7 +36,7 @@ export function useConnection() {
 
 			try {
 				const client = getClient(url);
-				const descriptor = await getStackTemplateDescriptor();
+				const descriptor = await getPpviewDescriptor();
 				const chain = await Promise.race([
 					client.getChainSpecData(),
 					new Promise<never>((_, reject) =>

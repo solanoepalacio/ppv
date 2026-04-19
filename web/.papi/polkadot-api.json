@@ -2,9 +2,9 @@
   "version": 0,
   "descriptorPath": ".papi/descriptors",
   "entries": {
-    "stack_template": {
+    "ppview": {
       "wsUrl": "ws://127.0.0.1:9944",
-      "metadata": ".papi/metadata/stack_template.scale",
+      "metadata": ".papi/metadata/ppview.scale",
       "genesis": "0x4545454545454545454545454545454545454545454545454545454545454545",
       "codeHash": "0x5d82548ee8362ca123514269ea6df6f1ad252e4f120516b810bcb2cb29957eb8"
     },

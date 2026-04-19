@@ -184,8 +184,8 @@ generate_chain_spec() {
     chain-spec-builder \
         -c "$CHAIN_SPEC" \
         create \
-        --chain-name "Polkadot Stack Template" \
-        --chain-id "polkadot-stack-template" \
+        --chain-name "Pay-Per-View" \
+        --chain-id "ppview-local" \
         -t development \
         --relay-chain rococo-local \
         --para-id 1000 \
@@ -361,7 +361,7 @@ write_papi_config() {
 const fs = require("fs");
 const [inputPath, outputPath, wsUrl] = process.argv.slice(1);
 const config = JSON.parse(fs.readFileSync(inputPath, "utf8"));
-config.entries.stack_template.wsUrl = wsUrl;
+config.entries.ppview.wsUrl = wsUrl;
 fs.writeFileSync(outputPath, `${JSON.stringify(config, null, 2)}\n`);
 ' "$ROOT_DIR/web/.papi/polkadot-api.json" "$output_path" "$SUBSTRATE_RPC_WS"
 }

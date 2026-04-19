@@ -23,7 +23,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "=== Polkadot Stack Template - Full Local Stack ==="
+echo "=== Pay-Per-View - Full Local Stack ==="
 echo ""
 log_info "This is the recommended one-command path."
 log_info "It uses Zombienet (relay chain + parachain) so all examples work,"

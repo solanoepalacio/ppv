@@ -7,9 +7,9 @@ members = [
 
 [workspace.package]
 license = "MIT"
-authors = ["Polkadot Stack Template Contributors"]
-homepage = "https://github.com/parity-Asia/polkadot-stack-template"
-repository = "https://github.com/parity-Asia/polkadot-stack-template.git"
+authors = ["Solano Palacio <solanoepalacio@gmail.com>"]
+homepage = "https://github.com/solanoe/ppview"
+repository = "https://github.com/solanoe/ppview.git"
 edition = "2021"
 
 [workspace.dependencies]
