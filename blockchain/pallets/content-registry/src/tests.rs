@@ -80,3 +80,22 @@ fn create_listing_works() {
 		);
 	});
 }
+
+#[test]
+fn create_listing_fails_on_id_overflow() {
+	new_test_ext().execute_with(|| {
+		NextListingId::<Test>::put(u64::MAX);
+		assert_noop!(
+			ContentRegistry::create_listing(
+				RuntimeOrigin::signed(ALICE),
+				sample_cid(),
+				[0x33u8; 32],
+				bvec::<128>(b"t"),
+				bvec::<2048>(b"d"),
+				500,
+				bvec::<128>(&[]),
+			),
+			crate::Error::<Test>::ListingIdOverflow,
+		);
+	});
+}
