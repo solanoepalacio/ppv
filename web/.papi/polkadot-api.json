@@ -5,8 +5,8 @@
     "ppview": {
       "wsUrl": "ws://127.0.0.1:9944",
       "metadata": ".papi/metadata/ppview.scale",
-      "genesis": "0x4545454545454545454545454545454545454545454545454545454545454545",
-      "codeHash": "0x5d82548ee8362ca123514269ea6df6f1ad252e4f120516b810bcb2cb29957eb8"
+      "genesis": "0xa40df30f5a7de0f1ed05fcf0a008736c8d5917dc4878fe7c4c9bf9b5e9da6b11",
+      "codeHash": "0xb6cbd88d5c2db3c820ae659eb14c6b20735384bab2439b70ff2cf1abbb4ce49a"
     },
     "bulletin": {
       "wsUrl": "wss://paseo-bulletin-rpc.polkadot.io",

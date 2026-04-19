@@ -13,23 +13,23 @@ var toBinary = (base64) => {
   return bytes;
 };
 
-// .papi/descriptors/src/stack_template.ts
-var descriptorValues = import("./descriptors-WIWSIN73.mjs").then((module) => module["Stack_template"]);
-var metadataTypes = import("./metadataTypes-N3ONLFCD.mjs").then(
+// .papi/descriptors/src/ppview.ts
+var descriptorValues = import("./descriptors-EAO7QN3S.mjs").then((module) => module["Ppview"]);
+var metadataTypes = import("./metadataTypes-VK6D3XKH.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
 var asset = {};
 var extensions = {};
-var getMetadata = () => import("./stack_template_metadata-VR46LRFX.mjs").then(
+var getMetadata = () => import("./ppview_metadata-RFZ2CKK5.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
-var genesis = "0x4545454545454545454545454545454545454545454545454545454545454545";
+var genesis = "0xa40df30f5a7de0f1ed05fcf0a008736c8d5917dc4878fe7c4c9bf9b5e9da6b11";
 var _allDescriptors = { descriptors: descriptorValues, metadataTypes, asset, extensions, getMetadata, genesis };
-var stack_template_default = _allDescriptors;
+var ppview_default = _allDescriptors;
 
 // .papi/descriptors/src/bulletin.ts
-var descriptorValues2 = import("./descriptors-WIWSIN73.mjs").then((module) => module["Bulletin"]);
-var metadataTypes2 = import("./metadataTypes-N3ONLFCD.mjs").then(
+var descriptorValues2 = import("./descriptors-EAO7QN3S.mjs").then((module) => module["Bulletin"]);
+var metadataTypes2 = import("./metadataTypes-VK6D3XKH.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
 var asset2 = {};
@@ -95,7 +95,7 @@ var XcmVersionedAsset = _Enum;
 
 // .papi/descriptors/src/index.ts
 var metadatas = {
-  ["0x5d82548ee8362ca123514269ea6df6f1ad252e4f120516b810bcb2cb29957eb8"]: stack_template_default,
+  ["0xb6cbd88d5c2db3c820ae659eb14c6b20735384bab2439b70ff2cf1abbb4ce49a"]: ppview_default,
   ["0x1a82e5143be3211ded412b0368b486ce83bd41a80ec95eb267f6c204adda8365"]: bulletin_default
 };
 var getMetadata3 = async (codeHash) => {
@@ -157,5 +157,5 @@ export {
   XcmVersionedXcm,
   bulletin_default as bulletin,
   getMetadata3 as getMetadata,
-  stack_template_default as stack_template
+  ppview_default as ppview
 };

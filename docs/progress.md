@@ -26,7 +26,7 @@ Plan: [`docs/plans/P1a-pallet-runtime.md`](./plans/P1a-pallet-runtime.md) · Ove
 - [x] Task 16: Flip Purchases to StorageDoubleMap<AccountId, ListingId, BlockNumberFor<T>> + sync spec
 - [x] Task 17: Clean up template leftovers + register pallet benchmarks in runtime
 - [x] Task 18: Release build + WASM artifact
-- [ ] Task 19: Zombienet E2E smoke script
+- [x] Task 19: Zombienet E2E smoke script
 
 ### P1b — Frontend MVP
 
