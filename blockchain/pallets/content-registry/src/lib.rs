@@ -117,6 +117,11 @@ pub mod pallet {
 			creator: T::AccountId,
 			price: BalanceOf<T>,
 		},
+		PurchaseCompleted {
+			listing_id: ListingId,
+			buyer: T::AccountId,
+			creator: T::AccountId,
+		},
 	}
 
 	#[pallet::error]
@@ -125,6 +130,8 @@ pub mod pallet {
 		ListingIdOverflow,
 		/// Listings must have a positive price.
 		ZeroPrice,
+		/// No listing exists for the given ID.
+		ListingNotFound,
 	}
 
 	#[pallet::call]
@@ -162,6 +169,29 @@ pub mod pallet {
 			NextListingId::<T>::put(next);
 
 			Self::deposit_event(Event::ListingCreated { listing_id, creator, price });
+			Ok(())
+		}
+
+		#[pallet::call_index(1)]
+		#[pallet::weight(T::WeightInfo::purchase())]
+		pub fn purchase(origin: OriginFor<T>, listing_id: ListingId) -> DispatchResult {
+			let buyer = ensure_signed(origin)?;
+			let listing = Listings::<T>::get(listing_id).ok_or(Error::<T>::ListingNotFound)?;
+
+			T::Currency::transfer(
+				&buyer,
+				&listing.creator,
+				listing.price,
+				ExistenceRequirement::KeepAlive,
+			)?;
+
+			Purchases::<T>::insert(listing_id, &buyer, ());
+
+			Self::deposit_event(Event::PurchaseCompleted {
+				listing_id,
+				buyer,
+				creator: listing.creator,
+			});
 			Ok(())
 		}
 	}

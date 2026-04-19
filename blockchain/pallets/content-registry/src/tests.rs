@@ -110,6 +110,45 @@ fn purchases_storage_roundtrip() {
 	});
 }
 
+fn seed_listing(creator: AccountId, price: Balance) -> u64 {
+	assert_ok!(ContentRegistry::create_listing(
+		RuntimeOrigin::signed(creator),
+		sample_cid(),
+		[0x33u8; 32],
+		bvec::<128>(b"t"),
+		bvec::<2048>(b"d"),
+		price,
+		bvec::<128>(&[]),
+	));
+	NextListingId::<Test>::get() - 1
+}
+
+#[test]
+fn purchase_works_and_transfers_funds() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(10);
+		let listing_id = seed_listing(ALICE, 300);
+
+		let alice_before = Balances::free_balance(ALICE);
+		let bob_before = Balances::free_balance(BOB);
+
+		assert_ok!(ContentRegistry::purchase(RuntimeOrigin::signed(BOB), listing_id));
+
+		assert_eq!(Balances::free_balance(ALICE), alice_before + 300);
+		assert_eq!(Balances::free_balance(BOB), bob_before - 300);
+		assert!(Purchases::<Test>::contains_key(listing_id, BOB));
+
+		System::assert_last_event(
+			crate::Event::PurchaseCompleted {
+				listing_id,
+				buyer: BOB,
+				creator: ALICE,
+			}
+			.into(),
+		);
+	});
+}
+
 #[test]
 fn create_listing_fails_on_id_overflow() {
 	new_test_ext().execute_with(|| {
