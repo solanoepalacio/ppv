@@ -173,6 +173,19 @@ fn purchase_fails_if_already_purchased() {
 }
 
 #[test]
+fn purchase_fails_if_buyer_cannot_afford_it() {
+	new_test_ext().execute_with(|| {
+		// CHARLIE starts with 500; a 1000-price listing exceeds the keep-alive headroom.
+		let listing_id = seed_listing(ALICE, 1_000);
+		// The error here originates in pallet-balances, not ours, so naming the
+		// variant is awkward. assert_noop! would be stronger (asserts the whole
+		// storage root is unchanged) — this is a deliberate, weaker check.
+		assert!(ContentRegistry::purchase(RuntimeOrigin::signed(CHARLIE), listing_id).is_err());
+		assert!(!Purchases::<Test>::contains_key(listing_id, CHARLIE));
+	});
+}
+
+#[test]
 fn create_listing_fails_on_id_overflow() {
 	new_test_ext().execute_with(|| {
 		NextListingId::<Test>::put(u64::MAX);
