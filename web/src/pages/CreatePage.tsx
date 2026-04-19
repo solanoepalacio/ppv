@@ -1,5 +1,10 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ThumbnailPicker from '../components/ThumbnailPicker';
+import CreateChecklist, { type ChecklistStep, type StepStatus } from '../components/CreateChecklist';
+import { uploadToBulletin } from '../hooks/useBulletinUpload';
+import { submitCreateListing } from '../hooks/useContentRegistry';
+import { getContentHash, HashAlgorithm } from '@parity/bulletin-sdk';
 
 type Section = 'A' | 'B' | 'C' | 'D';
 
@@ -23,6 +28,10 @@ export default function CreatePage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priceInput, setPriceInput] = useState('');
+
+  const navigate = useNavigate();
+  const [steps, setSteps] = useState<ChecklistStep[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const pricePlanck = priceInput ? BigInt(Math.round(parseFloat(priceInput) * 1e10)) : 0n;
 
@@ -61,6 +70,68 @@ export default function CreatePage() {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file) handleFilePick(file);
+  }
+
+  function setStep(id: string, status: StepStatus, detail?: string, errorMsg?: string) {
+    setSteps((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status, detail, errorMsg } : s)),
+    );
+  }
+
+  async function handleSubmit() {
+    if (!videoFile || !thumbnailBytes || !title || !description || pricePlanck <= 0n) return;
+
+    setSubmitting(true);
+    const initialSteps: ChecklistStep[] = [
+      { id: 'cid',     label: 'Computing content CID…',              status: 'pending' },
+      { id: 'thumb',   label: 'Uploading thumbnail to Bulletin…',    status: 'pending' },
+      { id: 'content', label: 'Uploading content to Bulletin…',      status: 'pending' },
+      { id: 'submit',  label: 'Submitting create_listing…',          status: 'pending' },
+    ];
+    setSteps(initialSteps);
+
+    try {
+      setStep('cid', 'running');
+      const videoBytes = new Uint8Array(await videoFile.arrayBuffer());
+      const contentHash = await getContentHash(videoBytes, HashAlgorithm.Blake2b256);
+      setStep('cid', 'done');
+
+      setStep('thumb', 'running');
+      const thumbnailCid = await uploadToBulletin(
+        thumbnailBytes,
+        (pct) => setStep('thumb', 'running', `${Math.round(pct)}%`),
+      );
+      setStep('thumb', 'done');
+
+      setStep('content', 'running');
+      const contentCid = await uploadToBulletin(
+        videoBytes,
+        (pct) => setStep('content', 'running', `${Math.round(pct)}%`),
+      );
+      setStep('content', 'done');
+
+      setStep('submit', 'running');
+      const newId = await submitCreateListing({
+        contentCid,
+        thumbnailCid,
+        contentHash,
+        title,
+        description,
+        price: pricePlanck,
+      });
+      setStep('submit', 'done');
+
+      navigate(`/listing/${newId}`);
+    } catch (e) {
+      setSteps((prev) => {
+        const idx = prev.findIndex((s) => s.status === 'running');
+        if (idx < 0) return prev;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], status: 'error', errorMsg: String(e) };
+        return updated;
+      });
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -168,14 +239,25 @@ export default function CreatePage() {
         </div>
       )}
 
-      {/* Section D placeholder (implemented in Task 11) */}
       {section === 'D' && (
-        <button
-          data-testid="submit-btn"
-          className="w-full py-2.5 rounded-lg bg-polka-500 hover:bg-polka-400 text-white text-sm font-semibold"
-        >
-          Create listing
-        </button>
+        <div className="flex flex-col gap-4">
+          {steps.length === 0 ? (
+            <button
+              data-testid="submit-btn"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full py-2.5 rounded-lg bg-polka-500 hover:bg-polka-400 text-white text-sm
+                         font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create listing
+            </button>
+          ) : (
+            <CreateChecklist
+              steps={steps}
+              onRetry={() => handleSubmit()}
+            />
+          )}
+        </div>
       )}
     </div>
   );
