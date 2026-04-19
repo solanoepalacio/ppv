@@ -64,7 +64,7 @@ Each phase is demoable on its own.
 // Phase 1
 NextListingId: StorageValue<u64>
 Listings:      StorageMap<ListingId, Listing<T>, OptionQuery>
-Purchases:     StorageDoubleMap<ListingId, AccountId, (), OptionQuery>
+Purchases:     StorageDoubleMap<AccountId, ListingId, (), OptionQuery>
 
 // Phase 2
 ServicePublicKey:  StorageValue<[u8; 32], ValueQuery>     // SVC_PUB (x25519); set at genesis, immutable
@@ -80,6 +80,7 @@ struct Listing<T: Config> {
     creator: T::AccountId,
     price: BalanceOf<T>,
     content_cid: BulletinCid,                       // Codec + blake2b-256 digest of stored bytes (ciphertext in Phase 2, plaintext in Phase 1).
+    thumbnail_cid: BulletinCid,                     // Codec + blake2b-256 digest of the thumbnail image. Always stored unencrypted (even in Phase 2) — the browse grid must render without keys.
     content_hash: [u8; 32],                         // blake2b-256 of plaintext
     title: BoundedVec<u8, ConstU32<128>>,
     description: BoundedVec<u8, ConstU32<2048>>,
@@ -96,7 +97,7 @@ struct BulletinCid {
 ### Extrinsics
 
 **Phase 1**
-- `create_listing(content_cid, content_hash, title, description, price) -> ListingId`
+- `create_listing(content_cid, thumbnail_cid, content_hash, title, description, price) -> ListingId`
 - `purchase(listing_id)` — transfers `price` from buyer to creator; records `Purchases[(listing_id, buyer)]`; emits `PurchaseCompleted`.
 
 **Phase 2**
@@ -164,13 +165,19 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 - **Content-lock-key** — random symmetric key generated client-side, one per content item. Never stored or transmitted in the clear.
 
 ### Creator upload flow
-1. Generate a random content-lock-key.
-2. Encrypt the content with the content-lock-key. Compute the content CID offline via the SDK — no network call. The SDK returns CIDv1 + codec (`raw` 0x55 for single-chunk, `dag-pb` 0x70 for chunked DAG manifest) + 32-byte blake2b-256 digest. Both codec and digest are stored on the listing as `content_cid: BulletinCid`; the digest alone feeds `authorize_preimage`.
-3. Submit `authorize_preimage(hash, byte_length)` to Bulletin Chain, signed by `//Alice`, where `hash` is that 32-byte ciphertext digest. On Paseo testnet, `Alice` is in the `TransactionStorage::Authorizer` origin's `TestAccounts` set and is the sanctioned signer for authorize calls — no user signature or fee. (Mainnet Bulletin is not yet deployed; out of scope.) `scripts/verify-bulletin-faucet.ts` exercises this flow end-to-end against `wss://paseo-bulletin-rpc.polkadot.io`.
-4. Submit the store unsigned via `@parity/bulletin-sdk` — preimage authorization already gates the write. The SDK handles chunking (files >2 MiB), retries, and typed error recovery (`BulletinError.isRetryable`).
-5. Compute `blake2b-256(plaintext)` for the `content_hash` field.
-6. Fetch `SVC_PUB` from the `ServicePublicKey` storage item via PAPI; seal the content-lock-key to it → `locked_content_lock_key`.
-7. Submit `create_listing(content_cid, content_hash, title, description, price, locked_content_lock_key)`.
+
+Thumbnail extraction and upload apply to both Phase 1 and Phase 2; encryption and sealing steps are Phase 2 only and labeled accordingly.
+
+1. Extract three candidate thumbnail frames from the video client-side via `<canvas>` at jittered random timestamps; creator picks one. The chosen frame is encoded as PNG or JPEG bytes.
+2. *(Phase 2 only)* Generate a random content-lock-key.
+3. *(Phase 2 only)* Encrypt the content with the content-lock-key.
+4. Compute the CID of the content bytes (ciphertext in Phase 2, plaintext in Phase 1) and of the thumbnail bytes, offline via the SDK — no network call. The SDK returns CIDv1 + codec (`raw` 0x55 for single-chunk, `dag-pb` 0x70 for chunked DAG manifest) + 32-byte blake2b-256 digest. Both codec and digest are stored on the listing as `content_cid: BulletinCid` and `thumbnail_cid: BulletinCid`; the digests alone feed `authorize_preimage`.
+5. Submit `authorize_preimage(hash, byte_length)` to Bulletin Chain **twice** — once for the content digest, once for the thumbnail digest — both signed by `//Alice`. On Paseo testnet, `Alice` is in the `TransactionStorage::Authorizer` origin's `TestAccounts` set and is the sanctioned signer for authorize calls — no user signature or fee. (Mainnet Bulletin is not yet deployed; out of scope.) `scripts/verify-bulletin-faucet.ts` exercises this flow end-to-end against `wss://paseo-bulletin-rpc.polkadot.io`.
+6. Submit two stores unsigned via `@parity/bulletin-sdk` — one for the thumbnail, one for the content. Preimage authorization already gates the writes. The SDK handles chunking (files >2 MiB), retries, and typed error recovery (`BulletinError.isRetryable`). The thumbnail is always stored unencrypted (even in Phase 2) so the browse grid can render without keys.
+7. Compute `blake2b-256(plaintext)` for the `content_hash` field.
+8. *(Phase 2 only)* Fetch `SVC_PUB` from the `ServicePublicKey` storage item via PAPI; seal the content-lock-key to it → `locked_content_lock_key`.
+9. Submit `create_listing(content_cid, thumbnail_cid, content_hash, title, description, price[, locked_content_lock_key])`. The `locked_content_lock_key` parameter is Phase 2 only.
+10. *(Phase 2 only)* After the extrinsic succeeds and the new `listing_id` is known, persist the plaintext content-lock-key in the sandbox's host-mediated local-storage keyed by `listing_id`. This is how the creator decrypts their own content for playback without going through the chain-service grant path — see [Creator playback flow](#creator-playback-flow).
 
 ### Purchase flow
 1. If the buyer hasn't registered an encryption key yet, generate an x25519 keypair in the browser and persist the private half to sandbox local-storage.
@@ -192,6 +199,16 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 5. Decrypts the ciphertext using the content-lock-key.
 6. Recomputes `blake2b-256(plaintext)` and compares to `Listings[listing_id].content_hash`; surfaces a verified-content indicator.
 7. Renders.
+
+### Creator playback flow
+
+A creator must be able to watch their own listings without purchasing them (the pallet disallows `buyer == creator` on `purchase`). To avoid introducing a creator-specific grant path on-chain, playback uses the content-lock-key the creator already generated at upload time.
+
+1. At upload time (step 10 of [Creator upload flow](#creator-upload-flow)), the creator's frontend persists the plaintext content-lock-key to sandbox local-storage keyed by `listing_id`.
+2. When the creator opens their own listing, the frontend recognizes them as the creator (`Listings[listing_id].creator == currentAccount`) and reads the content-lock-key directly from local-storage.
+3. Ciphertext is fetched and decrypted exactly as in steps 4–7 of the buyer decryption flow above.
+
+No `WrappedKeys` entry is written for the creator, no `grant_access` call is made, and the chain-service is not involved. If the creator loses their local-storage entry they lose playback access to their own listing — same failure mode as the buyer-side session-key loss, acknowledged in `gaps.md` and deferred to Phase 4.
 
 ## 6. Frontend model
 
