@@ -11,7 +11,7 @@ RUN rustup target add wasm32-unknown-unknown && rustup component add rust-src
 COPY Cargo.toml Cargo.lock ./
 COPY blockchain/ blockchain/
 COPY cli/ cli/
-RUN cargo build -p stack-template-runtime --release
+RUN cargo build -p ppview-runtime --release
 
 # Stage 2 — Generate the chain spec from the compiled WASM
 RUN cargo install staging-chain-spec-builder
@@ -23,7 +23,7 @@ RUN chain-spec-builder \
     -t development \
     --relay-chain rococo-local \
     --para-id 1000 \
-    --runtime target/release/wbuild/stack-template-runtime/stack_template_runtime.compact.compressed.wasm \
+    --runtime target/release/wbuild/ppview-runtime/ppview_runtime.compact.compressed.wasm \
     named-preset development
 
 # Stage 3 — Final image: just the omni-node binary + our chain spec

@@ -435,8 +435,8 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: alloc::borrow::Cow::Borrowed("stack-template-runtime"),
-	impl_name: alloc::borrow::Cow::Borrowed("stack-template-runtime"),
+	spec_name: alloc::borrow::Cow::Borrowed("ppview-runtime"),
+	impl_name: alloc::borrow::Cow::Borrowed("ppview-runtime"),
 	authoring_version: 1,
 	spec_version: 3,
 	impl_version: 0,

@@ -12614,6 +12614,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ppview-runtime"
+version = "0.1.0"
+dependencies = [
+ "cumulus-pallet-parachain-system",
+ "hex-literal",
+ "log",
+ "pallet-content-registry",
+ "parity-scale-codec",
+ "polkadot-sdk",
+ "scale-info",
+ "serde_json",
+ "smallvec",
+ "substrate-wasm-builder",
+]
+
+[[package]]
 name = "predicates"
 version = "3.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -17219,22 +17235,6 @@ name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
-
-[[package]]
-name = "stack-template-runtime"
-version = "0.1.0"
-dependencies = [
- "cumulus-pallet-parachain-system",
- "hex-literal",
- "log",
- "pallet-content-registry",
- "parity-scale-codec",
- "polkadot-sdk",
- "scale-info",
- "serde_json",
- "smallvec",
- "substrate-wasm-builder",
-]
 
 [[package]]
 name = "staging-chain-spec-builder"

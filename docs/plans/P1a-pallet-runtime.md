@@ -146,10 +146,10 @@ Expected: OK (no errors; some unused-code warnings from the PoE leftovers are fi
 
 - [ ] **Step 9: Verify the runtime still builds**
 
-Run: `cargo check -p stack-template-runtime --features std`
+Run: `cargo check -p ppview-runtime --features std`
 Expected: OK.
 
-(Upstream crate name is `stack-template-runtime`. Runtime renaming is a separate concern — not done in this plan.)
+(The runtime crate has since been renamed from the upstream `stack-template-runtime` to `ppview-runtime`; references throughout this plan use the current name.)
 
 - [ ] **Step 10: Commit**
 
@@ -1332,12 +1332,12 @@ impl pallet_content_registry::Config for Runtime {
 
 - [ ] **Step 2: Verify the runtime compiles**
 
-Run: `cargo check -p stack-template-runtime --features std`
+Run: `cargo check -p ppview-runtime --features std`
 Expected: OK.
 
 - [ ] **Step 3: Verify with runtime-benchmarks feature**
 
-Run: `cargo check -p stack-template-runtime --features runtime-benchmarks`
+Run: `cargo check -p ppview-runtime --features runtime-benchmarks`
 Expected: OK.
 
 - [ ] **Step 4: Commit**
@@ -1627,12 +1627,12 @@ polkadot_sdk::frame_benchmarking::define_benchmarks!(
 
 - [ ] **Step 5: Verify the runtime compiles with the benchmarks feature**
 
-Run: `cargo check -p stack-template-runtime --features runtime-benchmarks`
+Run: `cargo check -p ppview-runtime --features runtime-benchmarks`
 Expected: OK.
 
 - [ ] **Step 6: Verify the runtime still compiles without the benchmarks feature**
 
-Run: `cargo check -p stack-template-runtime --features std`
+Run: `cargo check -p ppview-runtime --features std`
 Expected: OK.
 
 - [ ] **Step 7: Commit**
@@ -1642,7 +1642,7 @@ git add blockchain/runtime/src/genesis_config_presets.rs blockchain/runtime/READ
 git commit -m "clean up template leftovers and register pallet-content-registry benchmarks"
 ```
 
-**Out-of-scope for this task:** renaming the runtime crate (`stack-template-runtime`), updating workspace `Cargo.toml` `homepage`/`repository`, or changing the runtime `spec_name` / `impl_name`. Those are broader branding concerns and not blocking.
+**Out-of-scope for this task:** updating workspace `Cargo.toml` `homepage`/`repository` URLs (still point to the upstream template). The runtime crate rename (`stack-template-runtime` → `ppview-runtime`) and `spec_name`/`impl_name` changes were performed in a separate follow-up commit, not as part of this task.
 
 ---
 
@@ -1654,8 +1654,8 @@ Produce the parachain WASM runtime. This is what Zombienet will load.
 
 - [ ] **Step 1: Clean build the runtime**
 
-Run: `cargo build --release -p stack-template-runtime`
-Expected: builds successfully. A `target/release/wbuild/stack-template-runtime/stack_template_runtime.compact.compressed.wasm` artifact is produced.
+Run: `cargo build --release -p ppview-runtime`
+Expected: builds successfully. A `target/release/wbuild/ppview-runtime/ppview_runtime.compact.compressed.wasm` artifact is produced.
 
 - [ ] **Step 2: Verify the full workspace builds**
 
@@ -1703,7 +1703,7 @@ cd ..
 
 Expected: `web/.papi/descriptors/` contains fresh `stack_template.ts` (or equivalent name from `polkadot-api.json`) with `pallets.ContentRegistry` in it.
 
-If the generator output uses a different symbol name (e.g. because the runtime crate is still called `stack-template-runtime`), that's fine — we reference what the generator produced.
+If the generator output uses a different symbol name (e.g. because the runtime crate is still called `ppview-runtime`), that's fine — we reference what the generator produced.
 
 - [ ] **Step 3: Write the smoke script**
 
