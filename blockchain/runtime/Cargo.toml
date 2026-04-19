@@ -20,7 +20,7 @@ codec = { features = ["derive"], workspace = true }
 cumulus-pallet-parachain-system.workspace = true
 hex-literal = { workspace = true, default-features = true }
 log = { workspace = true }
-pallet-template.workspace = true
+pallet-content-registry.workspace = true
 polkadot-sdk = { workspace = true, features = [
 	"cumulus-pallet-aura-ext",
 	"cumulus-pallet-session-benchmarking",
@@ -64,7 +64,7 @@ std = [
 	"codec/std",
 	"cumulus-pallet-parachain-system/std",
 	"log/std",
-	"pallet-template/std",
+	"pallet-content-registry/std",
 	"polkadot-sdk/std",
 	"scale-info/std",
 	"serde_json/std",
@@ -72,12 +72,12 @@ std = [
 ]
 runtime-benchmarks = [
 	"cumulus-pallet-parachain-system/runtime-benchmarks",
-	"pallet-template/runtime-benchmarks",
+	"pallet-content-registry/runtime-benchmarks",
 	"polkadot-sdk/runtime-benchmarks",
 ]
 try-runtime = [
 	"cumulus-pallet-parachain-system/try-runtime",
-	"pallet-template/try-runtime",
+	"pallet-content-registry/try-runtime",
 	"polkadot-sdk/try-runtime",
 ]
 

@@ -250,7 +250,7 @@ mod runtime {
 	pub type Statement = pallet_statement;
 
 	#[runtime::pallet_index(50)]
-	pub type TemplatePallet = pallet_template;
+	pub type ContentRegistry = pallet_content_registry;
 
 	// Smart contracts (EVM + PVM via pallet-revive)
 	#[runtime::pallet_index(90)]

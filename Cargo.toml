@@ -2,8 +2,7 @@
 resolver = "2"
 members = [
 	"blockchain/runtime",
-	"blockchain/pallets/template",
-	"cli",
+	"blockchain/pallets/content-registry",
 ]
 
 [workspace.package]
@@ -15,7 +14,7 @@ edition = "2021"
 
 [workspace.dependencies]
 # Local crates
-pallet-template = { path = "./blockchain/pallets/template", default-features = false }
+pallet-content-registry = { path = "./blockchain/pallets/content-registry", default-features = false }
 
 # Common dependencies
 codec = { version = "3.7.4", default-features = false, package = "parity-scale-codec" }

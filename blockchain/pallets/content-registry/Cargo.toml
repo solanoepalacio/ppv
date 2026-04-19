@@ -1,6 +1,6 @@
 [package]
-name = "pallet-template"
-description = "A template pallet demonstrating proof of existence with per-hash claims."
+name = "pallet-content-registry"
+description = "Content registry pallet — stores listings and records purchases for pay-per-view."
 version = "0.1.0"
 license.workspace = true
 authors.workspace = true
