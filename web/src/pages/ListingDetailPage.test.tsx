@@ -1,0 +1,125 @@
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import ListingDetailPage from './ListingDetailPage';
+import type { Listing } from '../hooks/useContentRegistry';
+
+vi.mock('../hooks/useContentRegistry', () => ({
+  fetchListing: vi.fn(),
+  hasPurchased: vi.fn(),
+  submitPurchase: vi.fn(),
+}));
+vi.mock('../store/chainStore', () => ({
+  useChainStore: vi.fn(),
+}));
+vi.mock('../components/VideoPlayer', () => ({
+  default: () => <div data-testid="video-player" />,
+}));
+
+import { fetchListing, hasPurchased, submitPurchase } from '../hooks/useContentRegistry';
+import { useChainStore } from '../store/chainStore';
+const mockFetchListing = fetchListing as ReturnType<typeof vi.fn>;
+const mockHasPurchased = hasPurchased as ReturnType<typeof vi.fn>;
+const mockSubmitPurchase = submitPurchase as ReturnType<typeof vi.fn>;
+const mockUseChainStore = useChainStore as ReturnType<typeof vi.fn>;
+
+function makeListing(overrides: Partial<Listing> = {}): Listing {
+  return {
+    id: 3n,
+    creator: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+    price: 10_000_000_000n,
+    contentCid: { codec: 0x55, digestBytes: new Uint8Array(32).fill(0xaa) },
+    thumbnailCid: { codec: 0x55, digestBytes: new Uint8Array(32).fill(0xbb) },
+    thumbnailUrl: 'https://example.com/thumb.jpg',
+    contentHash: new Uint8Array(32).fill(0xcc),
+    title: 'Cool Video',
+    description: 'Great content',
+    createdAt: 500,
+    ...overrides,
+  };
+}
+
+function renderAtId(id: string, account = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', balance = 50_000_000_000n) {
+  mockUseChainStore.mockImplementation((sel: (s: any) => any) =>
+    sel({ account, balance }),
+  );
+  return render(
+    <MemoryRouter initialEntries={[`/listing/${id}`]}>
+      <Routes>
+        <Route path="/listing/:id" element={<ListingDetailPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+describe('ListingDetailPage', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  test('shows loading state initially', () => {
+    mockFetchListing.mockReturnValue(new Promise(() => {}));
+    renderAtId('3');
+    expect(document.querySelector('.animate-pulse')).toBeTruthy();
+    expect(screen.queryByText('Cool Video')).toBeNull();
+  });
+
+  test('shows not-found when listing does not exist', async () => {
+    mockFetchListing.mockResolvedValue(undefined);
+    renderAtId('99');
+    await waitFor(() => expect(screen.getByText(/not found/i)).toBeInTheDocument());
+  });
+
+  test('shows thumbnail + buy button for unpurchased listing', async () => {
+    mockFetchListing.mockResolvedValue(makeListing());
+    mockHasPurchased.mockResolvedValue(false);
+    renderAtId('3');
+    await waitFor(() => expect(screen.getByText('Cool Video')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /buy/i })).toBeInTheDocument();
+    expect(screen.queryByTestId('video-player')).toBeNull();
+  });
+
+  test('disables buy button when balance is insufficient', async () => {
+    mockFetchListing.mockResolvedValue(makeListing({ price: 100_000_000_000n }));
+    mockHasPurchased.mockResolvedValue(false);
+    renderAtId('3', '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', 5_000_000_000n);
+    await waitFor(() => expect(screen.getByRole('button', { name: /buy/i })).toBeDisabled());
+    expect(screen.getByText(/not enough/i)).toBeInTheDocument();
+  });
+
+  test('shows VideoPlayer for a purchased listing', async () => {
+    mockFetchListing.mockResolvedValue(makeListing());
+    mockHasPurchased.mockResolvedValue(true);
+    renderAtId('3');
+    await waitFor(() => expect(screen.getByTestId('video-player')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /buy/i })).toBeNull();
+  });
+
+  test('shows VideoPlayer and "Your listing" badge for the creator', async () => {
+    const creatorAddress = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
+    mockFetchListing.mockResolvedValue(makeListing({ creator: creatorAddress }));
+    mockHasPurchased.mockResolvedValue(false);
+    renderAtId('3', creatorAddress);
+    await waitFor(() => expect(screen.getByTestId('video-player')).toBeInTheDocument());
+    expect(screen.getByText(/your listing/i)).toBeInTheDocument();
+  });
+
+  test('clicking buy calls submitPurchase and transitions to purchased state', async () => {
+    mockFetchListing.mockResolvedValue(makeListing());
+    mockHasPurchased.mockResolvedValue(false);
+    mockSubmitPurchase.mockResolvedValue(undefined);
+    renderAtId('3');
+    const buyBtn = await screen.findByRole('button', { name: /buy/i });
+    fireEvent.click(buyBtn);
+    await waitFor(() => expect(screen.getByTestId('video-player')).toBeInTheDocument());
+    expect(mockSubmitPurchase).toHaveBeenCalledWith(3n);
+  });
+
+  test('shows error message when purchase fails', async () => {
+    mockFetchListing.mockResolvedValue(makeListing());
+    mockHasPurchased.mockResolvedValue(false);
+    mockSubmitPurchase.mockRejectedValue(new Error('insufficient funds'));
+    renderAtId('3');
+    const buyBtn = await screen.findByRole('button', { name: /buy/i });
+    fireEvent.click(buyBtn);
+    await waitFor(() => expect(screen.getByText(/insufficient funds/i)).toBeInTheDocument());
+  });
+});
