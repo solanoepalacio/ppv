@@ -17,7 +17,7 @@ Plan: [`docs/plans/P1a-pallet-runtime.md`](./plans/P1a-pallet-runtime.md) · Ove
 - [x] Task 7: Add Purchases storage map
 - [x] Task 8: purchase extrinsic (happy path)
 - [x] Task 9: purchase validation — buyer ≠ creator
-- [ ] Task 10: purchase validation — no double purchase
+- [x] Task 10: purchase validation — no double purchase
 - [ ] Task 11: purchase validation — insufficient funds
 - [ ] Task 12: purchase validation — listing-not-found test
 - [ ] Task 13: Benchmarks for create_listing + purchase

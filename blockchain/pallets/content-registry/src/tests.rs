@@ -161,6 +161,18 @@ fn purchase_fails_if_buyer_is_creator() {
 }
 
 #[test]
+fn purchase_fails_if_already_purchased() {
+	new_test_ext().execute_with(|| {
+		let listing_id = seed_listing(ALICE, 50);
+		assert_ok!(ContentRegistry::purchase(RuntimeOrigin::signed(BOB), listing_id));
+		assert_noop!(
+			ContentRegistry::purchase(RuntimeOrigin::signed(BOB), listing_id),
+			crate::Error::<Test>::AlreadyPurchased,
+		);
+	});
+}
+
+#[test]
 fn create_listing_fails_on_id_overflow() {
 	new_test_ext().execute_with(|| {
 		NextListingId::<Test>::put(u64::MAX);

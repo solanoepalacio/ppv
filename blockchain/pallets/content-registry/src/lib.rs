@@ -134,6 +134,8 @@ pub mod pallet {
 		ListingNotFound,
 		/// Creators cannot purchase their own listings.
 		BuyerIsCreator,
+		/// This buyer has already purchased this listing.
+		AlreadyPurchased,
 	}
 
 	#[pallet::call]
@@ -181,6 +183,10 @@ pub mod pallet {
 			let listing = Listings::<T>::get(listing_id).ok_or(Error::<T>::ListingNotFound)?;
 
 			ensure!(buyer != listing.creator, Error::<T>::BuyerIsCreator);
+			ensure!(
+				!Purchases::<T>::contains_key(listing_id, &buyer),
+				Error::<T>::AlreadyPurchased,
+			);
 
 			T::Currency::transfer(
 				&buyer,
