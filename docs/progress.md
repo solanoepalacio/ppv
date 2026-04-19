@@ -22,9 +22,11 @@ Plan: [`docs/plans/P1a-pallet-runtime.md`](./plans/P1a-pallet-runtime.md) · Ove
 - [x] Task 12: purchase validation — listing-not-found test
 - [x] Task 13: Benchmarks for create_listing + purchase
 - [x] Task 14: Wire Currency into runtime Config impl
-- [ ] Task 15: Release build + WASM artifact
-- [ ] Task 16: Zombienet E2E smoke script
+- [ ] Task 15: Add thumbnail_cid to Listing + create_listing
+- [ ] Task 16: Flip Purchases to StorageDoubleMap<AccountId, ListingId, BlockNumberFor<T>> + sync spec
 - [ ] Task 17: Clean up template leftovers + register pallet benchmarks in runtime
+- [ ] Task 18: Release build + WASM artifact
+- [ ] Task 19: Zombienet E2E smoke script
 
 ### P1b — Frontend MVP
 

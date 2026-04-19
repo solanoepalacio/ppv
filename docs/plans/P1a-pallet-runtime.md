@@ -1349,185 +1349,213 @@ git commit -m "wire Balances as ContentRegistry Currency in runtime"
 
 ---
 
-## Task 15 — Full release build + WASM artifact
+## Task 15 — Add `thumbnail_cid` to `Listing<T>` and `create_listing`
 
-Produce the parachain WASM runtime. This is what Zombienet will load.
+Per spec §4 and the frontend-views design, each listing carries a thumbnail CID alongside `content_cid`. The thumbnail is auto-extracted client-side from the video and uploaded unencrypted to Bulletin; on the pallet side this is one extra `BulletinCid` field on the struct and one extra parameter on the extrinsic. Always unencrypted (even in Phase 2) so the browse grid renders without keys.
 
-**Files:** none modified — this is a verification step.
+**Files:**
+- Modify: `blockchain/pallets/content-registry/src/lib.rs`
+- Modify: `blockchain/pallets/content-registry/src/tests.rs`
+- Modify: `blockchain/pallets/content-registry/src/benchmarking.rs`
 
-- [ ] **Step 1: Clean build the runtime**
+- [ ] **Step 1: Add the field to the `Listing` struct**
 
-Run: `cargo build --release -p stack-template-runtime`
-Expected: builds successfully. A `target/release/wbuild/stack-template-runtime/stack_template_runtime.compact.compressed.wasm` artifact is produced.
+Edit `src/lib.rs`. Inside `Listing<T>`, immediately after `content_cid`:
 
-- [ ] **Step 2: Verify the full workspace builds**
+```rust
+        /// CID of the auto-extracted thumbnail on Bulletin. Always unencrypted
+        /// (even in Phase 2) so the browse grid renders without keys.
+        pub thumbnail_cid: BulletinCid,
+```
 
-Run: `cargo build --release`
-Expected: OK. Some workspace members (`cli/`, `contracts/`) may still compile against the old API — if so, that's out of scope for this plan; note the failure and skip those targets with `-p` flags.
+- [ ] **Step 2: Add the parameter to `create_listing` and thread it through**
 
-- [ ] **Step 3: Run the full pallet test suite one more time**
+Edit `src/lib.rs`. Update the `create_listing` signature, adding `thumbnail_cid: BulletinCid` right after `content_cid`, and include the field when constructing the `Listing`:
+
+```rust
+        pub fn create_listing(
+            origin: OriginFor<T>,
+            content_cid: BulletinCid,
+            thumbnail_cid: BulletinCid,
+            content_hash: [u8; 32],
+            title: BoundedVec<u8, ConstU32<128>>,
+            description: BoundedVec<u8, ConstU32<2048>>,
+            price: BalanceOf<T>,
+            locked_content_lock_key: BoundedVec<u8, ConstU32<128>>,
+        ) -> DispatchResult {
+            let creator = ensure_signed(origin)?;
+            ensure!(!price.is_zero(), Error::<T>::ZeroPrice);
+
+            let listing_id = NextListingId::<T>::get();
+            let next = listing_id.checked_add(1).ok_or(Error::<T>::ListingIdOverflow)?;
+
+            let listing = Listing::<T> {
+                creator: creator.clone(),
+                price,
+                content_cid,
+                thumbnail_cid,
+                content_hash,
+                title,
+                description,
+                locked_content_lock_key,
+                created_at: frame_system::Pallet::<T>::block_number(),
+            };
+
+            Listings::<T>::insert(listing_id, listing);
+            NextListingId::<T>::put(next);
+
+            Self::deposit_event(Event::ListingCreated { listing_id, creator, price });
+            Ok(())
+        }
+```
+
+- [ ] **Step 3: Update existing tests to pass a thumbnail**
+
+Edit `src/tests.rs`. Add a second CID helper near `sample_cid()`:
+
+```rust
+fn sample_thumb_cid() -> BulletinCid {
+    BulletinCid { codec: 0x55, digest: [0xcc; 32] }
+}
+```
+
+Then add `sample_thumb_cid()` as the second argument to every `ContentRegistry::create_listing(...)` call: `create_listing_works`, `create_listing_fails_if_price_zero`, and the `seed_listing` helper. Update the `listings_storage_roundtrip` test's `Listing { ... }` literal to include `thumbnail_cid: BulletinCid { codec: 0x55, digest: [0xcc; 32] }`.
+
+- [ ] **Step 4: Update benchmarks**
+
+Edit `src/benchmarking.rs`. Add a thumbnail helper and pass `sample_thumb_cid()` to both the `create_listing` benchmark's extrinsic call and the `create_listing` setup inside the `purchase` benchmark:
+
+```rust
+fn sample_thumb_cid() -> crate::pallet::BulletinCid {
+    crate::pallet::BulletinCid { codec: 0x55, digest: [0xcc; 32] }
+}
+```
+
+Both `#[extrinsic_call] create_listing(...)` and the seeding `Pallet::<T>::create_listing(...)` calls need the new argument.
+
+- [ ] **Step 5: Run the full pallet test suite**
 
 Run: `cargo test -p pallet-content-registry`
-Expected: every test from Tasks 2–12 passes.
+Expected: every test from Tasks 2–14 still passes with the new parameter.
 
-- [ ] **Step 4: Commit (empty — or skip if nothing to stage)**
+Run: `cargo test -p pallet-content-registry --features runtime-benchmarks`
+Expected: benchmark dry-runs pass.
 
-If there are no changes from this task, no commit needed.
+- [ ] **Step 6: Commit**
+
+```bash
+git add blockchain/pallets/content-registry
+git commit -m "add thumbnail_cid to Listing and create_listing"
+```
 
 ---
 
-## Task 16 — Zombienet E2E smoke test via `polkadot-api` CLI
+## Task 16 — Convert `Purchases` to a proper `StorageDoubleMap` with flipped keys
 
-Confirm the runtime works end-to-end: spin up Zombienet, regenerate PAPI descriptors, submit `create_listing` and `purchase` via a throwaway TS script using dev keys (Alice, Bob).
+Spec §4 specifies `Purchases: StorageDoubleMap<AccountId, ListingId, …>`. The current implementation is a tuple-keyed `StorageMap`, which supports no prefix scan on either component. Switching to a true `StorageDoubleMap` with `AccountId` as the first key lets the frontend's "My Purchases" view do an efficient prefix scan via `api.query.ContentRegistry.Purchases.getEntries(currentAccount)`.
+
+The value type stays `BlockNumberFor<T>` — the current implementation already records the purchase block, which the frontend uses to sort the buyer's library by purchase time without an event-scan indexer. The spec's original `()` value is updated in Step 5 to match.
 
 **Files:**
-- Create: `scripts/smoke-content-registry.ts`
+- Modify: `blockchain/pallets/content-registry/src/lib.rs`
+- Modify: `blockchain/pallets/content-registry/src/tests.rs`
+- Modify: `blockchain/pallets/content-registry/src/benchmarking.rs`
+- Modify: `docs/design/spec.md`
 
-- [ ] **Step 1: Start the local relay + parachain stack**
+- [ ] **Step 1: Update the `Purchases` storage declaration**
 
-From the repo root:
+Edit `src/lib.rs`. Replace the `Purchases` item with a `StorageDoubleMap`:
+
+```rust
+    /// Records each buyer's purchases, keyed (buyer, listing_id). Value is
+    /// the block number the purchase was completed at — used by the frontend's
+    /// "My Purchases" view to sort the buyer's library by purchase time.
+    #[pallet::storage]
+    pub type Purchases<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Blake2_128Concat,
+        ListingId,
+        BlockNumberFor<T>,
+        OptionQuery,
+    >;
+```
+
+- [ ] **Step 2: Update the `purchase` extrinsic**
+
+In `src/lib.rs`, inside `purchase`, update the contains/insert calls to the double-map's (k1, k2) argument form:
+
+```rust
+            ensure!(
+                !Purchases::<T>::contains_key(&buyer, listing_id),
+                Error::<T>::AlreadyPurchased,
+            );
+            // … existing transfer block …
+            let now = frame_system::Pallet::<T>::block_number();
+            Purchases::<T>::insert(&buyer, listing_id, now);
+```
+
+- [ ] **Step 3: Update tests**
+
+Edit `src/tests.rs`. Flip every `Purchases::<Test>::{insert,get,contains_key}` call site to the new (buyer, listing_id) argument order.
+
+- `purchases_storage_roundtrip`:
+  ```rust
+  Purchases::<Test>::insert(BOB, 0u64, 5u64);
+  assert_eq!(Purchases::<Test>::get(BOB, 0u64), Some(5));
+  assert_eq!(Purchases::<Test>::get(ALICE, 0u64), None);
+  ```
+- `purchase_works_and_transfers_funds`:
+  ```rust
+  assert_eq!(Purchases::<Test>::get(BOB, listing_id), Some(10));
+  ```
+- `purchase_fails_if_buyer_cannot_afford_it`:
+  ```rust
+  assert_eq!(Purchases::<Test>::get(CHARLIE, listing_id), None);
+  ```
+
+No other test references `Purchases` directly.
+
+- [ ] **Step 4: Update the benchmark assertion**
+
+Edit `src/benchmarking.rs`. In the `purchase` benchmark's post-call assertion:
+
+```rust
+assert!(Purchases::<T>::contains_key(&buyer, 0u64));
+```
+
+- [ ] **Step 5: Sync the spec's value type**
+
+Edit `docs/design/spec.md`. In §4's storage block (around the existing `Purchases: StorageDoubleMap<AccountId, ListingId, (), OptionQuery>` line), replace `()` with `BlockNumberFor<T>` and add a brief comment explaining the frontend's use. The new line reads:
+
+```
+Purchases:     StorageDoubleMap<AccountId, ListingId, BlockNumberFor<T>, OptionQuery>  // value = block number of purchase; used by frontend to sort "My Purchases" by time
+```
+
+- [ ] **Step 6: Run the full pallet test suite**
+
+Run: `cargo test -p pallet-content-registry`
+Expected: every test passes.
+
+Run: `cargo test -p pallet-content-registry --features runtime-benchmarks`
+Expected: benchmark dry-runs pass.
+
+- [ ] **Step 7: Commit (two commits: pallet + spec)**
 
 ```bash
-./scripts/start-local.sh
-```
+git add blockchain/pallets/content-registry
+git commit -m "flip Purchases to StorageDoubleMap<AccountId, ListingId, BlockNumberFor<T>>"
 
-Expected: Zombienet logs show the relay chain producing blocks and the parachain collating at `ws://127.0.0.1:9988` (or the port shown in the Zombienet output). Leave this running in another terminal.
-
-- [ ] **Step 2: Regenerate PAPI descriptors for the new runtime**
-
-The frontend ships PAPI descriptors under `web/.papi/`. Regenerate them against the running node:
-
-```bash
-cd web
-npm install   # if not already
-npm run codegen
-cd ..
-```
-
-Expected: `web/.papi/descriptors/` contains fresh `stack_template.ts` (or equivalent name from `polkadot-api.json`) with `pallets.ContentRegistry` in it.
-
-If the generator output uses a different symbol name (e.g. because the runtime crate is still called `stack-template-runtime`), that's fine — we reference what the generator produced.
-
-- [ ] **Step 3: Write the smoke script**
-
-Create `scripts/smoke-content-registry.ts`:
-
-```ts
-import { createClient, Binary } from "polkadot-api";
-import { getWsProvider } from "polkadot-api/ws-provider/node";
-import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { getPolkadotSigner } from "polkadot-api/signer";
-import { sr25519CreateDerive } from "@polkadot-labs/hdkd";
-import {
-    DEV_PHRASE,
-    entropyToMiniSecret,
-    mnemonicToEntropy,
-} from "@polkadot-labs/hdkd-helpers";
-// Import path depends on the name chosen in web/.papi/polkadot-api.json.
-// If the descriptor key is "stack_template", this is:
-import { stack_template } from "../web/.papi/descriptors/dist";
-
-const PARACHAIN_WS = process.env.PARACHAIN_WS ?? "ws://127.0.0.1:9988";
-
-function devSigner(path: string) {
-    const entropy = mnemonicToEntropy(DEV_PHRASE);
-    const miniSecret = entropyToMiniSecret(entropy);
-    const derive = sr25519CreateDerive(miniSecret);
-    const keypair = derive(path);
-    return getPolkadotSigner(keypair.publicKey, "Sr25519", keypair.sign);
-}
-
-async function main() {
-    const client = createClient(withPolkadotSdkCompat(getWsProvider(PARACHAIN_WS)));
-    const api = client.getTypedApi(stack_template);
-
-    const alice = devSigner("//Alice");
-    const bob = devSigner("//Bob");
-
-    // Create a listing as Alice.
-    const digest = new Uint8Array(32);
-    digest.fill(0xaa);
-
-    const createTx = api.tx.ContentRegistry.create_listing({
-        content_cid: { codec: 0x55, digest: Binary.fromBytes(digest) },
-        content_hash: Binary.fromBytes(new Uint8Array(32).fill(0x33)),
-        title: Binary.fromText("smoke"),
-        description: Binary.fromText("created by smoke script"),
-        price: 500n,
-        locked_content_lock_key: Binary.fromBytes(new Uint8Array()),
-    });
-
-    const createResult = await createTx.signAndSubmit(alice);
-    if (!createResult.ok) {
-        throw new Error(`create_listing failed: ${JSON.stringify(createResult)}`);
-    }
-    console.log("create_listing included at", createResult.block.hash);
-
-    // Read the latest listing ID back.
-    const nextId = await api.query.ContentRegistry.NextListingId.getValue();
-    const listingId = nextId - 1n;
-    console.log("created listing_id:", listingId);
-
-    // Purchase as Bob.
-    const purchaseTx = api.tx.ContentRegistry.purchase({ listing_id: listingId });
-    const purchaseResult = await purchaseTx.signAndSubmit(bob);
-    if (!purchaseResult.ok) {
-        throw new Error(`purchase failed: ${JSON.stringify(purchaseResult)}`);
-    }
-    console.log("purchase included at", purchaseResult.block.hash);
-
-    // Verify the purchase record exists.
-    const record = await api.query.ContentRegistry.Purchases.getValue(listingId, (bob as any).publicKey);
-    console.log("purchase record:", record);
-
-    await client.destroy();
-}
-
-main().catch((e) => {
-    console.error(e);
-    process.exit(1);
-});
-```
-
-Notes for the executing engineer:
-- The exact symbol `stack_template` comes from `web/.papi/polkadot-api.json`'s entry key. If it's different (e.g. `parachain`), adjust the import.
-- Field names (`create_listing` vs `createListing`, etc.) may be camelCased by PAPI. Match whatever the generator produced by opening `web/.papi/descriptors/dist/*.d.ts` and reading the typed API surface.
-- If `scripts/package.json` uses a different test runner (e.g. `tsx`, `bun`), invoke with that.
-
-- [ ] **Step 4: Run the smoke script**
-
-```bash
-cd scripts
-npx tsx smoke-content-registry.ts
-cd ..
-```
-
-Expected output:
-```
-create_listing included at 0x…
-created listing_id: 0
-purchase included at 0x…
-purchase record: <block number>
-```
-
-If it errors on "Invalid metadata", the codegen in Step 2 was against the wrong endpoint — redo Step 2 with the correct `PARACHAIN_WS`.
-
-- [ ] **Step 5: Tear down Zombienet**
-
-In the terminal running `start-local.sh`: `Ctrl-C`. Check the output confirms a clean shutdown.
-
-- [ ] **Step 6: Commit the smoke script**
-
-```bash
-git add scripts/smoke-content-registry.ts
-git commit -m "add E2E smoke script for content-registry"
+git add docs/design/spec.md
+git commit -m "spec: record Purchases value type as BlockNumberFor<T>"
 ```
 
 ---
 
 ## Task 17 — Clean up stale template references + register pallet benchmarks in runtime
 
-The template→content-registry rename in Task 1 was deliberately mechanical; it left behind stale docs and a cosmetic function name. Also, Task 13 added pallet-level benchmarks but never registered them with the runtime's `define_benchmarks!` macro, so `frame-omni-bencher` wouldn't see them. Fix both.
+The template→content-registry rename in Task 1 was deliberately mechanical; it left behind stale docs and a cosmetic function name. Also, Task 13 added pallet-level benchmarks but never registered them with the runtime's `define_benchmarks!` macro, so `frame-omni-bencher` wouldn't see them. Fix both. Performed now (before release build + Zombienet) so the release artifact and smoke script see the cleaned-up runtime and the registered benchmarks.
 
 **Files:**
 - Modify: `blockchain/runtime/src/genesis_config_presets.rs`
@@ -1618,10 +1646,191 @@ git commit -m "clean up template leftovers and register pallet-content-registry 
 
 ---
 
+## Task 18 — Full release build + WASM artifact
+
+Produce the parachain WASM runtime. This is what Zombienet will load.
+
+**Files:** none modified — this is a verification step.
+
+- [ ] **Step 1: Clean build the runtime**
+
+Run: `cargo build --release -p stack-template-runtime`
+Expected: builds successfully. A `target/release/wbuild/stack-template-runtime/stack_template_runtime.compact.compressed.wasm` artifact is produced.
+
+- [ ] **Step 2: Verify the full workspace builds**
+
+Run: `cargo build --release`
+Expected: OK. Some workspace members (`cli/`, `contracts/`) may still compile against the old API — if so, that's out of scope for this plan; note the failure and skip those targets with `-p` flags.
+
+- [ ] **Step 3: Run the full pallet test suite one more time**
+
+Run: `cargo test -p pallet-content-registry`
+Expected: every test from Tasks 2–12 passes.
+
+- [ ] **Step 4: Commit (empty — or skip if nothing to stage)**
+
+If there are no changes from this task, no commit needed.
+
+---
+
+## Task 19 — Zombienet E2E smoke test via `polkadot-api` CLI
+
+Confirm the runtime works end-to-end: spin up Zombienet, regenerate PAPI descriptors, submit `create_listing` and `purchase` via a throwaway TS script using dev keys (Alice, Bob).
+
+**Files:**
+- Create: `scripts/smoke-content-registry.ts`
+
+- [ ] **Step 1: Start the local relay + parachain stack**
+
+From the repo root:
+
+```bash
+./scripts/start-local.sh
+```
+
+Expected: Zombienet logs show the relay chain producing blocks and the parachain collating at `ws://127.0.0.1:9988` (or the port shown in the Zombienet output). Leave this running in another terminal.
+
+- [ ] **Step 2: Regenerate PAPI descriptors for the new runtime**
+
+The frontend ships PAPI descriptors under `web/.papi/`. Regenerate them against the running node:
+
+```bash
+cd web
+npm install   # if not already
+npm run codegen
+cd ..
+```
+
+Expected: `web/.papi/descriptors/` contains fresh `stack_template.ts` (or equivalent name from `polkadot-api.json`) with `pallets.ContentRegistry` in it.
+
+If the generator output uses a different symbol name (e.g. because the runtime crate is still called `stack-template-runtime`), that's fine — we reference what the generator produced.
+
+- [ ] **Step 3: Write the smoke script**
+
+Create `scripts/smoke-content-registry.ts`:
+
+```ts
+import { createClient, Binary } from "polkadot-api";
+import { getWsProvider } from "polkadot-api/ws-provider/node";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
+import { getPolkadotSigner } from "polkadot-api/signer";
+import { sr25519CreateDerive } from "@polkadot-labs/hdkd";
+import {
+    DEV_PHRASE,
+    entropyToMiniSecret,
+    mnemonicToEntropy,
+} from "@polkadot-labs/hdkd-helpers";
+// Import path depends on the name chosen in web/.papi/polkadot-api.json.
+// If the descriptor key is "stack_template", this is:
+import { stack_template } from "../web/.papi/descriptors/dist";
+
+const PARACHAIN_WS = process.env.PARACHAIN_WS ?? "ws://127.0.0.1:9988";
+
+function devSigner(path: string) {
+    const entropy = mnemonicToEntropy(DEV_PHRASE);
+    const miniSecret = entropyToMiniSecret(entropy);
+    const derive = sr25519CreateDerive(miniSecret);
+    const keypair = derive(path);
+    return getPolkadotSigner(keypair.publicKey, "Sr25519", keypair.sign);
+}
+
+async function main() {
+    const client = createClient(withPolkadotSdkCompat(getWsProvider(PARACHAIN_WS)));
+    const api = client.getTypedApi(stack_template);
+
+    const alice = devSigner("//Alice");
+    const bob = devSigner("//Bob");
+
+    // Create a listing as Alice.
+    const digest = new Uint8Array(32);
+    digest.fill(0xaa);
+
+    const thumbDigest = new Uint8Array(32);
+    thumbDigest.fill(0xcc);
+
+    const createTx = api.tx.ContentRegistry.create_listing({
+        content_cid: { codec: 0x55, digest: Binary.fromBytes(digest) },
+        thumbnail_cid: { codec: 0x55, digest: Binary.fromBytes(thumbDigest) },
+        content_hash: Binary.fromBytes(new Uint8Array(32).fill(0x33)),
+        title: Binary.fromText("smoke"),
+        description: Binary.fromText("created by smoke script"),
+        price: 500n,
+        locked_content_lock_key: Binary.fromBytes(new Uint8Array()),
+    });
+
+    const createResult = await createTx.signAndSubmit(alice);
+    if (!createResult.ok) {
+        throw new Error(`create_listing failed: ${JSON.stringify(createResult)}`);
+    }
+    console.log("create_listing included at", createResult.block.hash);
+
+    // Read the latest listing ID back.
+    const nextId = await api.query.ContentRegistry.NextListingId.getValue();
+    const listingId = nextId - 1n;
+    console.log("created listing_id:", listingId);
+
+    // Purchase as Bob.
+    const purchaseTx = api.tx.ContentRegistry.purchase({ listing_id: listingId });
+    const purchaseResult = await purchaseTx.signAndSubmit(bob);
+    if (!purchaseResult.ok) {
+        throw new Error(`purchase failed: ${JSON.stringify(purchaseResult)}`);
+    }
+    console.log("purchase included at", purchaseResult.block.hash);
+
+    // Verify the purchase record exists. Purchases is keyed (buyer, listing_id).
+    const record = await api.query.ContentRegistry.Purchases.getValue((bob as any).publicKey, listingId);
+    console.log("purchase record:", record);
+
+    await client.destroy();
+}
+
+main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+});
+```
+
+Notes for the executing engineer:
+- The exact symbol `stack_template` comes from `web/.papi/polkadot-api.json`'s entry key. If it's different (e.g. `parachain`), adjust the import.
+- Field names (`create_listing` vs `createListing`, etc.) may be camelCased by PAPI. Match whatever the generator produced by opening `web/.papi/descriptors/dist/*.d.ts` and reading the typed API surface.
+- If `scripts/package.json` uses a different test runner (e.g. `tsx`, `bun`), invoke with that.
+
+- [ ] **Step 4: Run the smoke script**
+
+```bash
+cd scripts
+npx tsx smoke-content-registry.ts
+cd ..
+```
+
+Expected output:
+```
+create_listing included at 0x…
+created listing_id: 0
+purchase included at 0x…
+purchase record: <block number>
+```
+
+If it errors on "Invalid metadata", the codegen in Step 2 was against the wrong endpoint — redo Step 2 with the correct `PARACHAIN_WS`.
+
+- [ ] **Step 5: Tear down Zombienet**
+
+In the terminal running `start-local.sh`: `Ctrl-C`. Check the output confirms a clean shutdown.
+
+- [ ] **Step 6: Commit the smoke script**
+
+```bash
+git add scripts/smoke-content-registry.ts
+git commit -m "add E2E smoke script for content-registry"
+```
+
+---
+
 ## Done
 
-After Task 17 the deliverable for P1a is complete:
+After Task 19 the deliverable for P1a is complete:
 - `pallet-content-registry` with `create_listing` + `purchase`, full unit-test coverage on happy paths and validation rules, benchmarks compile and are registered with the runtime.
+- `Listing` carries both `content_cid` and `thumbnail_cid`; `Purchases` is a `StorageDoubleMap<AccountId, ListingId, BlockNumberFor<T>>` for efficient buyer-library scans.
 - Runtime builds in release mode; WASM artifact produced.
 - Parachain runs under Zombienet and accepts extrinsics end-to-end.
 - No stray `template_*` references in docs or genesis.
@@ -1632,7 +1841,7 @@ Next: P1b (frontend MVP), which reads this pallet via PAPI, uploads content to B
 
 ## Self-review notes
 
-- **Spec coverage (§4):** `create_listing` ✅ (Task 5+6), `purchase` ✅ (Task 8+9+10), `Listing` struct ✅ (Task 4), `BulletinCid` ✅ (Task 3), `Listings` + `Purchases` + `NextListingId` ✅ (Tasks 4, 7), Events `ListingCreated` + `PurchaseCompleted` ✅ (Tasks 5, 8), Errors `ZeroPrice` / `BuyerIsCreator` / `AlreadyPurchased` / `ListingNotFound` / `ListingIdOverflow` ✅ (Tasks 5, 6, 8, 9, 10). Phase 2 items (`ServicePublicKey`, `EncryptionKeys`, `WrappedKeys`, `register_encryption_key`, `grant_access`, `ServiceOrigin`) intentionally deferred.
+- **Spec coverage (§4):** `create_listing` ✅ (Tasks 5+6+15), `purchase` ✅ (Tasks 8+9+10), `Listing` struct with `content_cid` + `thumbnail_cid` ✅ (Tasks 4+15), `BulletinCid` ✅ (Task 3), `Listings` + `NextListingId` ✅ (Task 4), `Purchases` as `StorageDoubleMap<AccountId, ListingId, BlockNumberFor<T>>` ✅ (Tasks 7+16), Events `ListingCreated` + `PurchaseCompleted` ✅ (Tasks 5, 8), Errors `ZeroPrice` / `BuyerIsCreator` / `AlreadyPurchased` / `ListingNotFound` / `ListingIdOverflow` ✅ (Tasks 5, 6, 8, 9, 10). Phase 2 items (`ServicePublicKey`, `EncryptionKeys`, `WrappedKeys`, `register_encryption_key`, `grant_access`, `ServiceOrigin`) intentionally deferred.
 - **Fee model (§4):** default Polkadot fee payment by caller — no overrides needed. `Pays::No` and `ServiceOrigin` are Phase 2 concerns.
-- **Type consistency:** `BalanceOf<T>`, `ListingId = u64`, `BulletinCid { codec, digest }`, `Listing<T>` fields all used consistently across Tasks 3–14.
+- **Type consistency:** `BalanceOf<T>`, `ListingId = u64`, `BulletinCid { codec, digest }`, `Listing<T>` fields used consistently across Tasks 3–19.
 - **No placeholders:** all code steps contain full code; all run/expected pairs are concrete.
