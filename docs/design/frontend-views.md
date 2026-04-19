@@ -102,18 +102,22 @@ Shared layout across every state. Only the media area (left) and the action area
 - Behavior: the page subscribes to `WrappedKeys[(listing_id, buyer)]`. When the entry appears, the view transitions to state 4 automatically.
 
 **State 4 — `[P2]` Wrapped key granted**
-- Visually identical to state 2. The difference is under the hood:
-  1. Read `WrappedKeys[(listing_id, buyer)]`.
-  2. Read the buyer's x25519 private key from sandbox local-storage.
+- Visually identical to state 2, plus (if the viewer is the listing's creator) a `Your listing` badge in the action area. The difference is under the hood:
+  1. Read `WrappedKeys[(listing_id, currentAccount)]`.
+  2. Read the account's x25519 private key from sandbox local-storage.
   3. Unseal the wrapped key in pure JS → recover the content-lock-key.
   4. Fetch ciphertext from a public IPFS gateway using `Listing.content_cid` (CIDv1 + codec + blake2b-256 multihash).
   5. Decrypt the ciphertext in the browser.
   6. Verify `blake2b-256(plaintext) == Listing.content_hash`. Same indicator behavior as state 2.
   7. Build the Blob URL and render.
+- This state applies symmetrically to buyers (after purchase) and creators (after the chain-service observes `ListingCreated` and writes the creator's wrapped key). See spec §5.
 
-**State 5 — Creator viewing own listing**
-- Media: same inline `<video>` as state 2/4. In Phase 2 the creator decrypts locally using the content-lock-key they persisted at upload time in sandbox local-storage, keyed by `listing_id`. This path does **not** go through `purchase` or the chain-service — creators watch their own content for free.
+**State 5 — Creator viewing own listing, same session as upload `[P2]`**
+- Used only when the creator opens their freshly created listing before the chain-service has written `WrappedKeys[(listing_id, creator)]`, and the frontend still holds the plaintext content-lock-key in memory from the upload flow.
+- Media: inline `<video>` sourced from in-memory decryption using the retained content-lock-key. No round-trip to chain for a wrapped key.
 - Action: `Your listing` badge. No Buy button, no stats.
+- On any fresh session (page reload, new device), the creator falls through to state 3 → state 4 like a buyer. No divergent code path.
+- In Phase 1, "state 5" is simply: creator sees the inline plaintext player from state 2 plus the `Your listing` badge. No encryption, no waiting.
 
 **404 sub-state**
 - If `Listings[id]` does not exist, the page renders a full-page "Listing not found" with a link back to `/`.
@@ -147,14 +151,17 @@ Progressive-reveal form on a single page. Each section appears only once the pre
   - `⏳ Uploading thumbnail to Bulletin…` with a progress %
   - `⏳ Uploading content to Bulletin…` with a progress %
   - `[P2]` `⏳ Sealing content-lock-key to SVC_PUB…`
-  - `⏳ Waiting for signature…` (Triangle phone prompt for `create_listing`)
+  - `⏳ Waiting for signature…` (Triangle phone prompt for `create_listing`, or for the batched `batch_all([register_encryption_key, create_listing])` on first-ever listing creation)
   - `⏳ Submitting create_listing…`
   - `✓ Listed`
-- On success: navigate to `/listing/:new_id` (which renders state 5, the creator view).
+- On success: navigate to `/listing/:new_id` (which renders state 5 in the same session, then transitions to state 4 once the chain-service writes the creator's wrapped key).
 - On failure at any step: that step flips to a red error state with the underlying message. Earlier completed steps remain green. A `Retry` button retries from the failed step. Retries are naturally idempotent — Bulletin CIDs are deterministic, so re-submitting the same bytes is a no-op once the content is already stored.
 
-**Local persistence `[P2]`**
-- Immediately after the content-lock-key is generated (step A), the frontend persists it in sandbox local-storage, pending the successful listing. Once `create_listing` succeeds and `new_id` is known, the entry is keyed by `listing_id`. This persisted key is what state 5 uses for creator playback.
+**First-ever listing creation `[P2]`**
+- If the creator does not yet have an `EncryptionKeys[creator]` entry on-chain, the frontend generates an x25519 keypair, persists the private half to sandbox local-storage, and submits `pallet-utility::batch_all([register_encryption_key(pub), create_listing(...)])` instead of the plain `create_listing`. One phone signature, atomic. Required so the chain-service can wrap the content-lock-key for the creator when it observes `ListingCreated`.
+
+**In-memory content-lock-key `[P2]`**
+- From the moment step B generates the content-lock-key, the frontend keeps the plaintext key in React/zustand state (or equivalent) until the tab is closed or the user navigates away. This key powers state 5 playback for the immediate same-session case. It is **not** persisted to local-storage — fresh sessions get the wrapped key from chain like any buyer.
 
 ### 5.4 My Purchases (`/purchases`)
 
@@ -188,8 +195,11 @@ This section describes the cross-view user journeys. Individual view behavior is
 3. Picks one of three auto-extracted thumbnail frames.
 4. Fills title, description, price.
 5. Clicks `Create listing`.
-6. Inline checklist runs (see §5.3 Section D).
-7. On success, lands on `/listing/:new_id` (state 5).
+6. `[P2]` If `EncryptionKeys[creator]` does not yet exist on-chain, the frontend generates an x25519 keypair, persists the private half to sandbox local-storage, and submits `batch_all([register_encryption_key, create_listing])` instead of a plain `create_listing`. Otherwise it submits `create_listing` directly.
+7. Inline checklist runs (see §5.3 Section D).
+8. On success, lands on `/listing/:new_id`.
+   - **Phase 1:** state 2 with a `Your listing` badge.
+   - **`[P2]`:** state 5 (in-memory content-lock-key playback) while the chain-service writes `WrappedKeys[(listing_id, creator)]` in the background; once the subscription fires, the page quietly promotes to state 4. No visible transition if the creator plays before the wrapped key lands.
 
 ### 6.2 First purchase (new buyer)
 
@@ -222,7 +232,11 @@ This section describes the cross-view user journeys. Individual view behavior is
 
 ### 6.5 Browse as a creator
 
-A creator finds their own listings by using Browse like any other user. There is no "My Listings" view. When the creator clicks their own listing, state 5 renders (with the `Your listing` badge).
+A creator finds their own listings by using Browse like any other user. There is no "My Listings" view. When the creator clicks their own listing:
+
+- **Phase 1:** state 2 with a `Your listing` badge. Plaintext plays directly from Bulletin.
+- **`[P2]`, same session as upload:** state 5 — plays from the in-memory content-lock-key retained by the upload flow.
+- **`[P2]`, any other session:** state 3 until the chain-service has written `WrappedKeys[(listing_id, creator)]`, then state 4 with the `Your listing` badge. This is the same path a buyer uses; no divergent code.
 
 ## 7. States and edge cases
 
@@ -263,19 +277,21 @@ Every view listed in §5 exists in both phases. The deltas are narrow:
 | Area | Phase 1 | Phase 2 |
 |---|---|---|
 | Create flow — checklist | No encryption or sealing steps | Adds `Generating content-lock-key`, `Encrypting content`, `Sealing content-lock-key to SVC_PUB` |
-| Create flow — local storage | N/A | Content-lock-key persisted in sandbox local-storage keyed by `listing_id` |
-| First purchase | Plain `purchase` | `batch_all([register_encryption_key, purchase])`; session x25519 keypair generated |
+| Create flow — session keypair | N/A | x25519 keypair generated client-side on first listing creation (or first purchase, whichever comes first); private half persisted to sandbox local-storage |
+| Create flow — content-lock-key | N/A | Retained in memory for the current session only; not persisted |
+| First listing creation | Plain `create_listing` | `batch_all([register_encryption_key, create_listing])` if `EncryptionKeys[creator]` is missing |
+| First purchase | Plain `purchase` | `batch_all([register_encryption_key, purchase])` if `EncryptionKeys[buyer]` is missing |
 | Listing detail state 3 | Does not exist | "Preparing your content…" while polling `WrappedKeys` |
-| Listing detail state 4 | Replaced by state 2 | Client-side unseal + decrypt before render |
-| Listing detail state 5 | Plays plaintext from Bulletin | Decrypts locally using stored content-lock-key |
+| Listing detail state 4 | Replaced by state 2 | Client-side unseal + decrypt before render; applies to both buyers and creators |
+| Listing detail state 5 | Identical to state 2 plus `Your listing` badge | Same-session post-upload fast-path: creator plays via in-memory content-lock-key instead of waiting for the wrapped key |
 
 ## 9. Spec updates required
 
-These follow directly from the design work in this doc. Captured in task #8.
+All three spec updates from the initial brainstorming have been applied to `spec.md`:
 
-1. **Listing struct — add a thumbnail CID.** The thumbnail is auto-extracted from the video client-side at upload time, uploaded as a second, unencrypted object to Bulletin, and its CID is stored on the listing alongside `content_cid`. Field shape: `thumbnail_cid: BulletinCid`. Always unencrypted (even in Phase 2), so the Browse grid doesn't need any keys.
-2. **Creator playback of own content `[P2]`.** The creator's frontend persists the content-lock-key in sandbox local-storage keyed by `listing_id` at upload time. Creator playback reads this key locally; it does not go through `purchase`, `WrappedKeys`, or the chain-service.
-3. **Flip the `Purchases` key order.** `Purchases: StorageDoubleMap<AccountId, ListingId, ()>` (was `ListingId, AccountId`). Enables a cheap prefix scan for "my purchases." Consequence: fetching the list of buyers for a given listing becomes a full-scan — acceptable because the creator-stats UI (which was the main reader of that query) is dropped.
+1. **Listing struct — thumbnail CID** (`thumbnail_cid: BulletinCid`), always unencrypted, auto-extracted from the video on upload.
+2. **Creator playback unified with buyer decryption** — the chain-service also observes `ListingCreated` and writes `WrappedKeys[(listing_id, creator)]`. Creator playback uses the same decryption flow as a buyer. Requires first-ever listing creation to batch `register_encryption_key` with `create_listing`. The frontend retains the plaintext content-lock-key in memory for the current session as a fast-path for immediate post-upload playback (no local-storage persistence keyed by `listing_id`).
+3. **Flipped `Purchases` key order** — `StorageDoubleMap<AccountId, ListingId, ()>`. Enables a cheap prefix scan for "my purchases."
 
 ## 10. Known limitations (frontend-specific)
 
