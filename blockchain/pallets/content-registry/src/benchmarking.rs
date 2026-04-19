@@ -1,41 +1,16 @@
-//! Benchmarking setup for pallet-template
+//! Benchmarking setup for pallet-content-registry.
+//!
+//! Populated in Task 13 once the extrinsics are in place.
+
+#![cfg(feature = "runtime-benchmarks")]
 
 use super::*;
 use frame::{deps::frame_benchmarking::v2::*, prelude::*};
 
 #[benchmarks]
 mod benchmarks {
-	use super::*;
 	#[cfg(test)]
-	use crate::pallet::Pallet as ProofOfExistence;
-	use frame_system::RawOrigin;
+	use crate::pallet::Pallet as ContentRegistry;
 
-	#[benchmark]
-	fn create_claim() {
-		let caller: T::AccountId = whitelisted_caller();
-		let hash = H256::repeat_byte(1);
-		#[extrinsic_call]
-		create_claim(RawOrigin::Signed(caller.clone()), hash);
-
-		assert!(Claims::<T>::contains_key(&hash));
-	}
-
-	#[benchmark]
-	fn revoke_claim() {
-		let caller: T::AccountId = whitelisted_caller();
-		let hash = H256::repeat_byte(1);
-		Claims::<T>::insert(
-			&hash,
-			Claim {
-				owner: caller.clone(),
-				block_number: frame_system::Pallet::<T>::block_number(),
-			},
-		);
-		#[extrinsic_call]
-		revoke_claim(RawOrigin::Signed(caller.clone()), hash);
-
-		assert!(!Claims::<T>::contains_key(&hash));
-	}
-
-	impl_benchmark_test_suite!(ProofOfExistence, crate::mock::new_test_ext(), crate::mock::Test);
+	impl_benchmark_test_suite!(ContentRegistry, crate::mock::new_test_ext(), crate::mock::Test);
 }
