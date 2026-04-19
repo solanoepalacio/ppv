@@ -64,7 +64,7 @@ Each phase is demoable on its own.
 // Phase 1
 NextListingId: StorageValue<u64>
 Listings:      StorageMap<ListingId, Listing<T>, OptionQuery>
-Purchases:     StorageDoubleMap<AccountId, ListingId, (), OptionQuery>
+Purchases:     StorageDoubleMap<AccountId, ListingId, BlockNumberFor<T>, OptionQuery>  // value = block number of purchase; used by frontend to sort "My Purchases" by time
 
 // Phase 2
 ServicePublicKey:  StorageValue<[u8; 32], ValueQuery>     // SVC_PUB (x25519); set at genesis, immutable
