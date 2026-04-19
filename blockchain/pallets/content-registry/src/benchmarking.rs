@@ -2,6 +2,8 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
+use alloc::vec;
+
 use super::*;
 use frame::traits::Currency;
 use frame::{deps::frame_benchmarking::v2::*, prelude::*};
