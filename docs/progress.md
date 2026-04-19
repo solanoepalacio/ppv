@@ -34,7 +34,7 @@ Plan: [`docs/plans/P1b-frontend.md`](./plans/P1b-frontend.md)
 
 - [x] Task 1: Install @parity/bulletin-sdk + Vitest + regenerate PAPI descriptors
 - [x] Task 2: Utility functions — bulletinCid + contentHash (TDD)
-- [ ] Task 3: Store refactor + useParachainProvider (Triangle/dev detection)
+- [x] Task 3: Store refactor + useParachainProvider (Triangle/dev detection)
 - [ ] Task 4: App shell — nav, routes, account pill
 - [ ] Task 5: useContentRegistry PAPI hook
 - [ ] Task 6: useBulletinUpload (bulletin-sdk + IPFS fetch)
