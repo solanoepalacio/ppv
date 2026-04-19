@@ -1646,11 +1646,12 @@ git commit -m "clean up template leftovers and register pallet-content-registry 
 
 ---
 
-## Task 18 — Full release build + WASM artifact
+## Task 18 — Full release build + WASM artifact + chain spec regeneration
 
-Produce the parachain WASM runtime. This is what Zombienet will load.
+Produce the parachain WASM runtime and regenerate the committed `blockchain/chain_spec.json` against it. The committed chain spec is stale because earlier tasks renamed the runtime crate (`stack-template-runtime` → `ppview-runtime`) and changed `spec_name` / `impl_name`, both of which shift the runtime version embedded in the spec. Regenerating it here keeps the committed artifact consistent with the runtime, which the lightweight `blockchain/Dockerfile` and any consumer that reads the file directly depend on. (Note: PAPI metadata regeneration happens in Task 19 because it needs a running node.)
 
-**Files:** none modified — this is a verification step.
+**Files:**
+- Modify: `blockchain/chain_spec.json` (regenerated)
 
 - [ ] **Step 1: Clean build the runtime**
 
@@ -1667,9 +1668,27 @@ Expected: OK. Some workspace members (`cli/`, `contracts/`) may still compile ag
 Run: `cargo test -p pallet-content-registry`
 Expected: every test from Tasks 2–12 passes.
 
-- [ ] **Step 4: Commit (empty — or skip if nothing to stage)**
+- [ ] **Step 4: Regenerate the committed chain spec**
 
-If there are no changes from this task, no commit needed.
+Run the helper that wraps `chain-spec-builder` with the project's chain-id/chain-name and points it at the freshly built WASM:
+
+```bash
+source scripts/common.sh
+generate_chain_spec
+```
+
+Or, equivalently, invoke `chain-spec-builder` directly with the same arguments as `generate_chain_spec` in `scripts/common.sh`. This rewrites `blockchain/chain_spec.json` against the current `ppview-runtime` WASM.
+
+Expected: `blockchain/chain_spec.json` is regenerated; `git diff` shows the spec_name / impl_name and code hash updated to match the new runtime.
+
+- [ ] **Step 5: Commit the regenerated chain spec**
+
+```bash
+git add blockchain/chain_spec.json
+git commit -m "regenerate chain_spec.json against ppview-runtime"
+```
+
+If `git diff` shows no change (because the spec was already regenerated in another flow), skip the commit.
 
 ---
 
@@ -1688,22 +1707,25 @@ From the repo root:
 ./scripts/start-local.sh
 ```
 
+`start-local.sh` calls `build_runtime` and `generate_chain_spec` itself, so the chain spec it serves always matches the current `ppview-runtime` build — no separate regen step needed here as long as Task 18 has produced an up-to-date WASM artifact.
+
 Expected: Zombienet logs show the relay chain producing blocks and the parachain collating at `ws://127.0.0.1:9988` (or the port shown in the Zombienet output). Leave this running in another terminal.
 
-- [ ] **Step 2: Regenerate PAPI descriptors for the new runtime**
+- [ ] **Step 2: Regenerate PAPI descriptors and metadata**
 
-The frontend ships PAPI descriptors under `web/.papi/`. Regenerate them against the running node:
+The frontend ships PAPI metadata under `web/.papi/metadata/ppview.scale` (renamed from the upstream `stack_template.scale`) and generated descriptors under `web/.papi/descriptors/`. Both are stale relative to the new `spec_name` / runtime layout and need to be regenerated against the running node:
 
 ```bash
 cd web
-npm install   # if not already
-npm run codegen
+npm install            # if not already
+npm run update-types   # pulls fresh metadata from the running node into web/.papi/metadata/ppview.scale
+npm run codegen        # regenerates the descriptors used by the frontend and this script
 cd ..
 ```
 
-Expected: `web/.papi/descriptors/` contains fresh `ppview.ts` (or equivalent name from `polkadot-api.json`) with `pallets.ContentRegistry` in it.
+Expected: `web/.papi/metadata/ppview.scale` is updated and `web/.papi/descriptors/` contains fresh `ppview.ts` exposing `pallets.ContentRegistry` (with `create_listing`, `purchase`, `Listings`, `Purchases`, `NextListingId`, etc.).
 
-If the generator output uses a different symbol name (e.g. because the runtime crate is still called `ppview-runtime`), that's fine — we reference what the generator produced.
+If the descriptor key in `web/.papi/polkadot-api.json` has been changed (currently `ppview`), use whatever name the file lists — adjust the import in Step 3 accordingly.
 
 - [ ] **Step 3: Write the smoke script**
 
