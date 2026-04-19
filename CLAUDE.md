@@ -10,7 +10,7 @@ Pay-per-view content marketplace on Polkadot. Learning-focused PoC for the **Pro
 
 ## Repository structure
 
-- `docs/design/spec.md` — canonical working spec. §1 terminology → §7 deployment model. Treat this as the single source of truth for design decisions.
+- `docs/design/spec.md` — canonical working spec. §1 terminology → §7 deployment model. Treat this as the single source of truth for design decisions. If some decision doesn't match the ideal implementation or is inconsistent with practical findings during development bring it up for the human to review. Design spec *CAN* contain mistakes and room for improvement.
 - `docs/research/polkadot-stack-template.md` — structured walkthrough of the PBP-provided stack template.
 - `docs/research/triangle-sdk.md` — walkthrough of the Polkadot Triangle SDK and its example app.
 - `docs/research/frontend-deploy.md` — trace of the stack template's deploy-frontend workflow; explains the IPFS-vs-Bulletin hosting decision.
