@@ -24,6 +24,7 @@ mod benchmarking;
 pub mod pallet {
 	use crate::weights::WeightInfo;
 	use frame::{
+		deps::sp_runtime::traits::Zero,
 		prelude::*,
 		traits::{Currency, ExistenceRequirement},
 	};
@@ -110,6 +111,8 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// The listing ID counter overflowed `u64::MAX`.
 		ListingIdOverflow,
+		/// Listings must have a positive price.
+		ZeroPrice,
 	}
 
 	#[pallet::call]
@@ -126,6 +129,8 @@ pub mod pallet {
 			locked_content_lock_key: BoundedVec<u8, ConstU32<128>>,
 		) -> DispatchResult {
 			let creator = ensure_signed(origin)?;
+
+			ensure!(!price.is_zero(), Error::<T>::ZeroPrice);
 
 			let listing_id = NextListingId::<T>::get();
 			let next = listing_id.checked_add(1).ok_or(Error::<T>::ListingIdOverflow)?;

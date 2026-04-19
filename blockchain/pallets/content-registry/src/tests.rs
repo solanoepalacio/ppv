@@ -82,6 +82,24 @@ fn create_listing_works() {
 }
 
 #[test]
+fn create_listing_fails_if_price_zero() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			ContentRegistry::create_listing(
+				RuntimeOrigin::signed(ALICE),
+				sample_cid(),
+				[0x33u8; 32],
+				bvec::<128>(b"free"),
+				bvec::<2048>(b""),
+				0,
+				bvec::<128>(&[]),
+			),
+			crate::Error::<Test>::ZeroPrice,
+		);
+	});
+}
+
+#[test]
 fn create_listing_fails_on_id_overflow() {
 	new_test_ext().execute_with(|| {
 		NextListingId::<Test>::put(u64::MAX);
