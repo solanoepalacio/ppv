@@ -50,7 +50,18 @@ pub mod pallet {
 	/// The full IPFS CID reconstructs as: CIDv1 + `codec` + multihash(0xb220, 32, `digest`).
 	/// - `codec = 0x55` (raw) for single-chunk uploads ≤ 2 MiB
 	/// - `codec = 0x70` (dag-pb) for chunked DAG manifests
-	#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[derive(
+		Encode,
+		Decode,
+		DecodeWithMemTracking,
+		Clone,
+		Copy,
+		PartialEq,
+		Eq,
+		RuntimeDebug,
+		TypeInfo,
+		MaxEncodedLen,
+	)]
 	pub struct BulletinCid {
 		pub codec: u8,
 		pub digest: [u8; 32],
@@ -87,11 +98,54 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	pub enum Event<T: Config> {}
+	pub enum Event<T: Config> {
+		ListingCreated {
+			listing_id: ListingId,
+			creator: T::AccountId,
+			price: BalanceOf<T>,
+		},
+	}
 
 	#[pallet::error]
-	pub enum Error<T> {}
+	pub enum Error<T> {
+		/// The listing ID counter overflowed `u64::MAX`.
+		ListingIdOverflow,
+	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {
+		#[pallet::call_index(0)]
+		#[pallet::weight(T::WeightInfo::create_listing())]
+		pub fn create_listing(
+			origin: OriginFor<T>,
+			content_cid: BulletinCid,
+			content_hash: [u8; 32],
+			title: BoundedVec<u8, ConstU32<128>>,
+			description: BoundedVec<u8, ConstU32<2048>>,
+			price: BalanceOf<T>,
+			locked_content_lock_key: BoundedVec<u8, ConstU32<128>>,
+		) -> DispatchResult {
+			let creator = ensure_signed(origin)?;
+
+			let listing_id = NextListingId::<T>::get();
+			let next = listing_id.checked_add(1).ok_or(Error::<T>::ListingIdOverflow)?;
+
+			let listing = Listing::<T> {
+				creator: creator.clone(),
+				price,
+				content_cid,
+				content_hash,
+				title,
+				description,
+				locked_content_lock_key,
+				created_at: frame_system::Pallet::<T>::block_number(),
+			};
+
+			Listings::<T>::insert(listing_id, listing);
+			NextListingId::<T>::put(next);
+
+			Self::deposit_event(Event::ListingCreated { listing_id, creator, price });
+			Ok(())
+		}
+	}
 }

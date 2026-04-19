@@ -45,3 +45,38 @@ fn listings_storage_roundtrip() {
 		assert_eq!(read.content_hash, [0x22u8; 32]);
 	});
 }
+
+fn sample_cid() -> BulletinCid {
+	BulletinCid { codec: 0x55, digest: [0xaau8; 32] }
+}
+
+fn bvec<const N: u32>(bytes: &[u8]) -> BoundedVec<u8, ConstU32<N>> {
+	bytes.to_vec().try_into().unwrap()
+}
+
+#[test]
+fn create_listing_works() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(7);
+		assert_ok!(ContentRegistry::create_listing(
+			RuntimeOrigin::signed(ALICE),
+			sample_cid(),
+			[0x33u8; 32],
+			bvec::<128>(b"cool pdf"),
+			bvec::<2048>(b"a book i wrote"),
+			500,
+			bvec::<128>(&[]),
+		));
+
+		assert_eq!(NextListingId::<Test>::get(), 1);
+		let listing = Listings::<Test>::get(0u64).unwrap();
+		assert_eq!(listing.creator, ALICE);
+		assert_eq!(listing.price, 500);
+		assert_eq!(listing.created_at, 7);
+		assert_eq!(listing.title.to_vec(), b"cool pdf".to_vec());
+
+		System::assert_last_event(
+			crate::Event::ListingCreated { listing_id: 0, creator: ALICE, price: 500 }.into(),
+		);
+	});
+}
