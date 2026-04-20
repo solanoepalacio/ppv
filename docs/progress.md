@@ -49,7 +49,7 @@ Plan: [`docs/plans/P1b-frontend.md`](./plans/P1b-frontend.md)
 - [x] Task 15: Split parachain provider into user + Alice signers (TDD)
 - [x] Task 16: Bulletin upload — Alice signs authorization, user signs store; skip re-auth when quota suffices (TDD)
 - [x] Task 17: Top-bar empty-state copy for host-mode pairing prompt
-- [ ] Task 18: E2E verification on Zombienet — user signs parachain + store, Alice signs only authorization
+- [x] Task 18: E2E verification on Zombienet — user signs parachain + store, Alice signs only authorization
 - [ ] Task 19: TypeScript check + dev-server smoke test against Zombienet
 
 ### P1c — Deploy (IPFS + DotNS)
