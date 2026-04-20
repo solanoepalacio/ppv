@@ -1,34 +1,42 @@
-import { createClient, type PolkadotClient } from 'polkadot-api';
-import { getWsProvider } from 'polkadot-api/ws-provider/web';
-import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat';
+import { createClient, type PolkadotClient } from "polkadot-api";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import {
-  AsyncBulletinClient,
-  ChunkStatus,
-  type BulletinClientInterface,
-  type ProgressCallback,
-} from '@parity/bulletin-sdk';
-import { bulletin } from '@polkadot-api/descriptors';
-import { devAccounts } from './useAccount';
-import { bulletinCidToGatewayUrl } from '../utils/bulletinCid';
-import type { BulletinCidFields } from './useContentRegistry';
+	AsyncBulletinClient,
+	ChunkStatus,
+	type BulletinClientInterface,
+	type ProgressCallback,
+} from "@parity/bulletin-sdk";
+import { bulletin } from "@polkadot-api/descriptors";
+import { devAccounts } from "./useAccount";
+import { bulletinCidToGatewayUrl } from "../utils/bulletinCid";
+import type { BulletinCidFields } from "./useContentRegistry";
 
-const BULLETIN_WS = 'wss://paseo-bulletin-rpc.polkadot.io';
+const BULLETIN_WS = "wss://paseo-bulletin-rpc.polkadot.io";
+
+// Cap uploads at the SDK's default `chunkingThreshold` (2 MiB) so every
+// request uses the single-tx signed path. Chunked uploads trigger a renderer
+// SIGILL on Paseo — per-chunk Blake2b hashing and DAG-PB manifest building
+// through `@polkadot/wasm-crypto` panics under load. Phase 1 PoC only.
+export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 
 let _bulletinPapiClient: PolkadotClient | null = null;
 let _asyncClient: AsyncBulletinClient | null = null;
 
 function getDefaultBulletinClient(): AsyncBulletinClient {
-  if (!_bulletinPapiClient) {
-    _bulletinPapiClient = createClient(
-      withPolkadotSdkCompat(getWsProvider(BULLETIN_WS)),
-    );
-  }
-  if (!_asyncClient) {
-    const api = _bulletinPapiClient.getTypedApi(bulletin);
-    const aliceSigner = devAccounts[0].signer;
-    _asyncClient = new AsyncBulletinClient(api, aliceSigner, (_bulletinPapiClient as any).submit);
-  }
-  return _asyncClient;
+	if (!_bulletinPapiClient) {
+		_bulletinPapiClient = createClient(withPolkadotSdkCompat(getWsProvider(BULLETIN_WS)));
+	}
+	if (!_asyncClient) {
+		const api = _bulletinPapiClient.getTypedApi(bulletin);
+		const aliceSigner = devAccounts[0].signer;
+		_asyncClient = new AsyncBulletinClient(
+			api,
+			aliceSigner,
+			(_bulletinPapiClient as any).submit,
+		);
+	}
+	return _asyncClient;
 }
 
 /**
@@ -46,29 +54,35 @@ function getDefaultBulletinClient(): AsyncBulletinClient {
  * Pass an injectable `_client` for testing (accepts MockBulletinClient).
  */
 export async function uploadToBulletin(
-  bytes: Uint8Array,
-  onProgress?: (pct: number) => void,
-  _client?: BulletinClientInterface,
+	bytes: Uint8Array,
+	onProgress?: (pct: number) => void,
+	_client?: BulletinClientInterface,
 ): Promise<BulletinCidFields> {
-  const client = _client ?? getDefaultBulletinClient();
+	if (bytes.length > MAX_UPLOAD_BYTES) {
+		throw new Error(
+			`File is too large: ${bytes.length} bytes. Phase 1 PoC supports up to 2 MiB per upload.`,
+		);
+	}
 
-  const progressCb: ProgressCallback = (event) => {
-    if (event.type === ChunkStatus.ChunkCompleted) {
-      onProgress?.(((event.index + 1) / event.total) * 100);
-    }
-  };
+	const client = _client ?? getDefaultBulletinClient();
 
-  const result = await client.store(bytes).withCallback(progressCb).send();
+	const progressCb: ProgressCallback = (event) => {
+		if (event.type === ChunkStatus.ChunkCompleted) {
+			onProgress?.(((event.index + 1) / event.total) * 100);
+		}
+	};
 
-  onProgress?.(100);
+	const result = await client.store(bytes).withCallback(progressCb).send();
 
-  if (!result.cid) throw new Error('Bulletin upload returned no CID');
+	onProgress?.(100);
 
-  const cid = result.cid;
-  return {
-    codec: cid.code,
-    digestBytes: new Uint8Array(cid.multihash.digest),
-  };
+	if (!result.cid) throw new Error("Bulletin upload returned no CID");
+
+	const cid = result.cid;
+	return {
+		codec: cid.code,
+		digestBytes: new Uint8Array(cid.multihash.digest),
+	};
 }
 
 /**
@@ -76,8 +90,8 @@ export async function uploadToBulletin(
  * Throws on HTTP error or network failure.
  */
 export async function fetchFromIpfs(cid: BulletinCidFields): Promise<Uint8Array> {
-  const url = bulletinCidToGatewayUrl(cid.codec, cid.digestBytes);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`IPFS fetch failed: ${res.status} ${res.statusText}`);
-  return new Uint8Array(await res.arrayBuffer());
+	const url = bulletinCidToGatewayUrl(cid.codec, cid.digestBytes);
+	const res = await fetch(url);
+	if (!res.ok) throw new Error(`IPFS fetch failed: ${res.status} ${res.statusText}`);
+	return new Uint8Array(await res.arrayBuffer());
 }

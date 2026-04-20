@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ThumbnailPicker from '../components/ThumbnailPicker';
 import CreateChecklist, { type ChecklistStep, type StepStatus } from '../components/CreateChecklist';
-import { uploadToBulletin } from '../hooks/useBulletinUpload';
+import { uploadToBulletin, MAX_UPLOAD_BYTES } from '../hooks/useBulletinUpload';
 import { submitCreateListing } from '../hooks/useContentRegistry';
 import { getContentHash, HashAlgorithm } from '@parity/bulletin-sdk';
 
@@ -45,6 +45,11 @@ export default function CreatePage() {
   function handleFilePick(file: File) {
     setVideoError(null);
     setThumbnailBytes(null);
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setVideoError('File is too large. Phase 1 PoC supports videos up to 2 MiB.');
+      return;
+    }
 
     const offscreen = document.createElement('video') as HTMLVideoElement;
     offscreen.muted = true;

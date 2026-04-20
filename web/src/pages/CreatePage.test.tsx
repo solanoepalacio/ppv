@@ -5,6 +5,7 @@ import CreatePage from './CreatePage';
 
 vi.mock('../hooks/useBulletinUpload', () => ({
   uploadToBulletin: vi.fn(),
+  MAX_UPLOAD_BYTES: 2 * 1024 * 1024,
 }));
 vi.mock('../hooks/useContentRegistry', () => ({
   submitCreateListing: vi.fn(),
@@ -126,6 +127,22 @@ describe('CreatePage', () => {
 
     fireEvent.change(screen.getByPlaceholderText(/e\.g\. 2\.5/), { target: { value: '1' } });
     await waitFor(() => expect(screen.getByText(/planck/i)).toBeInTheDocument());
+  });
+
+  test('rejects a video file larger than 2 MiB before probing metadata', async () => {
+    render(<MemoryRouter><CreatePage /></MemoryRouter>);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const bigFile = new File(
+      [new Uint8Array(2 * 1024 * 1024 + 1)],
+      'big.mp4',
+      { type: 'video/mp4' },
+    );
+    fireEvent.change(input, { target: { files: [bigFile] } });
+
+    await waitFor(() => expect(screen.getByText(/2 MiB/i)).toBeInTheDocument());
+    // Drop zone stays visible; we never advance to Section B
+    expect(screen.queryByTestId('thumb-picker')).toBeNull();
+    expect(screen.getByText(/drag & drop/i)).toBeInTheDocument();
   });
 });
 

@@ -91,16 +91,13 @@ describe('uploadToBulletin', () => {
     expect(ops.every((op) => op.type !== 'store_preimage_auth')).toBe(true);
   });
 
-  test('uses signed chunked path for large files (> 2 MiB)', async () => {
+  test('rejects files larger than 2 MiB before hitting the SDK', async () => {
     const mock = new MockBulletinClient();
-    const bytes = new Uint8Array(3 * 1024 * 1024); // 3 MiB
+    const bytes = new Uint8Array(2 * 1024 * 1024 + 1); // just over 2 MiB
 
-    await uploadToBulletin(bytes, undefined, mock);
-
-    const ops = mock.getOperations();
-    expect(ops.some((op) => op.type === 'store')).toBe(true);
-    expect(ops.every((op) => op.type !== 'store_preimage_auth')).toBe(true);
-    expect(ops.every((op) => op.type !== 'authorize_preimage')).toBe(true);
+    await expect(uploadToBulletin(bytes, undefined, mock)).rejects.toThrow(/2 MiB/i);
+    // Must not have attempted any chain operation
+    expect(mock.getOperations()).toEqual([]);
   });
 
   test('throws when storage fails', async () => {
