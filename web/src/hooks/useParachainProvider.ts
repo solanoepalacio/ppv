@@ -12,7 +12,7 @@ import { enumValue } from '@novasamatech/host-api';
 import { ppview } from '@polkadot-api/descriptors';
 import { useEffect } from 'react';
 import { useChainStore } from '../store/chainStore';
-import { devAccounts } from './useAccount';
+import { devAccounts, DEV_USER_INDEX, getAliceSigner as getAliceSignerFromAccount } from './useAccount';
 
 const PPVIEW_GENESIS = '0x4545454545454545454545454545454545454545454545454545454545454545';
 const DEV_WS = 'ws://127.0.0.1:9944';
@@ -24,16 +24,42 @@ type ParachainApi = TypedApi<typeof ppview>;
 
 let _parachainClient: PolkadotClient | null = null;
 let _parachainApi: ParachainApi | null = null;
-let _currentSigner: PolkadotSigner | null = null;
+let _userSigner: PolkadotSigner | null = null;
+let _userAddress: string | null = null;
+
+type AccountSubscriber = (address: string | null) => void;
+const _accountSubscribers = new Set<AccountSubscriber>();
 
 export function getParachainApi(): ParachainApi {
   if (!_parachainApi) throw new Error('Parachain provider not initialized');
   return _parachainApi;
 }
 
-export function getCurrentSigner(): PolkadotSigner {
-  if (!_currentSigner) throw new Error('No signer — provider not initialized');
-  return _currentSigner;
+export function getUserSigner(): PolkadotSigner {
+  if (!_userSigner) throw new Error('No user signer — provider not initialized');
+  return _userSigner;
+}
+
+export function getUserAddress(): string | null {
+  return _userAddress;
+}
+
+export function getAliceSigner(): PolkadotSigner {
+  return getAliceSignerFromAccount();
+}
+
+export function subscribeUserAccount(cb: AccountSubscriber): () => void {
+  _accountSubscribers.add(cb);
+  cb(_userAddress);
+  return () => {
+    _accountSubscribers.delete(cb);
+  };
+}
+
+function setUserAccount(address: string | null, signer: PolkadotSigner | null): void {
+  _userAddress = address;
+  _userSigner = signer;
+  for (const sub of _accountSubscribers) sub(address);
 }
 
 async function initProvider(): Promise<{ address: string | null }> {
@@ -60,20 +86,22 @@ async function initProvider(): Promise<{ address: string | null }> {
 
     if (acct) {
       const address = addressCodec.dec(acct.publicKey);
-      _currentSigner = accountsProvider.getNonProductAccountSigner(acct as any);
+      setUserAccount(address, accountsProvider.getNonProductAccountSigner(acct as any));
       return { address };
     }
+    setUserAccount(null, null);
     return { address: null };
   } else {
     _parachainClient = createClient(withPolkadotSdkCompat(getWsProvider(DEV_WS)));
     _parachainApi = _parachainClient.getTypedApi(ppview);
-    _currentSigner = devAccounts[0].signer;
-    return { address: devAccounts[0].address };
+    const user = devAccounts[DEV_USER_INDEX];
+    setUserAccount(user.address, user.signer);
+    return { address: user.address };
   }
 }
 
 /**
- * Mount once in App. Initializes the PAPI client, gets the account,
+ * Mount once in App. Initializes the PAPI client, selects the user account,
  * and subscribes to balance updates.
  */
 export function useParachainProvider() {

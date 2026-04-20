@@ -1,5 +1,5 @@
 import { Binary } from 'polkadot-api';
-import { getParachainApi, getCurrentSigner } from './useParachainProvider';
+import { getParachainApi, getUserSigner } from './useParachainProvider';
 import { bulletinCidToGatewayUrl } from '../utils/bulletinCid';
 
 // ── Shared types ──────────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ export interface CreateListingParams {
 
 export async function submitCreateListing(params: CreateListingParams): Promise<bigint> {
   const api = getParachainApi();
-  const signer = getCurrentSigner();
+  const signer = getUserSigner();
 
   const tx = api.tx.ContentRegistry.create_listing({
     content_cid: {
@@ -120,7 +120,7 @@ export async function submitCreateListing(params: CreateListingParams): Promise<
 
 export async function submitPurchase(listingId: bigint): Promise<void> {
   const api = getParachainApi();
-  const signer = getCurrentSigner();
+  const signer = getUserSigner();
 
   const tx = api.tx.ContentRegistry.purchase({ listing_id: listingId });
   const result = await tx.signAndSubmit(signer);

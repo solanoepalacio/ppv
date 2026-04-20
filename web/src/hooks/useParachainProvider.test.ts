@@ -1,5 +1,11 @@
 import { describe, test, expect } from 'vitest';
-import { getParachainApi, getCurrentSigner } from './useParachainProvider';
+import {
+  getParachainApi,
+  getUserSigner,
+  getUserAddress,
+  getAliceSigner,
+} from './useParachainProvider';
+import { aliceAccount } from './useAccount';
 
 describe('getParachainApi', () => {
   test('throws before provider is initialized', () => {
@@ -7,8 +13,20 @@ describe('getParachainApi', () => {
   });
 });
 
-describe('getCurrentSigner', () => {
+describe('getUserSigner', () => {
   test('throws before provider is initialized', () => {
-    expect(() => getCurrentSigner()).toThrowError('No signer — provider not initialized');
+    expect(() => getUserSigner()).toThrowError('No user signer — provider not initialized');
+  });
+});
+
+describe('getUserAddress', () => {
+  test('returns null before provider is initialized', () => {
+    expect(getUserAddress()).toBeNull();
+  });
+});
+
+describe('getAliceSigner', () => {
+  test('returns Alice signer synchronously, without provider init', () => {
+    expect(getAliceSigner()).toBe(aliceAccount.signer);
   });
 });
