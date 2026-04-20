@@ -7,6 +7,10 @@ authors.workspace = true
 edition.workspace = true
 publish = false
 
+[lib]
+name = "ppview_chain_service"
+path = "src/lib.rs"
+
 [[bin]]
 name = "ppview-chain-service"
 path = "src/main.rs"

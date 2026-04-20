@@ -1,4 +1,5 @@
 mod cli;
+pub mod keys;
 
 use anyhow::Result;
 use clap::Parser;
