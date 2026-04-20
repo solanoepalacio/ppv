@@ -45,7 +45,7 @@ Plan: [`docs/plans/P1b-frontend.md`](./plans/P1b-frontend.md)
 - [x] Task 11: Create page — upload/submit flow + CreateChecklist
 - [x] Task 12: My Purchases page
 - [x] Task 13: Spec §5.1 + §6 — two-signer account model
-- [ ] Task 14: Dev accounts — pin one user account, expose Alice separately (TDD)
+- [x] Task 14: Dev accounts — pin one user account, expose Alice separately (TDD)
 - [ ] Task 15: Split parachain provider into user + Alice signers (TDD)
 - [ ] Task 16: Bulletin upload — Alice signs authorization, user signs store; skip re-auth when quota suffices (TDD)
 - [ ] Task 17: Top-bar empty-state copy for host-mode pairing prompt

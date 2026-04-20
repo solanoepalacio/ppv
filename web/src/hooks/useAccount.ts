@@ -48,3 +48,23 @@ export function getDevKeypair(index: number): {
 	const keypair = derive(devPaths[index]);
 	return { publicKey: keypair.publicKey, sign: keypair.sign };
 }
+
+/**
+ * Dev-mode: which entry in `devAccounts` acts as the connected user account.
+ *
+ * NOT Alice. Alice is reserved for Bulletin Chain authorization extrinsics
+ * (see `getAliceSigner`), so using a different account as the user exercises
+ * the two-signer flow end-to-end against Zombienet.
+ */
+export const DEV_USER_INDEX = 1;
+
+/** Alice is always devAccounts[0] — the canonical Bulletin authorization signer. */
+export const aliceAccount = devAccounts[0];
+
+/**
+ * Returns Alice's PAPI signer. Use ONLY for Bulletin `authorize_account`
+ * / `authorize_preimage`. Never use to sign parachain extrinsics.
+ */
+export function getAliceSigner(): PolkadotSigner {
+	return aliceAccount.signer;
+}
