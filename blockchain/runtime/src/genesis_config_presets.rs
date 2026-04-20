@@ -1,6 +1,7 @@
 use crate::{
-	AccountId, BalancesConfig, CollatorSelectionConfig, ParachainInfoConfig, PolkadotXcmConfig,
-	RuntimeGenesisConfig, SessionConfig, SessionKeys, SudoConfig, EXISTENTIAL_DEPOSIT,
+	AccountId, BalancesConfig, CollatorSelectionConfig, ContentRegistryConfig, ParachainInfoConfig,
+	PolkadotXcmConfig, RuntimeGenesisConfig, SessionConfig, SessionKeys, SudoConfig,
+	EXISTENTIAL_DEPOSIT,
 };
 
 use alloc::{vec, vec::Vec};
@@ -19,6 +20,15 @@ use xcm::prelude::XCM_VERSION;
 const SAFE_XCM_VERSION: u32 = XCM_VERSION;
 /// Parachain id used for genesis config presets.
 pub const PARACHAIN_ID: u32 = 1000;
+
+/// Dev-only SVC_PUB x25519 bytes. The matching SVC_PRIV is held by the chain-service
+/// binary (P2b); for dev it lives outside the node's keystore under
+/// `blockchain/chain-service/dev-keys/`. DO NOT use these bytes in any public testnet
+/// or mainnet deployment.
+const DEV_SERVICE_PUBLIC_KEY: [u8; 32] = [
+	0x51, 0x56, 0xb2, 0xb7, 0x0d, 0x28, 0x0e, 0xbb, 0x7f, 0x71, 0x0c, 0x1f, 0xca, 0x32, 0xfb, 0x54,
+	0x70, 0x96, 0xd4, 0xaf, 0x4e, 0x31, 0xe5, 0xb3, 0x70, 0x4b, 0xc7, 0x62, 0xd3, 0x9c, 0x3a, 0x1c,
+];
 
 /// Generate the session keys from individual elements.
 pub fn session_keys(keys: AuraId) -> SessionKeys {
@@ -52,6 +62,10 @@ fn testnet_genesis(
 		},
 		polkadot_xcm: PolkadotXcmConfig { safe_xcm_version: Some(SAFE_XCM_VERSION) },
 		sudo: SudoConfig { key: Some(root) },
+		content_registry: ContentRegistryConfig {
+			service_public_key: DEV_SERVICE_PUBLIC_KEY,
+			service_account_id: Some(Sr25519Keyring::Dave.to_account_id()),
+		},
 	})
 }
 
