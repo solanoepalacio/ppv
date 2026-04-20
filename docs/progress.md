@@ -65,7 +65,7 @@ Plan: [`docs/plans/P2a-pallet-runtime.md`](./plans/P2a-pallet-runtime.md)
 - [x] Task 5: EncryptionKeys + register_encryption_key
 - [x] Task 6: WrappedKeys + grant_access (ServiceOrigin, Pays::No)
 - [x] Task 7: Benchmarks for new extrinsics
-- [ ] Task 8: EnsureServiceAccount runtime wiring
+- [x] Task 8: EnsureServiceAccount runtime wiring
 - [ ] Task 9: Genesis presets populate ContentRegistryConfig
 - [ ] Task 10: Release build + Zombienet launch smoke
 

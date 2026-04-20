@@ -286,9 +286,44 @@ impl pallet_statement::Config for Runtime {
 	type MaxAllowedBytes = MaxAllowedBytes;
 }
 
+/// `EnsureOrigin` impl that accepts a signed origin iff the signer matches the
+/// on-chain `pallet_content_registry::ServiceAccountId`. Used to gate
+/// `grant_access` to the chain-service daemon's sr25519 account.
+pub struct EnsureServiceAccount<T>(core::marker::PhantomData<T>);
+
+impl<T> frame_support::traits::EnsureOrigin<T::RuntimeOrigin> for EnsureServiceAccount<T>
+where
+	T: pallet_content_registry::Config + frame_system::Config,
+	T::RuntimeOrigin: From<frame_system::RawOrigin<T::AccountId>>
+		+ Into<Result<frame_system::RawOrigin<T::AccountId>, T::RuntimeOrigin>>,
+{
+	type Success = T::AccountId;
+
+	fn try_origin(o: T::RuntimeOrigin) -> Result<Self::Success, T::RuntimeOrigin> {
+		let raw = <T::RuntimeOrigin as Into<
+			Result<frame_system::RawOrigin<T::AccountId>, T::RuntimeOrigin>,
+		>>::into(o)?;
+		match raw {
+			frame_system::RawOrigin::Signed(who)
+				if Some(&who) == pallet_content_registry::ServiceAccountId::<T>::get().as_ref() =>
+			{
+				Ok(who)
+			},
+			other => Err(other.into()),
+		}
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin() -> Result<T::RuntimeOrigin, ()> {
+		let service = pallet_content_registry::ServiceAccountId::<T>::get().ok_or(())?;
+		Ok(frame_system::RawOrigin::Signed(service).into())
+	}
+}
+
 /// Configure the content-registry pallet.
 impl pallet_content_registry::Config for Runtime {
 	type Currency = Balances;
+	type ServiceOrigin = EnsureServiceAccount<Runtime>;
 	type WeightInfo = pallet_content_registry::weights::SubstrateWeight<Runtime>;
 }
 
