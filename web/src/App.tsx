@@ -66,7 +66,7 @@ export default function App() {
                 {truncateAddress(account)} · {formatDot(balance)}
               </span>
             ) : (
-              <span className="text-xs text-text-muted">No account</span>
+              <span className="text-xs text-text-muted">Pair your Polkadot App to get started</span>
             )}
           </div>
         </div>
