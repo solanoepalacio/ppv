@@ -43,6 +43,16 @@ describe('ListingCard', () => {
     expect(screen.getByText(/2\.50 DOT/)).toBeInTheDocument();
   });
 
+  test('renders "Purchased" instead of price when isPurchased is true', () => {
+    render(
+      <MemoryRouter>
+        <ListingCard listing={makeListing()} isPurchased />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/^purchased$/i)).toBeInTheDocument();
+    expect(screen.queryByText(/2\.50 DOT/)).toBeNull();
+  });
+
   test('navigates to the listing detail page on click', () => {
     render(<MemoryRouter><ListingCard listing={makeListing({ id: 7n })} /></MemoryRouter>);
     fireEvent.click(screen.getByText('My Test Video'));

@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchAllListings, type Listing } from '../hooks/useContentRegistry';
+import { fetchAllListings, fetchPurchases, type Listing } from '../hooks/useContentRegistry';
+import { useChainStore } from '../store/chainStore';
 import ListingCard from '../components/ListingCard';
 import SkeletonCard from '../components/SkeletonCard';
 
 export default function BrowsePage() {
+  const account = useChainStore((s: any) => s.account);
   const [listings, setListings] = useState<Listing[] | null>(null);
+  const [purchasedIds, setPurchasedIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -13,6 +16,16 @@ export default function BrowsePage() {
       .then(setListings)
       .catch((e) => setError(String(e)));
   }, []);
+
+  useEffect(() => {
+    if (!account) {
+      setPurchasedIds(new Set());
+      return;
+    }
+    fetchPurchases(account)
+      .then((rows) => setPurchasedIds(new Set(rows.map((r) => String(r.listingId)))))
+      .catch(() => {});
+  }, [account]);
 
   return (
     <div>
@@ -46,7 +59,9 @@ export default function BrowsePage() {
 
       {listings !== null && listings.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {listings.map((l) => <ListingCard key={String(l.id)} listing={l} />)}
+          {listings.map((l) => (
+            <ListingCard key={String(l.id)} listing={l} isPurchased={purchasedIds.has(String(l.id))} />
+          ))}
         </div>
       )}
     </div>
