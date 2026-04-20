@@ -222,3 +222,38 @@ fn create_listing_fails_on_id_overflow() {
 		);
 	});
 }
+
+use crate::pallet::{ServiceAccountId, ServicePublicKey};
+
+#[test]
+fn service_keys_are_set_from_genesis() {
+	new_test_ext().execute_with(|| {
+		assert_eq!(ServicePublicKey::<Test>::get(), [0xAAu8; 32]);
+		assert_eq!(ServiceAccountId::<Test>::get(), Some(SERVICE));
+	});
+}
+
+#[test]
+#[should_panic(expected = "ServicePublicKey")]
+fn integrity_test_panics_on_zero_service_pubkey() {
+	new_test_ext().execute_with(|| {
+		ServicePublicKey::<Test>::put([0u8; 32]);
+		<crate::pallet::Pallet<Test> as frame::traits::Hooks<u64>>::integrity_test();
+	});
+}
+
+#[test]
+#[should_panic(expected = "ServiceAccountId")]
+fn integrity_test_panics_on_unset_service_account() {
+	new_test_ext().execute_with(|| {
+		ServiceAccountId::<Test>::kill();
+		<crate::pallet::Pallet<Test> as frame::traits::Hooks<u64>>::integrity_test();
+	});
+}
+
+#[test]
+fn integrity_test_passes_with_valid_genesis() {
+	new_test_ext().execute_with(|| {
+		<crate::pallet::Pallet<Test> as frame::traits::Hooks<u64>>::integrity_test();
+	});
+}

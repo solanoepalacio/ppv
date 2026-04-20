@@ -59,12 +59,26 @@ impl crate::Config for Test {
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
+pub const SERVICE: AccountId = 99;
+pub const SVC_PUB_DEV: [u8; 32] = [0xAAu8; 32];
 
 pub fn new_test_ext() -> TestState {
 	let mut t = GenesisConfig::<Test>::default().build_storage().unwrap();
 	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![(ALICE, 1_000_000), (BOB, 1_000_000), (CHARLIE, 500)],
+		balances: vec![
+			(ALICE, 1_000_000),
+			(BOB, 1_000_000),
+			(CHARLIE, 500),
+			(SERVICE, 1_000),
+		],
 		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+	crate::GenesisConfig::<Test> {
+		service_public_key: SVC_PUB_DEV,
+		service_account_id: Some(SERVICE),
+		_phantom: core::marker::PhantomData,
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

@@ -1,9 +1,8 @@
 //! # Content Registry Pallet
 //!
 //! Stores pay-per-view listings and records purchases. Native-token payment is
-//! transferred from buyer to creator as part of `purchase`. In Phase 1 the
-//! `locked_content_lock_key` field on a listing is empty; in Phase 2 it holds
-//! a content-lock-key sealed to the service pubkey.
+//! transferred from buyer to creator as part of `purchase`.
+//! Holds a content-lock-key sealed to the service pubkey.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -38,6 +37,20 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn integrity_test() {
+			assert!(
+				ServicePublicKey::<T>::get() != [0u8; 32],
+				"ServicePublicKey was left at [0; 32] — the chain-spec forgot to populate the content-registry GenesisConfig.",
+			);
+			assert!(
+				ServiceAccountId::<T>::get().is_some(),
+				"ServiceAccountId is unset — the chain-spec forgot to populate the content-registry GenesisConfig.",
+			);
+		}
+	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -113,6 +126,38 @@ pub mod pallet {
 		BlockNumberFor<T>,
 		OptionQuery,
 	>;
+
+	/// SVC_PUB (x25519) — published for creators to seal content-lock-keys against.
+	/// Genesis-set, immutable. `integrity_test` rejects `[0u8; 32]`.
+	#[pallet::storage]
+	pub type ServicePublicKey<T: Config> = StorageValue<_, [u8; 32], ValueQuery>;
+
+	/// sr25519 AccountId authorized to call `grant_access`. Genesis-set, immutable.
+	/// `integrity_test` rejects the unset (`None`) case.
+	#[pallet::storage]
+	pub type ServiceAccountId<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	#[pallet::genesis_config]
+	#[derive(frame::deps::frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T: Config> {
+		/// SVC_PUB x25519 bytes. Default `[0u8; 32]` trips `integrity_test`.
+		pub service_public_key: [u8; 32],
+		/// sr25519 service AccountId. `None` falls through to `AccountId::default()`,
+		/// which trips `integrity_test`.
+		pub service_account_id: Option<T::AccountId>,
+		#[serde(skip)]
+		pub _phantom: core::marker::PhantomData<T>,
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+		fn build(&self) {
+			ServicePublicKey::<T>::put(self.service_public_key);
+			if let Some(acc) = &self.service_account_id {
+				ServiceAccountId::<T>::put(acc.clone());
+			}
+		}
+	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
