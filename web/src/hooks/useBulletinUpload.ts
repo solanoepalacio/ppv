@@ -4,6 +4,8 @@ import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat';
 import {
   AsyncBulletinClient,
   ChunkStatus,
+  HashAlgorithm,
+  getContentHash,
   type BulletinClientInterface,
 } from '@parity/bulletin-sdk';
 import { bulletin } from '@polkadot-api/descriptors';
@@ -42,6 +44,9 @@ export async function uploadToBulletin(
   _client?: BulletinClientInterface,
 ): Promise<BulletinCidFields> {
   const client = _client ?? getDefaultBulletinClient();
+
+  const contentHash = await getContentHash(bytes, HashAlgorithm.Blake2b256);
+  await client.authorizePreimage(contentHash, BigInt(bytes.length)).send();
 
   const result = await client
     .store(bytes)

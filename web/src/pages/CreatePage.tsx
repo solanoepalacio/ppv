@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ThumbnailPicker from '../components/ThumbnailPicker';
 import CreateChecklist, { type ChecklistStep, type StepStatus } from '../components/CreateChecklist';
@@ -30,6 +30,7 @@ export default function CreatePage() {
   const [priceInput, setPriceInput] = useState('');
 
   const navigate = useNavigate();
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [steps, setSteps] = useState<ChecklistStep[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -65,6 +66,13 @@ export default function CreatePage() {
       URL.revokeObjectURL(url);
     };
   }
+
+  useEffect(() => {
+    if (!videoFile) { setVideoPreviewUrl(null); return; }
+    const url = URL.createObjectURL(videoFile);
+    setVideoPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [videoFile]);
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
@@ -163,7 +171,7 @@ export default function CreatePage() {
             <p className="text-sm text-text-primary font-medium">{videoInfo?.name}</p>
             <p className="text-xs text-text-muted">{videoInfo?.size} · {videoInfo?.duration}</p>
             <video
-              src={URL.createObjectURL(videoFile)}
+              src={videoPreviewUrl ?? undefined}
               controls
               className="w-full rounded-lg mt-1"
               style={{ maxHeight: 200 }}

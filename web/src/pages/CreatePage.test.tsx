@@ -102,6 +102,22 @@ describe('CreatePage', () => {
     await waitFor(() => expect(screen.getByTestId('submit-btn')).toBeInTheDocument());
   });
 
+  test('does not call createObjectURL on re-renders from metadata typing', async () => {
+    render(<MemoryRouter><CreatePage /></MemoryRouter>);
+    await pickVideo();
+    fireEvent.click(screen.getByTestId('thumb-picker'));
+    await waitFor(() => screen.getByPlaceholderText(/title/i));
+
+    // Reset call count after initial setup
+    (URL.createObjectURL as ReturnType<typeof vi.fn>).mockClear();
+
+    // Typing should not trigger another createObjectURL call
+    fireEvent.change(screen.getByPlaceholderText(/title/i), { target: { value: 'Hello' } });
+    fireEvent.change(screen.getByPlaceholderText(/title/i), { target: { value: 'Hello World' } });
+
+    expect(URL.createObjectURL as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
+  });
+
   test('shows planck equivalent when a valid price is entered', async () => {
     render(<MemoryRouter><CreatePage /></MemoryRouter>);
     await pickVideo();

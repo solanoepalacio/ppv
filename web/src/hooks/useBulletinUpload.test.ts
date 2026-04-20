@@ -76,6 +76,16 @@ describe('uploadToBulletin', () => {
     }
   });
 
+  test('calls authorizePreimage before storing', async () => {
+    const mock = new MockBulletinClient();
+    const bytes = new Uint8Array(64).fill(0xaa);
+
+    await uploadToBulletin(bytes, undefined, mock);
+
+    const ops = mock.getOperations();
+    expect(ops.some((op) => op.type === 'authorize_preimage')).toBe(true);
+  });
+
   test('throws when storage fails', async () => {
     const mock = new MockBulletinClient({ simulateStorageFailure: true });
     const bytes = new Uint8Array(8).fill(0x00);
