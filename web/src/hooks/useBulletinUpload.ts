@@ -1,4 +1,4 @@
-import { createClient, type PolkadotClient } from "polkadot-api";
+import { createClient, Enum, type PolkadotClient, type PolkadotSigner } from "polkadot-api";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 import {
@@ -8,55 +8,106 @@ import {
 	type ProgressCallback,
 } from "@parity/bulletin-sdk";
 import { bulletin } from "@polkadot-api/descriptors";
-import { devAccounts } from "./useAccount";
+import { getAliceSigner, getUserSigner, getUserAddress } from "./useParachainProvider";
 import { bulletinCidToGatewayUrl } from "../utils/bulletinCid";
 import type { BulletinCidFields } from "./useContentRegistry";
 
 const BULLETIN_WS = "wss://paseo-bulletin-rpc.polkadot.io";
 
-// Cap uploads at the SDK's default `chunkingThreshold` (2 MiB) so every
-// request uses the single-tx signed path. Chunked uploads trigger a renderer
-// SIGILL on Paseo — per-chunk Blake2b hashing and DAG-PB manifest building
-// through `@polkadot/wasm-crypto` panics under load. Phase 1 PoC only.
+// Phase 1 PoC cap — chunked path is unstable on Paseo Bulletin, so keep every
+// upload under the SDK's 2 MiB single-tx threshold.
 export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 
-let _bulletinPapiClient: PolkadotClient | null = null;
-let _asyncClient: AsyncBulletinClient | null = null;
+// Quota issued by Alice when re-authorizing the user.
+export const AUTH_TX_COUNT = 10;
+export const AUTH_BYTES = 100n * 1024n * 1024n;
 
-function getDefaultBulletinClient(): AsyncBulletinClient {
+let _bulletinPapiClient: PolkadotClient | null = null;
+let _aliceClient: AsyncBulletinClient | null = null;
+let _userClient: AsyncBulletinClient | null = null;
+
+function getPapiClient(): PolkadotClient {
 	if (!_bulletinPapiClient) {
 		_bulletinPapiClient = createClient(withPolkadotSdkCompat(getWsProvider(BULLETIN_WS)));
 	}
-	if (!_asyncClient) {
-		const api = _bulletinPapiClient.getTypedApi(bulletin);
-		const aliceSigner = devAccounts[0].signer;
-		_asyncClient = new AsyncBulletinClient(
-			api,
-			aliceSigner,
-			(_bulletinPapiClient as any).submit,
-		);
-	}
-	return _asyncClient;
+	return _bulletinPapiClient;
+}
+
+function buildClient(signer: PolkadotSigner): AsyncBulletinClient {
+	const papi = getPapiClient();
+	const api = papi.getTypedApi(bulletin);
+	return new AsyncBulletinClient(api, signer, (papi as any).submit);
+}
+
+function getAliceClient(): AsyncBulletinClient {
+	if (!_aliceClient) _aliceClient = buildClient(getAliceSigner());
+	return _aliceClient;
+}
+
+function getUserClient(): AsyncBulletinClient {
+	if (!_userClient) _userClient = buildClient(getUserSigner());
+	return _userClient;
+}
+
+export interface RemainingAuthorization {
+	transactions: number;
+	bytes: bigint;
 }
 
 /**
- * Upload bytes to Bulletin Chain, returning the CID fields needed for the pallet.
+ * Query Bulletin's authorization storage for the given account.
+ * Returns null when the account has no authorization record.
  *
- * Uses the signed store path unconditionally — Alice signs every tx and pays
- * Bulletin fees. The SDK auto-chunks above its 2 MiB `chunkingThreshold`.
+ * The descriptor's `Authorizations` map is keyed by a `scope` enum
+ * (`Account(SS58) | Preimage(hash32)`) and stores
+ * `{ extent: { transactions, bytes }, expiration }`. We only need the extent.
+ */
+export async function getRemainingAuthorization(
+	address: string,
+): Promise<RemainingAuthorization | null> {
+	const api = getPapiClient().getTypedApi(bulletin);
+	const entry = await api.query.TransactionStorage.Authorizations.getValue(
+		Enum("Account", address),
+	);
+	if (!entry) return null;
+	return { transactions: entry.extent.transactions, bytes: entry.extent.bytes };
+}
+
+export interface UploadContext {
+	aliceClient?: BulletinClientInterface;
+	userClient?: BulletinClientInterface;
+	userAddress?: string;
+	getRemainingAuthorization?: (address: string) => Promise<RemainingAuthorization | null>;
+}
+
+async function ensureAuthorization(
+	aliceClient: BulletinClientInterface,
+	userAddress: string,
+	uploadBytes: number,
+	getQuota: (address: string) => Promise<RemainingAuthorization | null>,
+): Promise<void> {
+	const quota = await getQuota(userAddress);
+	if (quota && quota.transactions >= 1 && quota.bytes >= BigInt(uploadBytes)) return;
+	await aliceClient.authorizeAccount(userAddress, AUTH_TX_COUNT, AUTH_BYTES).send();
+}
+
+/**
+ * Upload bytes to Bulletin Chain.
  *
- * We deliberately avoid the preimage-authorized unsigned path here: it needs
- * two round-trips (signed `authorize_preimage` + bare unsigned `store`), and
- * PAPI's bare `submit` has no SDK-level timeout. When Paseo Bulletin silently
- * drops or delays finalization of the bare tx, the UI hangs indefinitely.
- * The signed path surfaces failures via `signSubmitAndWatch` (120s timeout).
+ * Two-signer flow:
+ *   1. Query on-chain authorization for the user account.
+ *      If insufficient quota for this upload, Alice signs
+ *      `authorize_account(userAddress, AUTH_TX_COUNT, AUTH_BYTES)`.
+ *   2. The user signs `store()` for the content.
  *
- * Pass an injectable `_client` for testing (accepts MockBulletinClient).
+ * Idempotency comes from the on-chain check — there is no in-memory cache,
+ * so browser refreshes, multiple tabs, and new sessions all behave correctly
+ * without bookkeeping.
  */
 export async function uploadToBulletin(
 	bytes: Uint8Array,
 	onProgress?: (pct: number) => void,
-	_client?: BulletinClientInterface,
+	ctx?: UploadContext,
 ): Promise<BulletinCidFields> {
 	if (bytes.length > MAX_UPLOAD_BYTES) {
 		throw new Error(
@@ -64,7 +115,13 @@ export async function uploadToBulletin(
 		);
 	}
 
-	const client = _client ?? getDefaultBulletinClient();
+	const aliceClient = ctx?.aliceClient ?? getAliceClient();
+	const userClient = ctx?.userClient ?? getUserClient();
+	const userAddress = ctx?.userAddress ?? getUserAddress();
+	const getQuota = ctx?.getRemainingAuthorization ?? getRemainingAuthorization;
+	if (!userAddress) throw new Error("No connected user account for Bulletin upload");
+
+	await ensureAuthorization(aliceClient, userAddress, bytes.length, getQuota);
 
 	const progressCb: ProgressCallback = (event) => {
 		if (event.type === ChunkStatus.ChunkCompleted) {
@@ -72,16 +129,15 @@ export async function uploadToBulletin(
 		}
 	};
 
-	const result = await client.store(bytes).withCallback(progressCb).send();
+	const result = await userClient.store(bytes).withCallback(progressCb).send();
 
 	onProgress?.(100);
 
 	if (!result.cid) throw new Error("Bulletin upload returned no CID");
 
-	const cid = result.cid;
 	return {
-		codec: cid.code,
-		digestBytes: new Uint8Array(cid.multihash.digest),
+		codec: result.cid.code,
+		digestBytes: new Uint8Array(result.cid.multihash.digest),
 	};
 }
 

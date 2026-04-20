@@ -1,11 +1,10 @@
 import { describe, test, expect, vi, afterEach } from 'vitest';
 import { MockBulletinClient } from '@parity/bulletin-sdk';
 
-// These imports will fail until the module exists — that's expected (RED phase).
 import { fetchFromIpfs, uploadToBulletin } from './useBulletinUpload';
 import type { BulletinCidFields } from './useContentRegistry';
 
-// ── fetchFromIpfs ─────────────────────────────────────────────────────────────
+// ── fetchFromIpfs (unchanged) ─────────────────────────────────────────────────
 
 describe('fetchFromIpfs', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -48,26 +47,93 @@ describe('fetchFromIpfs', () => {
   });
 });
 
-// ── uploadToBulletin ──────────────────────────────────────────────────────────
+// ── uploadToBulletin — two-signer flow with on-chain quota check ──────────────
+
+type QuotaFn = (address: string) => Promise<{ transactions: number; bytes: bigint } | null>;
+
+function makeCtx(partial: {
+  aliceClient?: MockBulletinClient;
+  userClient?: MockBulletinClient;
+  userAddress?: string;
+  getRemainingAuthorization?: QuotaFn;
+}) {
+  return {
+    aliceClient: partial.aliceClient ?? new MockBulletinClient(),
+    userClient: partial.userClient ?? new MockBulletinClient(),
+    userAddress: partial.userAddress ?? '5Bob',
+    getRemainingAuthorization: partial.getRemainingAuthorization ?? (async () => null),
+  };
+}
 
 describe('uploadToBulletin', () => {
-  test('returns BulletinCidFields with codec and digestBytes from the result CID', async () => {
-    const mock = new MockBulletinClient();
+  test('returns BulletinCidFields with codec and digestBytes from the store result', async () => {
+    const ctx = makeCtx({});
     const bytes = new Uint8Array(64).fill(0xff);
 
-    const cid = await uploadToBulletin(bytes, undefined, mock);
+    const cid = await uploadToBulletin(bytes, undefined, ctx);
 
     expect(typeof cid.codec).toBe('number');
     expect(cid.digestBytes).toBeInstanceOf(Uint8Array);
     expect(cid.digestBytes.length).toBeGreaterThan(0);
   });
 
-  test('calls onProgress at least once with a value between 0 and 100', async () => {
-    const mock = new MockBulletinClient();
+  test('when user has no authorization, Alice authorizes and user stores', async () => {
+    const ctx = makeCtx({ getRemainingAuthorization: async () => null });
+    const bytes = new Uint8Array(64).fill(0xaa);
+
+    await uploadToBulletin(bytes, undefined, ctx);
+
+    const aliceOps = ctx.aliceClient.getOperations();
+    const userOps = ctx.userClient.getOperations();
+
+    expect(aliceOps.some((op) => op.type === 'authorize_account' && op.who === '5Bob')).toBe(true);
+    expect(userOps.some((op) => op.type === 'store')).toBe(true);
+    // User must never sign an authorization extrinsic.
+    expect(userOps.every((op) => op.type !== 'authorize_account')).toBe(true);
+    expect(userOps.every((op) => op.type !== 'authorize_preimage')).toBe(true);
+    // Alice must never sign a store extrinsic.
+    expect(aliceOps.every((op) => op.type !== 'store')).toBe(true);
+  });
+
+  test('when user quota is sufficient, skip authorize_account entirely', async () => {
+    const ctx = makeCtx({
+      getRemainingAuthorization: async () => ({
+        transactions: 5,
+        bytes: 50n * 1024n * 1024n,
+      }),
+    });
+    const bytes = new Uint8Array(64).fill(0x01);
+
+    await uploadToBulletin(bytes, undefined, ctx);
+
+    const aliceOps = ctx.aliceClient.getOperations();
+    expect(aliceOps.length).toBe(0);
+
+    const userOps = ctx.userClient.getOperations();
+    expect(userOps.some((op) => op.type === 'store')).toBe(true);
+  });
+
+  test('when user quota is too small for this upload, re-authorize', async () => {
+    const ctx = makeCtx({
+      getRemainingAuthorization: async () => ({
+        transactions: 0,
+        bytes: 0n,
+      }),
+    });
+    const bytes = new Uint8Array(64).fill(0x02);
+
+    await uploadToBulletin(bytes, undefined, ctx);
+
+    const aliceOps = ctx.aliceClient.getOperations();
+    expect(aliceOps.some((op) => op.type === 'authorize_account')).toBe(true);
+  });
+
+  test('calls onProgress with values between 0 and 100', async () => {
+    const ctx = makeCtx({});
     const progresses: number[] = [];
     const bytes = new Uint8Array(64).fill(0x01);
 
-    await uploadToBulletin(bytes, (pct) => progresses.push(pct), mock);
+    await uploadToBulletin(bytes, (pct) => progresses.push(pct), ctx);
 
     expect(progresses.length).toBeGreaterThan(0);
     for (const p of progresses) {
@@ -76,34 +142,41 @@ describe('uploadToBulletin', () => {
     }
   });
 
-  test('uses signed store path for small files (< 2 MiB)', async () => {
-    const mock = new MockBulletinClient();
-    const bytes = new Uint8Array(64).fill(0xaa);
+  test('calls onProgress with 100 at least once on success', async () => {
+    const ctx = makeCtx({});
+    const progresses: number[] = [];
+    const bytes = new Uint8Array(64).fill(0x01);
 
-    await uploadToBulletin(bytes, undefined, mock);
+    await uploadToBulletin(bytes, (pct) => progresses.push(pct), ctx);
 
-    const ops = mock.getOperations();
-    expect(ops.some((op) => op.type === 'store')).toBe(true);
-    // We no longer use preimage-authorized unsigned path — it's unreliable on
-    // Paseo Bulletin (PAPI's bare submit has no SDK-level timeout, so stalled
-    // finalization of the bare unsigned tx hangs the UI indefinitely).
-    expect(ops.every((op) => op.type !== 'authorize_preimage')).toBe(true);
-    expect(ops.every((op) => op.type !== 'store_preimage_auth')).toBe(true);
+    expect(progresses).toContain(100);
   });
 
-  test('rejects files larger than 2 MiB before hitting the SDK', async () => {
-    const mock = new MockBulletinClient();
-    const bytes = new Uint8Array(2 * 1024 * 1024 + 1); // just over 2 MiB
+  test('rejects files larger than 2 MiB before touching the chain', async () => {
+    const ctx = makeCtx({});
+    const bytes = new Uint8Array(2 * 1024 * 1024 + 1);
 
-    await expect(uploadToBulletin(bytes, undefined, mock)).rejects.toThrow(/2 MiB/i);
-    // Must not have attempted any chain operation
-    expect(mock.getOperations()).toEqual([]);
+    await expect(uploadToBulletin(bytes, undefined, ctx)).rejects.toThrow(/2 MiB/i);
+
+    expect(ctx.aliceClient.getOperations()).toEqual([]);
+    expect(ctx.userClient.getOperations()).toEqual([]);
   });
 
   test('throws when storage fails', async () => {
-    const mock = new MockBulletinClient({ simulateStorageFailure: true });
+    const userClient = new MockBulletinClient({ simulateStorageFailure: true });
+    const ctx = makeCtx({ userClient });
     const bytes = new Uint8Array(8).fill(0x00);
 
-    await expect(uploadToBulletin(bytes, undefined, mock)).rejects.toThrow();
+    await expect(uploadToBulletin(bytes, undefined, ctx)).rejects.toThrow();
+  });
+
+  test('propagates authorization failure without calling store', async () => {
+    const aliceClient = new MockBulletinClient({ simulateAuthFailure: true });
+    const ctx = makeCtx({ aliceClient });
+    const bytes = new Uint8Array(8).fill(0x00);
+
+    await expect(uploadToBulletin(bytes, undefined, ctx)).rejects.toThrow();
+
+    expect(ctx.userClient.getOperations().some((op) => op.type === 'store')).toBe(false);
   });
 });
