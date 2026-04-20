@@ -1,5 +1,5 @@
 import { StorageDescriptor, PlainDescriptor, TxDescriptor, RuntimeDescriptor, Enum, ApisFromDef, QueryFromPalletsDef, TxFromPalletsDef, EventsFromPalletsDef, ErrorsFromPalletsDef, ConstFromPalletsDef, ViewFnsFromPalletsDef, SS58String, FixedSizeBinary, Binary, FixedSizeArray } from "polkadot-api";
-import { I5sesotjlssv2d, Iffmde3ekjedi9, I4mddgoa69c0a2, I544a45krhoup6, I95g6i7ilua7lq, Ieniouoqkq4icf, Phase, Ibgl04rn6nbfm6, I4q39t5hn830vp, I1v7jbnil3tjns, I8jgj1nhcr2dg8, Ifn6q3equiq9qi, Ia3sb0vgvovhtg, Iav8k1edbj86k7, Itom7fk49o0c9, I4i91h98n3cv1b, I4iumukclgj8ej, Iqnbvitf7a7l3, I48i407regf59r, I6r5cbv8ttrb09, I1q8tnt1cluu5j, I8ds64oj6581v0, Ia7pdug7cdsg8g, I63lqt6dl3kn9k, I9bin2jc70qt6q, TransactionPaymentReleases, Ia2lhg7l2hilo3, Ifi4da1gej1fri, Ifvgo9568rpmqc, I82jm9g7pufuel, Ic5m5lp1oioo8r, I6cs1itejju2vv, Icgljjb6j82uhn, Ib77b0fp1a6mjr, I5g2vv0ckl2m8b, Ifup3lg9ro8a0f, I5qfubnuvrnqn6, I8t3u2dv73ahbd, I7vlvrrl2pnbgk, Ie0rpl5bahldfk, XcmPalletVersionMigrationStage, I7e5oaj2qi4kl1, Ie849h3gncgvok, Iat62vud7hlod2, Ict03eedr8de9s, Ici7ejds60vj52, XcmVersionedLocation, Idh2ug6ou4a8og, Iejeo53sea6n4q, I53esa2ms463bk, Ib4jhb8tt3uung, Ifd8dv5s6lko86, I95l2k9b1re95f, I834nfrf667ag1, I14i9pui8lc778, I8t4pajubp34g3, I10nrsmn0hji4l, I3oiqcurom3m43, I20ichc5j0l1u7, I1p16diuhde12h, Id4f5q01qh34o3, In7a38730s6qs, If15el53dd76v9, I9s0ave7t0vnrk, I4fo08joqmcqnm, XcmV5Junctions, Iasb8k6ash5mjn, I8ofcg5rbj0g2c, I4adgbll7gku4i, I6pjjpfvhvcfru, I9pj91mj79qekl, I39uah9nss64h9, Ik64dknsq7k08, Ib51vk42m1po4n, Ial23jn8hp0aen, Ifpj261e8s63m3, Idcr6u6361oad9, I4ktuaksf5i1gk, I9bqtpv2ii35mp, I9j7pagd6d4bda, I2h9pmio37r7fb, Ibmr18suc9ikh9, I9iq22t0burs89, I5u8olqbbvfnvf, I5utcetro501ir, I202pr97mcc1qu, Ickjbndij3v7km, I8k3rnvpeeh4hv, I6ji97uhm4855e, Ifccifqltb5obi, Iadtsfv699cq8b, Ialpmgmhr3gk5r, I4cbvqmqadhrea, I3sdol54kg5jaq, I8fougodaj6di6, I81vt5eq60l4b6, I3vh014cqgmrfd, Ia5cotcvi888ln, I21jsa919m88fd, Iegif7m3upfe1k, I9kt8c221c83ln, Ic76kfh5ebqkpl, Icscpmubum33bq, I21d2olof7eb60, Ibgm4rnf22lal1, Ie68np0vpihith, I9bnv6lu0crf1q, Iauhjqifrdklq7, Ie1uso9m8rt5cf, I40pqum1mu8qg3, I1r4c2ghbtvjuc, I6qnugfbt40e1u, I86988dfkhkjot, Ida37oe44osb06, I6v02o6j4snahe, I27569neuh5t1o, Id92o6smntb9m5, I5nmb2hfkgk9ol, Iav55bcqlrqn51, I75pr0lfdt5k2i, I10ra4g1rl6k2f, I1uihehkdsggvp, Ia82mnkmeo2rhc, I7ug77enbl49oi, Icbccs0ug47ilf, I855j4i3kr8ko1, Ibnggp0nb7485i, Idd7hd99u0ho0n, Iafscmv8tjf0ou, I100l07kaehdlp, I6gnbnvip5vvdi, Icv68aq8841478, Ic262ibdoec56a, Iflcfm9b6nlmdd, Ijrsf4mnp3eka, Id5fm4p8lj5qgi, I8tjvj9uq4b7hi, I3qt1hgg4djhgb, I4fooe9dun9o0t, I2sjgp7v0b4kr7, Iq8n5b8q00vqa, Iaa6lo6ksjs4p7, Iph9c4rn81ub2, Ier2cke86dqbr2, Ifsuide4d4u6mf, I5rtkmhm2dng4u, I39t01nnod9109, I6v8sm60vvkmk7, I1qmtmbe5so8r3, Ih99m6ehpcar7, Idgorhsbgdq2ap, I9ubb2kqevnu6t, I2hq50pu2kdjpo, I9acqruh7322g2, I137t1cld92pod, I61d51nv4cou88, If8u5kl4h8070m, Ibmuil6p3vl83l, I7lul91g50ae87, Icl7nl1rfeog3i, Iasr6pj6shs0fl, I2uqmls7kcdnii, Idg69klialbkb8, I7r6b7145022pp, I30pg328m00nr3, Icmrn7bogp28cs, I7m9b5plj4h5ot, I9onhk772nfs4f, I3l6bnksrmt56r, Idh09k0l2pmdcg, I7uoiphbm0tj4r, I512p1n7qt24l8, I6s1nbislhk619, I3gghqnh2mj0is, I6iv852roh6t3h, I9oc2o6itbiopq, Ibslgga81p36aa, I1rvj4ubaplho0, Ia3uu7lqcc1q1i, I7crucfnonitkn, I7tmrp94r9sq4n, I3uua81e9uvgnp, I4bhdacj94gm5h, I1qlkt0vja6l8u, I7svbvm6hg57aj, I8jhsbaiultviu, I2vtb72j3qgf19, I5r8t4iaend96p, Iaqet9jc3ihboe, Ic952bubvq4k7d, I2v50gu3s1aqk6, Iabpgqcjikia83, I4gil44d08grh, I7u915mvkdsb08, I8v37tlvqtef7q, If7uv525tdvv7a, I2an1fs2eiebjp, TransactionValidityTransactionSource, I9ask1o4tfvcvs, Icerf8h8pdu8ss, I6spmpef2c7svf, Iei2mvq0mjvt81, I5mpbt4g22hs4h, Ic1d4u2opv3fst, Ico18ks790i2bl, I815pbp5omtss, I3ju6ot8lfmk90, Ie9sr1iqcg3cgm, I1mqgk2tmnn9i2, I6lr8sctk0bi4e, I4totqt881mlti, I4s6vifaf8k998, I35p85j063s0il, Id3266bntbqudq, I9sijb8gfrns29, I79sb1vb3codno, I6f9v7emp7t5ba, Ida7d8eqrkav55, Idmrtv8jbbitnu, I3q96iudj01bn, I5gknsq18lkggf, I63nhnkgg114n5, I1l7ajs6s9ur3a, Ice9mpbhevl5b7, Idt5popft6i714, I512dtcl0pn07c, I1f347u8t14roe } from "./common-types";
+import { I5sesotjlssv2d, Iffmde3ekjedi9, I4mddgoa69c0a2, Ibajauope01his, I95g6i7ilua7lq, Ieniouoqkq4icf, Phase, Ibgl04rn6nbfm6, I4q39t5hn830vp, I1v7jbnil3tjns, I8jgj1nhcr2dg8, Ifn6q3equiq9qi, Ia3sb0vgvovhtg, Iav8k1edbj86k7, Itom7fk49o0c9, I4i91h98n3cv1b, I4iumukclgj8ej, Iqnbvitf7a7l3, I48i407regf59r, I6r5cbv8ttrb09, I1q8tnt1cluu5j, I8ds64oj6581v0, Ia7pdug7cdsg8g, I63lqt6dl3kn9k, I9bin2jc70qt6q, TransactionPaymentReleases, Ia2lhg7l2hilo3, Ifi4da1gej1fri, Ifvgo9568rpmqc, I82jm9g7pufuel, Ic5m5lp1oioo8r, I6cs1itejju2vv, Icgljjb6j82uhn, Ib77b0fp1a6mjr, I5g2vv0ckl2m8b, Ifup3lg9ro8a0f, I5qfubnuvrnqn6, I8t3u2dv73ahbd, I7vlvrrl2pnbgk, Ie0rpl5bahldfk, XcmPalletVersionMigrationStage, I7e5oaj2qi4kl1, Ie849h3gncgvok, Iat62vud7hlod2, Ict03eedr8de9s, Ici7ejds60vj52, XcmVersionedLocation, Idh2ug6ou4a8og, Iejeo53sea6n4q, I53esa2ms463bk, Ib4jhb8tt3uung, I3rn7sp8519tct, I95l2k9b1re95f, I834nfrf667ag1, I14i9pui8lc778, I8t4pajubp34g3, I10nrsmn0hji4l, I3oiqcurom3m43, I20ichc5j0l1u7, I1p16diuhde12h, Id4f5q01qh34o3, In7a38730s6qs, If15el53dd76v9, I9s0ave7t0vnrk, I4fo08joqmcqnm, XcmV5Junctions, Iasb8k6ash5mjn, I8ofcg5rbj0g2c, I4adgbll7gku4i, I6pjjpfvhvcfru, I9pj91mj79qekl, I39uah9nss64h9, Ik64dknsq7k08, Ib51vk42m1po4n, Ial23jn8hp0aen, Ifpj261e8s63m3, Idcr6u6361oad9, I4ktuaksf5i1gk, I9bqtpv2ii35mp, I9j7pagd6d4bda, I2h9pmio37r7fb, Ibmr18suc9ikh9, I9iq22t0burs89, I5u8olqbbvfnvf, I5utcetro501ir, Ihrm9d8fau2fu, I7nkig54i6uo71, I8k3rnvpeeh4hv, Ibg7r88nttloqp, Ifccifqltb5obi, Iadtsfv699cq8b, Ialpmgmhr3gk5r, I4cbvqmqadhrea, I3sdol54kg5jaq, I8fougodaj6di6, I81vt5eq60l4b6, I3vh014cqgmrfd, Ia5cotcvi888ln, I21jsa919m88fd, Iegif7m3upfe1k, I9kt8c221c83ln, Ic76kfh5ebqkpl, Icscpmubum33bq, I21d2olof7eb60, Ibgm4rnf22lal1, Ie68np0vpihith, I9bnv6lu0crf1q, Iauhjqifrdklq7, Ie1uso9m8rt5cf, I40pqum1mu8qg3, I1r4c2ghbtvjuc, I27tlk31j25ovv, I86988dfkhkjot, Icmtuqsikv2bvd, I2dpff3lc7r29l, Ida37oe44osb06, I6v02o6j4snahe, I27569neuh5t1o, Id92o6smntb9m5, I5nmb2hfkgk9ol, Iav55bcqlrqn51, Ibapi7a37bpjjv, I10ra4g1rl6k2f, I1uihehkdsggvp, Ia82mnkmeo2rhc, I7ug77enbl49oi, Icbccs0ug47ilf, I855j4i3kr8ko1, Ibnggp0nb7485i, Idd7hd99u0ho0n, Iafscmv8tjf0ou, I100l07kaehdlp, I6gnbnvip5vvdi, Icv68aq8841478, Ic262ibdoec56a, Iflcfm9b6nlmdd, Ijrsf4mnp3eka, Id5fm4p8lj5qgi, I8tjvj9uq4b7hi, I3qt1hgg4djhgb, I4fooe9dun9o0t, I2sjgp7v0b4kr7, Iq8n5b8q00vqa, Iaa6lo6ksjs4p7, Iph9c4rn81ub2, Ier2cke86dqbr2, Ifsuide4d4u6mf, I5rtkmhm2dng4u, I39t01nnod9109, I6v8sm60vvkmk7, I1qmtmbe5so8r3, Ih99m6ehpcar7, Idgorhsbgdq2ap, I9ubb2kqevnu6t, I2hq50pu2kdjpo, I9acqruh7322g2, I137t1cld92pod, I61d51nv4cou88, If8u5kl4h8070m, Ibmuil6p3vl83l, I7lul91g50ae87, Icl7nl1rfeog3i, Iasr6pj6shs0fl, I2uqmls7kcdnii, Idg69klialbkb8, I7r6b7145022pp, I30pg328m00nr3, Icmrn7bogp28cs, I7m9b5plj4h5ot, I9onhk772nfs4f, I3l6bnksrmt56r, Idh09k0l2pmdcg, I7uoiphbm0tj4r, I512p1n7qt24l8, I6s1nbislhk619, I3gghqnh2mj0is, I6iv852roh6t3h, I9oc2o6itbiopq, Ibslgga81p36aa, I1rvj4ubaplho0, Ia3uu7lqcc1q1i, I7crucfnonitkn, I7tmrp94r9sq4n, I3uua81e9uvgnp, I4bhdacj94gm5h, I1qlkt0vja6l8u, I3d0l4kr6qmhba, I7svbvm6hg57aj, I8jhsbaiultviu, I2vtb72j3qgf19, I5r8t4iaend96p, Iaqet9jc3ihboe, Ic952bubvq4k7d, I2v50gu3s1aqk6, Iabpgqcjikia83, I4gil44d08grh, I7u915mvkdsb08, I8v37tlvqtef7q, If7uv525tdvv7a, I2an1fs2eiebjp, TransactionValidityTransactionSource, I9ask1o4tfvcvs, Icerf8h8pdu8ss, I6spmpef2c7svf, Iei2mvq0mjvt81, Iab0rfeoic4do, Ic1d4u2opv3fst, Ico18ks790i2bl, I815pbp5omtss, I3ju6ot8lfmk90, Ie9sr1iqcg3cgm, I1mqgk2tmnn9i2, I6lr8sctk0bi4e, I4totqt881mlti, I4s6vifaf8k998, I35p85j063s0il, Id3266bntbqudq, I9sijb8gfrns29, I79sb1vb3codno, I6f9v7emp7t5ba, Ida7d8eqrkav55, Idmrtv8jbbitnu, I3q96iudj01bn, I5gknsq18lkggf, I63nhnkgg114n5, I1l7ajs6s9ur3a, Ice9mpbhevl5b7, Idt5popft6i714, I512dtcl0pn07c, I1f347u8t14roe } from "./common-types";
 type AnonymousEnum<T extends {}> = T & {
     __anonymous: true;
 };
@@ -61,7 +61,7 @@ type IStorage = {
          * Events have a large in-memory size. Box the events to not go out-of-memory
          * just in case someone still reads them from within the runtime.
          */
-        Events: StorageDescriptor<[], Anonymize<I544a45krhoup6>, false, never>;
+        Events: StorageDescriptor<[], Anonymize<Ibajauope01his>, false, never>;
         /**
          * The number of events in the `Events<T>` list.
          */
@@ -643,13 +643,35 @@ type IStorage = {
         /**
         
          */
-        Listings: StorageDescriptor<[Key: bigint], Anonymize<Ifd8dv5s6lko86>, true, never>;
+        Listings: StorageDescriptor<[Key: bigint], Anonymize<I3rn7sp8519tct>, true, never>;
         /**
          * Records each buyer's purchases, keyed (buyer, listing_id). Value is
          * the block number the purchase was completed at — used by the frontend's
          * "My Purchases" view to sort the buyer's library by purchase time.
          */
         Purchases: StorageDescriptor<Anonymize<I95l2k9b1re95f>, number, true, never>;
+        /**
+         * SVC_PUB (x25519) — published for creators to seal content-lock-keys against.
+         * Genesis-set, immutable. `integrity_test` rejects `[0u8; 32]`.
+         */
+        ServicePublicKey: StorageDescriptor<[], FixedSizeBinary<32>, false, never>;
+        /**
+         * sr25519 AccountId authorized to call `grant_access`. Genesis-set, immutable.
+         * `integrity_test` rejects the unset (`None`) case.
+         */
+        ServiceAccountId: StorageDescriptor<[], SS58String, true, never>;
+        /**
+         * x25519 public key registered by each account (buyer or creator). Consumed
+         * off-chain by the chain-service when wrapping a content-lock-key for a target.
+         */
+        EncryptionKeys: StorageDescriptor<[Key: SS58String], FixedSizeBinary<32>, true, never>;
+        /**
+         * Content-lock-key sealed to the target account's x25519 pubkey.
+         * Fixed 80 bytes — see `locked_content_lock_key` for the layout. Key ordering
+         * matches `Purchases` so iteration by AccountId is available for Phase 4
+         * session-key-loss recovery.
+         */
+        WrappedKeys: StorageDescriptor<Anonymize<I95l2k9b1re95f>, FixedSizeBinary<80>, true, never>;
     };
     Revive: {
         /**
@@ -939,7 +961,7 @@ type ICalls = {
         /**
          * Authenticates the sudo key and dispatches a function call with `Root` origin.
          */
-        sudo: TxDescriptor<Anonymize<I202pr97mcc1qu>>;
+        sudo: TxDescriptor<Anonymize<Ihrm9d8fau2fu>>;
         /**
          * Authenticates the sudo key and dispatches a function call with `Root` origin.
          * This function does not check the weight of the call, and instead allows the
@@ -947,7 +969,7 @@ type ICalls = {
          *
          * The dispatch origin for this call must be _Signed_.
          */
-        sudo_unchecked_weight: TxDescriptor<Anonymize<Ickjbndij3v7km>>;
+        sudo_unchecked_weight: TxDescriptor<Anonymize<I7nkig54i6uo71>>;
         /**
          * Authenticates the current sudo key and sets the given AccountId (`new`) as the new sudo
          * key.
@@ -959,7 +981,7 @@ type ICalls = {
          *
          * The dispatch origin for this call must be _Signed_.
          */
-        sudo_as: TxDescriptor<Anonymize<I6ji97uhm4855e>>;
+        sudo_as: TxDescriptor<Anonymize<Ibg7r88nttloqp>>;
         /**
          * Permanently removes the sudo key.
          *
@@ -1432,11 +1454,19 @@ type ICalls = {
         /**
         
          */
-        create_listing: TxDescriptor<Anonymize<I6qnugfbt40e1u>>;
+        create_listing: TxDescriptor<Anonymize<I27tlk31j25ovv>>;
         /**
         
          */
         purchase: TxDescriptor<Anonymize<I86988dfkhkjot>>;
+        /**
+        
+         */
+        register_encryption_key: TxDescriptor<Anonymize<Icmtuqsikv2bvd>>;
+        /**
+        
+         */
+        grant_access: TxDescriptor<Anonymize<I2dpff3lc7r29l>>;
     };
     Revive: {
         /**
@@ -1566,7 +1596,7 @@ type ICalls = {
          * * `call`: The Substrate runtime call to execute.
          * * `transaction_encoded`: The RLP encoding of the Ethereum transaction,
          */
-        eth_substrate_call: TxDescriptor<Anonymize<I75pr0lfdt5k2i>>;
+        eth_substrate_call: TxDescriptor<Anonymize<Ibapi7a37bpjjv>>;
         /**
          * Upload new `code` without instantiating a contract from it.
          *
@@ -1625,7 +1655,7 @@ type ICalls = {
          * is the `AccountId20` with the last 12 bytes set to `0xEE`. This is essentially a
          * recovery function in case an `AccountId20` was used without creating a mapping first.
          */
-        dispatch_as_fallback_account: TxDescriptor<Anonymize<I202pr97mcc1qu>>;
+        dispatch_as_fallback_account: TxDescriptor<Anonymize<Ihrm9d8fau2fu>>;
     };
 };
 type IEvent = {
@@ -2108,6 +2138,14 @@ type IEvent = {
         
          */
         PurchaseCompleted: PlainDescriptor<Anonymize<I1qlkt0vja6l8u>>;
+        /**
+        
+         */
+        EncryptionKeyRegistered: PlainDescriptor<Anonymize<Icbccs0ug47ilf>>;
+        /**
+        
+         */
+        AccessGranted: PlainDescriptor<Anonymize<I3d0l4kr6qmhba>>;
     };
     Revive: {
         /**
@@ -3371,11 +3409,11 @@ type IRuntimeCalls = {
         /**
          * Query information of a dispatch class, weight, and fee of a given encoded `Call`.
          */
-        query_call_info: RuntimeDescriptor<[call: Anonymize<I5mpbt4g22hs4h>, len: number], Anonymize<I6spmpef2c7svf>>;
+        query_call_info: RuntimeDescriptor<[call: Anonymize<Iab0rfeoic4do>, len: number], Anonymize<I6spmpef2c7svf>>;
         /**
          * Query fee details of a given encoded `Call`.
          */
-        query_call_fee_details: RuntimeDescriptor<[call: Anonymize<I5mpbt4g22hs4h>, len: number], Anonymize<Iei2mvq0mjvt81>>;
+        query_call_fee_details: RuntimeDescriptor<[call: Anonymize<Iab0rfeoic4do>, len: number], Anonymize<Iei2mvq0mjvt81>>;
         /**
          * Query the output of the current `WeightToFee` given some input.
          */
@@ -3618,7 +3656,7 @@ export type PpviewEvents = EventsFromPalletsDef<PalletsTypedef>;
 export type PpviewErrors = ErrorsFromPalletsDef<PalletsTypedef>;
 export type PpviewConstants = ConstFromPalletsDef<PalletsTypedef>;
 export type PpviewViewFns = ViewFnsFromPalletsDef<PalletsTypedef>;
-export type PpviewCallData = Anonymize<I5mpbt4g22hs4h> & {
+export type PpviewCallData = Anonymize<Iab0rfeoic4do> & {
     value: {
         type: string;
     };
@@ -3640,7 +3678,7 @@ type AllInteractions = {
         XcmpQueue: ['InboundXcmpSuspended', 'OutboundXcmpStatus', 'OutboundXcmpMessages', 'SignalMessages', 'QueueConfig', 'QueueSuspended', 'DeliveryFeeFactor'];
         PolkadotXcm: ['QueryCounter', 'Queries', 'AssetTraps', 'SafeXcmVersion', 'SupportedVersion', 'VersionNotifiers', 'VersionNotifyTargets', 'VersionDiscoveryQueue', 'CurrentMigration', 'RemoteLockedFungibles', 'LockedFungibles', 'XcmExecutionSuspended', 'ShouldRecordXcm', 'RecordedXcm', 'AuthorizedAliases'];
         MessageQueue: ['BookStateFor', 'ServiceHead', 'Pages'];
-        ContentRegistry: ['NextListingId', 'Listings', 'Purchases'];
+        ContentRegistry: ['NextListingId', 'Listings', 'Purchases', 'ServicePublicKey', 'ServiceAccountId', 'EncryptionKeys', 'WrappedKeys'];
         Revive: ['PristineCode', 'CodeInfoOf', 'AccountInfoOf', 'ImmutableDataOf', 'DeletionQueue', 'DeletionQueueCounter', 'OriginalAccount', 'EthereumBlock', 'BlockHash', 'ReceiptInfoData', 'EthBlockBuilderIR', 'EthBlockBuilderFirstValues', 'DebugSettingsOf'];
     };
     tx: {
@@ -3654,7 +3692,7 @@ type AllInteractions = {
         XcmpQueue: ['suspend_xcm_execution', 'resume_xcm_execution', 'update_suspend_threshold', 'update_drop_threshold', 'update_resume_threshold'];
         PolkadotXcm: ['send', 'teleport_assets', 'reserve_transfer_assets', 'execute', 'force_xcm_version', 'force_default_xcm_version', 'force_subscribe_version_notify', 'force_unsubscribe_version_notify', 'limited_reserve_transfer_assets', 'limited_teleport_assets', 'force_suspension', 'transfer_assets', 'claim_assets', 'transfer_assets_using_type_and_then', 'add_authorized_alias', 'remove_authorized_alias', 'remove_all_authorized_aliases'];
         MessageQueue: ['reap_page', 'execute_overweight'];
-        ContentRegistry: ['create_listing', 'purchase'];
+        ContentRegistry: ['create_listing', 'purchase', 'register_encryption_key', 'grant_access'];
         Revive: ['eth_transact', 'call', 'instantiate', 'instantiate_with_code', 'eth_instantiate_with_code', 'eth_call', 'eth_substrate_call', 'upload_code', 'remove_code', 'set_code', 'map_account', 'unmap_account', 'dispatch_as_fallback_account'];
     };
     events: {
@@ -3670,7 +3708,7 @@ type AllInteractions = {
         CumulusXcm: ['InvalidFormat', 'UnsupportedVersion', 'ExecutedDownward'];
         MessageQueue: ['ProcessingFailed', 'Processed', 'OverweightEnqueued', 'PageReaped'];
         Statement: ['NewStatement'];
-        ContentRegistry: ['ListingCreated', 'PurchaseCompleted'];
+        ContentRegistry: ['ListingCreated', 'PurchaseCompleted', 'EncryptionKeyRegistered', 'AccessGranted'];
         Revive: ['ContractEmitted', 'Instantiated', 'EthExtrinsicRevert'];
     };
     errors: {
