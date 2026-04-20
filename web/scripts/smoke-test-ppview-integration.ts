@@ -48,7 +48,7 @@ async function main() {
         title: Binary.fromText("smoke"),
         description: Binary.fromText("created by smoke script"),
         price: 500_000_000_000n,
-        locked_content_lock_key: Binary.fromBytes(new Uint8Array()),
+        locked_content_lock_key: FixedSizeBinary.fromBytes(new Uint8Array(80)),
     });
 
     const createResult = await createTx.signAndSubmit(alice);
