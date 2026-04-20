@@ -153,6 +153,21 @@ pub mod pallet {
 	pub type EncryptionKeys<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, [u8; 32], OptionQuery>;
 
+	/// Content-lock-key sealed to the target account's x25519 pubkey.
+	/// Fixed 80 bytes — see `locked_content_lock_key` for the layout. Key ordering
+	/// matches `Purchases` so iteration by AccountId is available for Phase 4
+	/// session-key-loss recovery.
+	#[pallet::storage]
+	pub type WrappedKeys<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		Blake2_128Concat,
+		ListingId,
+		[u8; 80],
+		OptionQuery,
+	>;
+
 	#[pallet::genesis_config]
 	#[derive(frame::deps::frame_support::DefaultNoBound)]
 	pub struct GenesisConfig<T: Config> {
@@ -181,6 +196,7 @@ pub mod pallet {
 		ListingCreated { listing_id: ListingId, creator: T::AccountId, price: BalanceOf<T> },
 		PurchaseCompleted { listing_id: ListingId, buyer: T::AccountId, creator: T::AccountId },
 		EncryptionKeyRegistered { account: T::AccountId },
+		AccessGranted { listing_id: ListingId, buyer: T::AccountId },
 	}
 
 	#[pallet::error]
@@ -276,6 +292,20 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			EncryptionKeys::<T>::insert(&who, pubkey);
 			Self::deposit_event(Event::EncryptionKeyRegistered { account: who });
+			Ok(())
+		}
+
+		#[pallet::call_index(3)]
+		#[pallet::weight((T::WeightInfo::grant_access(), frame::deps::frame_support::dispatch::Pays::No))]
+		pub fn grant_access(
+			origin: OriginFor<T>,
+			listing_id: ListingId,
+			buyer: T::AccountId,
+			wrapped_key: [u8; 80],
+		) -> DispatchResult {
+			T::ServiceOrigin::ensure_origin(origin)?;
+			WrappedKeys::<T>::insert(&buyer, listing_id, wrapped_key);
+			Self::deposit_event(Event::AccessGranted { listing_id, buyer });
 			Ok(())
 		}
 	}

@@ -301,3 +301,55 @@ fn register_encryption_key_overwrites_existing() {
 		assert_eq!(EncryptionKeys::<Test>::get(BOB), Some([0x22u8; 32]));
 	});
 }
+
+use crate::pallet::WrappedKeys;
+use frame::deps::frame_support::dispatch::{GetDispatchInfo, Pays};
+
+#[test]
+fn grant_access_writes_wrapped_key_and_emits() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		let listing_id = seed_listing(ALICE, 100);
+		let wrapped = [0x77u8; 80];
+		assert_ok!(ContentRegistry::grant_access(
+			RuntimeOrigin::signed(SERVICE),
+			listing_id,
+			BOB,
+			wrapped,
+		));
+		assert_eq!(WrappedKeys::<Test>::get(BOB, listing_id), Some(wrapped));
+		System::assert_last_event(
+			crate::Event::AccessGranted { listing_id, buyer: BOB }.into(),
+		);
+	});
+}
+
+#[test]
+fn grant_access_rejects_non_service_origin() {
+	new_test_ext().execute_with(|| {
+		let listing_id = seed_listing(ALICE, 100);
+		assert_noop!(
+			ContentRegistry::grant_access(
+				RuntimeOrigin::signed(BOB),
+				listing_id,
+				BOB,
+				[0u8; 80],
+			),
+			frame::deps::sp_runtime::DispatchError::BadOrigin,
+		);
+	});
+}
+
+#[test]
+fn grant_access_is_pays_no() {
+	new_test_ext().execute_with(|| {
+		let listing_id = seed_listing(ALICE, 100);
+		let call = crate::Call::<Test>::grant_access {
+			listing_id,
+			buyer: BOB,
+			wrapped_key: [0u8; 80],
+		};
+		let info = call.get_dispatch_info();
+		assert_eq!(info.pays_fee, Pays::No);
+	});
+}
