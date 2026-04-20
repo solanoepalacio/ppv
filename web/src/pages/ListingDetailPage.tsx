@@ -113,7 +113,9 @@ export default function ListingDetailPage() {
           <h1 className="text-xl font-semibold text-text-primary">{listing.title}</h1>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-text-muted font-mono">{truncateAddress(listing.creator)}</span>
+            <span className="text-xs text-text-muted font-mono">
+              {isCreator ? truncateAddress(listing.creator) : `Uploaded by ${truncateAddress(listing.creator)}`}
+            </span>
             <button onClick={handleCopyAddress} className="text-xs text-polka-400 hover:text-polka-300">
               {copied ? 'Copied!' : 'Copy'}
             </button>

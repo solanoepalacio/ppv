@@ -77,6 +77,24 @@ describe('ListingDetailPage', () => {
     expect(screen.queryByTestId('video-player')).toBeNull();
   });
 
+  test('prefixes creator address with "Uploaded by" for non-creator viewers', async () => {
+    mockFetchListing.mockResolvedValue(makeListing());
+    mockHasPurchased.mockResolvedValue(false);
+    renderAtId('3');
+    await waitFor(() =>
+      expect(screen.getByText(/^Uploaded by\s+5FHneW.*M694ty$/)).toBeInTheDocument(),
+    );
+  });
+
+  test('does not prefix creator address with "Uploaded by" when viewer is the creator', async () => {
+    const creatorAddress = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
+    mockFetchListing.mockResolvedValue(makeListing({ creator: creatorAddress }));
+    mockHasPurchased.mockResolvedValue(false);
+    renderAtId('3', creatorAddress);
+    await waitFor(() => expect(screen.getByTestId('video-player')).toBeInTheDocument());
+    expect(screen.queryByText(/^Uploaded by\s+5Grwva/)).toBeNull();
+  });
+
   test('disables buy button when balance is insufficient', async () => {
     mockFetchListing.mockResolvedValue(makeListing({ price: 100_000_000_000n }));
     mockHasPurchased.mockResolvedValue(false);
