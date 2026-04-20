@@ -13,7 +13,7 @@ beforeEach(() => {
 const realCreateElement = document.createElement.bind(document);
 
 // Helper: make extractFrames resolve with N fake frame byte arrays
-function stubVideoWithFrames(frameCount: number) {
+function stubVideoWithFrames(_frameCount: number) {
   const mockVideo = {
     src: '',
     muted: false,
@@ -21,7 +21,6 @@ function stubVideoWithFrames(frameCount: number) {
     duration: 10,
     videoWidth: 320,
     videoHeight: 180,
-    currentTime: 0,
     onloadedmetadata: null as (() => void) | null,
     onseeked: null as (() => void) | null,
     onerror: null as (() => void) | null,
