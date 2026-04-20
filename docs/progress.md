@@ -43,7 +43,7 @@ Plan: [`docs/plans/P1b-frontend.md`](./plans/P1b-frontend.md)
 - [x] Task 9: Listing Detail page (all states)
 - [x] Task 10: Create page — video/thumbnail pickers + metadata form
 - [x] Task 11: Create page — upload/submit flow + CreateChecklist
-- [ ] Task 12: My Purchases page
+- [x] Task 12: My Purchases page
 - [ ] Task 13: TypeScript check + dev-server smoke test against Zombienet
 
 ### P1c — Deploy (IPFS + DotNS)

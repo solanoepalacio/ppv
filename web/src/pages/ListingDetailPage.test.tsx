@@ -21,7 +21,7 @@ import { useChainStore } from '../store/chainStore';
 const mockFetchListing = fetchListing as ReturnType<typeof vi.fn>;
 const mockHasPurchased = hasPurchased as ReturnType<typeof vi.fn>;
 const mockSubmitPurchase = submitPurchase as ReturnType<typeof vi.fn>;
-const mockUseChainStore = useChainStore as ReturnType<typeof vi.fn>;
+const mockUseChainStore = useChainStore as unknown as ReturnType<typeof vi.fn>;
 
 function makeListing(overrides: Partial<Listing> = {}): Listing {
   return {

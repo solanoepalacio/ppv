@@ -13,7 +13,7 @@ vi.mock('../hooks/useContentRegistry', () => ({
 
 import { useChainStore } from '../store/chainStore';
 import { fetchPurchases, fetchListing } from '../hooks/useContentRegistry';
-const mockUseChainStore = useChainStore as ReturnType<typeof vi.fn>;
+const mockUseChainStore = useChainStore as unknown as ReturnType<typeof vi.fn>;
 const mockFetchPurchases = fetchPurchases as ReturnType<typeof vi.fn>;
 const mockFetchListing = fetchListing as ReturnType<typeof vi.fn>;
 
