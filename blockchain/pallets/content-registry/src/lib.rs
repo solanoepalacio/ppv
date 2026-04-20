@@ -63,6 +63,9 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Native token source used for `purchase` transfers.
 		type Currency: Currency<Self::AccountId>;
+		/// Origin that can call `grant_access`. Bound to a service-account-equality
+		/// check via the runtime's `EnsureServiceAccount` struct.
+		type ServiceOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// Weights for the pallet's extrinsics.
 		type WeightInfo: WeightInfo;
 	}

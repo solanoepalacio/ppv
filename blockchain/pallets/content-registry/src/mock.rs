@@ -1,8 +1,11 @@
+extern crate alloc;
+
 use frame::{
 	deps::{frame_support::weights::constants::RocksDbWeight, frame_system::GenesisConfig},
 	prelude::*,
 	runtime::prelude::*,
 	testing_prelude::*,
+	traits::SortedMembers,
 };
 
 pub type AccountId = u64;
@@ -53,6 +56,7 @@ impl pallet_balances::Config for Test {
 
 impl crate::Config for Test {
 	type Currency = Balances;
+	type ServiceOrigin = EnsureSignedBy<ServiceMember, AccountId>;
 	type WeightInfo = ();
 }
 
@@ -61,6 +65,19 @@ pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 pub const SERVICE: AccountId = 99;
 pub const SVC_PUB_DEV: [u8; 32] = [0xAAu8; 32];
+
+pub struct ServiceMember;
+impl SortedMembers<AccountId> for ServiceMember {
+	fn sorted_members() -> alloc::vec::Vec<AccountId> {
+		alloc::vec![SERVICE]
+	}
+	fn contains(who: &AccountId) -> bool {
+		who == &SERVICE
+	}
+	fn count() -> usize {
+		1
+	}
+}
 
 pub fn new_test_ext() -> TestState {
 	let mut t = GenesisConfig::<Test>::default().build_storage().unwrap();
