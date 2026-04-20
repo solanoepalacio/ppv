@@ -40,6 +40,7 @@ When you use an offset or explicit port overrides, the frontend dev server, CLI 
 | `deploy-frontend.sh` | Builds the frontend and uploads `web/dist` to IPFS using the `w3` CLI, then prints the CID and suggested DotNS follow-up steps. | Use this when you want to publish the frontend as a static deployment. |
 | `test-zombienet.sh` | Starts a Zombienet network, deploys EVM and PVM contracts, and runs automated E2E tests covering pallet PoE, EVM contract PoE, PVM contract PoE, Statement Store submit/dump, combined pallet+statement-store claims, and the `prove` command. Reports pass/fail for each test. | Use this for a comprehensive end-to-end verification of all features before merging or releasing. |
 | `test-statement-store-smoke.sh` | Builds the runtime, starts a temporary Zombienet relay chain + collator with Statement Store enabled, verifies the store is initially empty, submits a signed statement through the CLI, and checks that `statement-dump` returns it. | Use this when you want a focused end-to-end sanity check of the Statement Store integration on the same supported local topology the template documents. |
+| `gen-service-key.sh` | Generates the chain-service x25519 keypair under `<repo>/keys` (gitignored), then prints instructions showing where in `genesis_config_presets.rs` to paste the public key so it gets baked into the chain-spec. | Run this once before your first local chain boot, and again whenever you need to rotate the dev service keypair. The matching private key stays in `keys/svc_priv.pem` for the chain-service daemon (Phase 2b) to read. |
 
 ## Notes
 
@@ -48,3 +49,4 @@ When you use an offset or explicit port overrides, the frontend dev server, CLI 
 - `start-all.sh` and `test-zombienet.sh` also require `eth-rpc`.
 - `deploy-frontend.sh` requires the `w3` CLI from Web3.Storage.
 - `deploy-paseo.sh` expects the contract deployment credentials to already be configured in the contract projects.
+- `gen-service-key.sh` requires `openssl` (x25519 via `openssl genpkey`).
