@@ -32,10 +32,10 @@ describe('ListingCard', () => {
     expect(screen.getByText('My Test Video')).toBeInTheDocument();
   });
 
-  test('renders a truncated creator address', () => {
+  test('renders the creator address prefixed with "By:"', () => {
     render(<MemoryRouter><ListingCard listing={makeListing()} /></MemoryRouter>);
-    // Full address is 48 chars; truncated shows first 6 + … + last 6
-    expect(screen.getByText(/5Grwva.*GKutQY/)).toBeInTheDocument();
+    // Full address is 48 chars; truncated shows first 6 + … + last 6, prefixed with "By:"
+    expect(screen.getByText(/^By:\s*5Grwva.*GKutQY$/)).toBeInTheDocument();
   });
 
   test('renders the price in DOT', () => {

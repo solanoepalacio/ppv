@@ -35,7 +35,7 @@ export default function ListingCard({ listing }: Props) {
 
       <div className="p-3 flex flex-col gap-1">
         <p className="text-sm font-medium text-text-primary line-clamp-2">{listing.title}</p>
-        <p className="text-xs text-text-muted font-mono">{truncateAddress(listing.creator)}</p>
+        <p className="text-xs text-text-muted font-mono">By: {truncateAddress(listing.creator)}</p>
         <p className="text-xs text-polka-300 font-semibold text-right mt-0.5">
           {formatDot(listing.price)}
         </p>
