@@ -839,12 +839,12 @@ impl pallet_content_registry::Config for Runtime {
 
 - [ ] **Step 3: Build the runtime**
 
-Run: `cargo build -p parachain-template-runtime --release`
+Run: `cargo build -p ppview-runtime --release`
 Expected: OK. If linker errors surface, inspect the `core::marker` import path — swap to `sp_std::marker::PhantomData` if the runtime doesn't transitively re-export `core::marker`.
 
 - [ ] **Step 4: Run the runtime tests**
 
-Run: `cargo test -p parachain-template-runtime`
+Run: `cargo test -p ppview-runtime`
 Expected: all existing runtime tests still pass.
 
 - [ ] **Step 5: Commit**
@@ -926,7 +926,7 @@ Modify `testnet_genesis` to include the content-registry config. Extend the `bui
 
 - [ ] **Step 3: Build the runtime**
 
-Run: `cargo build -p parachain-template-runtime --release`
+Run: `cargo build -p ppview-runtime --release`
 Expected: OK. If the compiler complains about `ContentRegistryConfig` being unresolved, check that `lib.rs` exports the pallet's `GenesisConfig` with the `ContentRegistryConfig` alias via `construct_runtime!` — it should, because `construct_runtime!` auto-generates `<PalletName>Config` type aliases.
 
 - [ ] **Step 4: Verify the chain-spec includes the values**
@@ -953,7 +953,7 @@ The P2b plan will introduce a proper subxt-based E2E against the daemon. For P2a
 
 - [ ] **Step 1: Release build**
 
-Run: `cargo build --release -p parachain-template-runtime -p parachain-template-node`
+Run: `cargo build --release -p ppview-runtime -p parachain-template-node`
 Expected: WASM + node binary produced without warnings about genesis or integrity.
 
 - [ ] **Step 2: Launch Zombienet locally (manual, one-time)**
