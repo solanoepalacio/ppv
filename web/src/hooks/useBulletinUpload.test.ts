@@ -76,16 +76,19 @@ describe('uploadToBulletin', () => {
     }
   });
 
-  test('uses preimage-authorized unsigned path for small files (< 2 MiB)', async () => {
+  test('uses signed store path for small files (< 2 MiB)', async () => {
     const mock = new MockBulletinClient();
     const bytes = new Uint8Array(64).fill(0xaa);
 
     await uploadToBulletin(bytes, undefined, mock);
 
     const ops = mock.getOperations();
-    expect(ops.some((op) => op.type === 'authorize_preimage')).toBe(true);
-    expect(ops.some((op) => op.type === 'store_preimage_auth')).toBe(true);
-    expect(ops.every((op) => op.type !== 'store')).toBe(true);
+    expect(ops.some((op) => op.type === 'store')).toBe(true);
+    // We no longer use preimage-authorized unsigned path — it's unreliable on
+    // Paseo Bulletin (PAPI's bare submit has no SDK-level timeout, so stalled
+    // finalization of the bare unsigned tx hangs the UI indefinitely).
+    expect(ops.every((op) => op.type !== 'authorize_preimage')).toBe(true);
+    expect(ops.every((op) => op.type !== 'store_preimage_auth')).toBe(true);
   });
 
   test('uses signed chunked path for large files (> 2 MiB)', async () => {
@@ -95,10 +98,8 @@ describe('uploadToBulletin', () => {
     await uploadToBulletin(bytes, undefined, mock);
 
     const ops = mock.getOperations();
-    // Signed chunked store records a 'store' op, not 'store_preimage_auth'
     expect(ops.some((op) => op.type === 'store')).toBe(true);
     expect(ops.every((op) => op.type !== 'store_preimage_auth')).toBe(true);
-    // No preimage authorization needed for the signed path
     expect(ops.every((op) => op.type !== 'authorize_preimage')).toBe(true);
   });
 

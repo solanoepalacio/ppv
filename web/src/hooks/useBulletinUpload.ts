@@ -4,8 +4,6 @@ import { withPolkadotSdkCompat } from 'polkadot-api/polkadot-sdk-compat';
 import {
   AsyncBulletinClient,
   ChunkStatus,
-  HashAlgorithm,
-  getContentHash,
   type BulletinClientInterface,
   type ProgressCallback,
 } from '@parity/bulletin-sdk';
@@ -15,11 +13,6 @@ import { bulletinCidToGatewayUrl } from '../utils/bulletinCid';
 import type { BulletinCidFields } from './useContentRegistry';
 
 const BULLETIN_WS = 'wss://paseo-bulletin-rpc.polkadot.io';
-
-// Matches the SDK's default chunkingThreshold. Above this, unsigned (bare)
-// store txs aren't supported by `pallet-transaction-storage`, so we route to
-// the signed chunked path instead.
-const UNSIGNED_STORE_LIMIT = 2 * 1024 * 1024;
 
 let _bulletinPapiClient: PolkadotClient | null = null;
 let _asyncClient: AsyncBulletinClient | null = null;
@@ -41,12 +34,14 @@ function getDefaultBulletinClient(): AsyncBulletinClient {
 /**
  * Upload bytes to Bulletin Chain, returning the CID fields needed for the pallet.
  *
- * Routes by size:
- *  - `<= 2 MiB`: preimage-authorized unsigned store (Alice signs authorizePreimage,
- *    store is a bare tx — the designed feeless path).
- *  - `>  2 MiB`: signed chunked store (Alice pays fees; unsigned path can't chunk
- *    per the SDK, and `pallet-transaction-storage::validate_unsigned` has no
- *    authorization for multi-chunk bare txs).
+ * Uses the signed store path unconditionally — Alice signs every tx and pays
+ * Bulletin fees. The SDK auto-chunks above its 2 MiB `chunkingThreshold`.
+ *
+ * We deliberately avoid the preimage-authorized unsigned path here: it needs
+ * two round-trips (signed `authorize_preimage` + bare unsigned `store`), and
+ * PAPI's bare `submit` has no SDK-level timeout. When Paseo Bulletin silently
+ * drops or delays finalization of the bare tx, the UI hangs indefinitely.
+ * The signed path surfaces failures via `signSubmitAndWatch` (120s timeout).
  *
  * Pass an injectable `_client` for testing (accepts MockBulletinClient).
  */
@@ -63,18 +58,7 @@ export async function uploadToBulletin(
     }
   };
 
-  let result;
-  if (bytes.length > UNSIGNED_STORE_LIMIT) {
-    // Signed chunked path. Alice (the signer) pays Bulletin fees and supplies
-    // account-level authorization. The SDK auto-chunks above `chunkingThreshold`.
-    result = await client.store(bytes).withCallback(progressCb).send();
-  } else {
-    // Preimage-authorized bare-tx path. Feeless for the submitter of `store`,
-    // but Alice still pays to authorize the preimage.
-    const contentHash = await getContentHash(bytes, HashAlgorithm.Blake2b256);
-    await client.authorizePreimage(contentHash, BigInt(bytes.length)).send();
-    result = await client.store(bytes).withCallback(progressCb).sendUnsigned();
-  }
+  const result = await client.store(bytes).withCallback(progressCb).send();
 
   onProgress?.(100);
 
