@@ -4,6 +4,7 @@ import type { Listing } from '../hooks/useContentRegistry';
 interface Props {
   listing: Listing;
   isPurchased?: boolean;
+  isOwn?: boolean;
 }
 
 function truncateAddress(addr: string): string {
@@ -15,7 +16,7 @@ function formatDot(planck: bigint): string {
   return `${(Number(planck) / 1e10).toFixed(2)} DOT`;
 }
 
-export default function ListingCard({ listing, isPurchased }: Props) {
+export default function ListingCard({ listing, isPurchased, isOwn }: Props) {
   const navigate = useNavigate();
 
   return (
@@ -37,8 +38,12 @@ export default function ListingCard({ listing, isPurchased }: Props) {
       <div className="p-3 flex flex-col gap-1">
         <p className="text-sm font-medium text-text-primary line-clamp-2">{listing.title}</p>
         <p className="text-xs text-text-muted font-mono">By: {truncateAddress(listing.creator)}</p>
-        <p className={`text-xs font-semibold text-right mt-0.5 ${isPurchased ? 'text-accent-green' : 'text-polka-300'}`}>
-          {isPurchased ? 'Purchased' : formatDot(listing.price)}
+        <p
+          className={`text-xs font-semibold text-right mt-0.5 ${
+            isOwn ? 'text-text-muted' : isPurchased ? 'text-accent-green' : 'text-polka-300'
+          }`}
+        >
+          {isOwn ? 'By you' : isPurchased ? 'Purchased' : formatDot(listing.price)}
         </p>
       </div>
     </div>

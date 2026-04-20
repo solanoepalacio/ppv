@@ -114,4 +114,18 @@ describe('BrowsePage', () => {
     expect(mockFetchPurchases).not.toHaveBeenCalled();
     expect(screen.queryByText(/^purchased$/i)).toBeNull();
   });
+
+  test('shows "By you" on cards whose creator is the connected account', async () => {
+    const account = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
+    setAccount(account);
+    // makeListing() uses this address as the creator.
+    mockFetch.mockResolvedValue([makeListing(0n, 'My Own Video')]);
+    mockFetchPurchases.mockResolvedValue([]);
+
+    render(<MemoryRouter><BrowsePage /></MemoryRouter>);
+
+    await waitFor(() => expect(screen.getByText('My Own Video')).toBeInTheDocument());
+    expect(screen.getByText(/^by you$/i)).toBeInTheDocument();
+    expect(screen.queryByText(/1\.00 DOT/)).toBeNull();
+  });
 });

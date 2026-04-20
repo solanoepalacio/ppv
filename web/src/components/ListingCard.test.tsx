@@ -53,6 +53,21 @@ describe('ListingCard', () => {
     expect(screen.queryByText(/2\.50 DOT/)).toBeNull();
   });
 
+  test('renders "By you" instead of price when isOwn is true', () => {
+    render(
+      <MemoryRouter>
+        <ListingCard listing={makeListing()} isOwn />
+      </MemoryRouter>,
+    );
+    const label = screen.getByText(/^by you$/i);
+    expect(label).toBeInTheDocument();
+    expect(screen.queryByText(/2\.50 DOT/)).toBeNull();
+    expect(screen.queryByText(/^purchased$/i)).toBeNull();
+    // Neutral color: no red/green accents.
+    const classes = label.className;
+    expect(classes).not.toMatch(/accent-green|accent-red/);
+  });
+
   test('navigates to the listing detail page on click', () => {
     render(<MemoryRouter><ListingCard listing={makeListing({ id: 7n })} /></MemoryRouter>);
     fireEvent.click(screen.getByText('My Test Video'));
