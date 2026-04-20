@@ -5,6 +5,12 @@
 
 ---
 
+## REVERSAL — 2026-04-20 — back to Bulletin for Phase 1c
+
+After re-reviewing with classmates' feedback (the stock CI path "just works"), the prior decision to favour IPFS was reversed. Phase 1c uses the **Bulletin + DotNS CI path** as-is; the ~14-day retention is handled operationally by re-running the action before each demo. Canonical statement lives in `docs/design/spec.md` §7. The sections below are preserved for historical context and describe the IPFS-preferring decision that we no longer follow.
+
+---
+
 ## CORRECTION — 2026-04-17 — prior conclusion was wrong
 
 The initial version of this doc stated "the bundle is uploaded to IPFS, NOT to Bulletin Chain." **That was wrong.** After the sandbox gained `gh api` access, we fetched the reusable workflow at `paritytech/dotns-sdk/.github/workflows/deploy.yml@main` and the composite actions it calls. The verified truth:
