@@ -54,4 +54,25 @@ Plan: [`docs/plans/P1b-frontend.md`](./plans/P1b-frontend.md)
 
 ## Phase 2 — Content encryption
 
-Plans: _not written yet_
+### P2a — Pallet + Runtime
+
+Plan: [`docs/plans/P2a-pallet-runtime.md`](./plans/P2a-pallet-runtime.md)
+
+- [ ] Task 1: Lock locked_content_lock_key to [u8; 80]
+- [ ] Task 2: ServicePublicKey + ServiceAccountId storage + GenesisConfig
+- [ ] Task 3: integrity_test guard
+- [ ] Task 4: ServiceOrigin Config item + mock binding
+- [ ] Task 5: EncryptionKeys + register_encryption_key
+- [ ] Task 6: WrappedKeys + grant_access (ServiceOrigin, Pays::No)
+- [ ] Task 7: Benchmarks for new extrinsics
+- [ ] Task 8: EnsureServiceAccount runtime wiring
+- [ ] Task 9: Genesis presets populate ContentRegistryConfig
+- [ ] Task 10: Release build + Zombienet launch smoke
+
+### P2b — Chain-service daemon
+
+Plan: _not written yet_
+
+### P2c — Frontend encryption flow
+
+Plan: _not written yet_

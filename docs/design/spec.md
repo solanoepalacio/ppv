@@ -20,8 +20,8 @@ End-to-end data flow:
 1. **Creator** encrypts content client-side, uploads ciphertext to Bulletin Chain, receives a CID.
 2. **Creator** submits `create_listing` with: CID, plaintext hash, price, title, description, and the content-lock-key wrapped to `SVC_PUB`.
 3. **Buyer** submits `purchase(listing_id)` (batched with `register_encryption_key` on the first buy). The pallet transfers funds and records the purchase.
-4. **Chain-service** observes the `PurchaseCompleted` event, unwraps the content-lock-key with `SVC_PRIV`, re-wraps it to the buyer's registered x25519 pubkey, and writes the result to `WrappedKeys[(listing_id, buyer)]`.
-5. **Buyer's frontend** reads `WrappedKeys[(listing_id, buyer)]`, decrypts the wrapped key in pure JS using the browser-held x25519 private key, fetches ciphertext from Bulletin Chain, decrypts the content, verifies the plaintext hash, renders.
+4. **Chain-service** observes the `PurchaseCompleted` event, unwraps the content-lock-key with `SVC_PRIV`, re-wraps it to the buyer's registered x25519 pubkey, and writes the result to `WrappedKeys[(buyer, listing_id)]`.
+5. **Buyer's frontend** reads `WrappedKeys[(buyer, listing_id)]`, decrypts the wrapped key in pure JS using the browser-held x25519 private key, fetches ciphertext from Bulletin Chain, decrypts the content, verifies the plaintext hash, renders.
 
 ## 3. Phased scope
 
@@ -73,10 +73,10 @@ Listings:      StorageMap<ListingId, Listing<T>, OptionQuery>
 Purchases:     StorageDoubleMap<AccountId, ListingId, BlockNumberFor<T>, OptionQuery>  // value = block number of purchase; used by frontend to sort "My Purchases" by time
 
 // Phase 2
-ServicePublicKey:  StorageValue<[u8; 32], ValueQuery>     // SVC_PUB (x25519); set at genesis, immutable
-ServiceAccountId:  StorageValue<AccountId, ValueQuery>    // sr25519 account authorized to call grant_access / regrant_access; set at genesis, immutable
+ServicePublicKey:  StorageValue<[u8; 32], ValueQuery>     // SVC_PUB (x25519); set at genesis, immutable. `integrity_test` rejects [0; 32].
+ServiceAccountId:  StorageValue<AccountId, ValueQuery>    // sr25519 account authorized to call grant_access / regrant_access; set at genesis, immutable. `integrity_test` rejects AccountId default.
 EncryptionKeys:    StorageMap<AccountId, [u8; 32], OptionQuery>
-WrappedKeys:       StorageDoubleMap<ListingId, AccountId, BoundedVec<u8, ...>, OptionQuery>
+WrappedKeys:       StorageDoubleMap<AccountId, ListingId, [u8; 80], OptionQuery>  // key order matches Purchases so iteration by AccountId is available for Phase 4 session-key-loss recovery. Value size is fixed by NaCl sealed-box output (32 ephemeral pub + 32 ciphertext + 16 MAC).
 ```
 
 ### `Listing` struct
@@ -90,7 +90,7 @@ struct Listing<T: Config> {
     content_hash: [u8; 32],                         // blake2b-256 of plaintext
     title: BoundedVec<u8, ConstU32<128>>,
     description: BoundedVec<u8, ConstU32<2048>>,
-    locked_content_lock_key: BoundedVec<u8, ...>,   // Phase 2: sealed to SVC_PUB. Empty in Phase 1.
+    locked_content_lock_key: [u8; 80],              // Phase 2: content-lock-key sealed to SVC_PUB via NaCl sealed-box. Zero-initialized in Phase 1; Phase 2 `create_listing` requires a real (non-zero) value.
     created_at: BlockNumberFor<T>,
 }
 
@@ -109,7 +109,7 @@ struct BulletinCid {
 **Phase 2**
 - `register_encryption_key(pubkey: [u8; 32])` — writes `EncryptionKeys[caller]`.
 - `create_listing` gains a `locked_content_lock_key` parameter.
-- `grant_access(listing_id, buyer, wrapped_key)` — origin must satisfy `T::ServiceOrigin` (see [Service origin](#service-origin) below). Writes `WrappedKeys[(listing_id, buyer)]`. Marked `Pays::No` so the chain-service account does not pay transaction fees.
+- `grant_access(listing_id, buyer, wrapped_key)` — origin must satisfy `T::ServiceOrigin` (see [Service origin](#service-origin) below). Writes `WrappedKeys[(buyer, listing_id)]`. Marked `Pays::No` so the chain-service account does not pay transaction fees.
 
 **Phase 4** (deferred — see §3)
 - `regrant_access(listing_ids)` — signed origin (the buyer). Session-key recovery; emits events the chain-service observes to re-wrap each listing's content-lock-key under the caller's newly registered encryption key.
@@ -162,6 +162,15 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 - No platform fee, no treasury cut. The buyer's payment is transferred in full to the creator as part of `purchase`.
 - Transaction fees are paid by each extrinsic's caller — the standard Polkadot default. The creator pays the fee for `create_listing` and the buyer pays the fee for `purchase` (and, in Phase 4, for `regrant_access`). `grant_access` is marked `Pays::No`: the chain-service account is authorized via `ServiceOrigin` but is not charged for the call. The account only requires a one-time existential deposit; no ongoing top-ups. Since only `ServiceOrigin` can call, the fee-free path is not a spam vector.
 
+### Integrity checks
+
+The pallet implements `integrity_test` (FRAME hook, run once at chain init after genesis) to catch a chain-spec that forgot to populate the Phase 2 service keys. It panics if either:
+
+- `ServicePublicKey::get() == [0u8; 32]`, or
+- `ServiceAccountId::get() == T::AccountId::default()`.
+
+Without this guard, `ValueQuery` would silently return zero bytes and every Phase 2 flow would produce un-grantable listings. Panicking at startup makes misconfiguration loud.
+
 ## 5. Encryption model (Phase 2)
 
 ### Keys in play
@@ -172,7 +181,18 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
   - Rotation is out of scope.
 - **`SERVICE_ACCOUNT_KEY`** — separate sr25519 keypair held by the daemon as a key file (not in the Substrate keystore, since the daemon is an external process, not a node plugin). Signs `grant_access` and the chain-service's response to `regrant_access` events. The corresponding AccountId is stored on-chain in `ServiceAccountId` (genesis-set) and is the only signer accepted by the pallet's `ServiceOrigin`. The account needs a one-time existential deposit to exist, but does not pay transaction fees (`grant_access` is marked `Pays::No`).
 - **Buyer encryption keypair** — x25519 generated client-side in the buyer's browser. Private half persisted to sandbox-local storage; public half registered on-chain via `register_encryption_key`.
-- **Content-lock-key** — random symmetric key generated client-side, one per content item. Never stored or transmitted in the clear.
+- **Content-lock-key** — random symmetric 32-byte key generated client-side, one per content item. Never stored or transmitted in the clear.
+
+### Cryptographic primitives
+
+- **Content-lock-key wrapping** uses NaCl sealed-box (`crypto_box_seal`): an ephemeral x25519 keypair is generated per wrap, a shared secret is derived via X25519 ECDH against the recipient's pubkey, and the 32-byte content-lock-key is encrypted with XSalsa20-Poly1305 using a nonce derived from `blake2b(ephemeral_pub ‖ recipient_pub)[:24]`. Output layout is fixed at 80 bytes: 32-byte ephemeral pubkey ‖ 32-byte ciphertext ‖ 16-byte MAC. This is the exact shape used both for `locked_content_lock_key` (sealed to `SVC_PUB`) and for `WrappedKeys` entries (sealed to the target's x25519 pubkey).
+- **Content encryption** uses NaCl `crypto_secretbox` (XSalsa20-Poly1305) with a random 24-byte nonce per content. The stored bytes on Bulletin Chain are the concatenation `nonce ‖ ciphertext ‖ MAC`; the decryption flow splits the nonce off before decrypting.
+
+Both constructions are standard libsodium / TweetNaCl primitives with first-class support in browser JS and Rust. No novel cryptography.
+
+### Known limitations
+
+- **Unbounded storage growth.** Each listing accrues one `WrappedKeys` entry per buyer, plus one for the creator, with no deletion path. For the PoC this is acceptable; any production deployment would need an archival / expiry strategy.
 
 ### Creator upload flow
 
@@ -187,7 +207,7 @@ Thumbnail extraction and upload apply to both Phase 1 and Phase 2; encryption an
 7. Compute `blake2b-256(plaintext)` for the `content_hash` field.
 8. *(Phase 2 only)* Fetch `SVC_PUB` from the `ServicePublicKey` storage item via PAPI; seal the content-lock-key to it → `locked_content_lock_key`.
 9. Submit `create_listing(content_cid, thumbnail_cid, content_hash, title, description, price[, locked_content_lock_key])`. The `locked_content_lock_key` parameter is Phase 2 only. On first-ever listing creation, this is batched with `register_encryption_key` via `pallet-utility::batch_all` — see [Batched first-write UX](#batched-first-write-ux).
-10. *(Phase 2 only)* The creator's frontend retains the plaintext content-lock-key in memory for the remainder of the current session, so the creator can play back the content they just uploaded without waiting for the chain-service to write `WrappedKeys[(listing_id, creator)]`. The key is **not** persisted to local-storage — on a fresh session the creator reads the wrapped key from chain like any buyer would.
+10. *(Phase 2 only)* The creator's frontend retains the plaintext content-lock-key in memory for the remainder of the current session, so the creator can play back the content they just uploaded without waiting for the chain-service to write `WrappedKeys[(creator, listing_id)]`. The key is **not** persisted to local-storage — on a fresh session the creator reads the wrapped key from chain like any buyer would.
 
 ### Purchase flow
 1. If the buyer hasn't registered an encryption key yet, generate an x25519 keypair in the browser and persist the private half to sandbox local-storage.
@@ -200,7 +220,7 @@ The daemon subscribes to two events via subxt (types generated from parachain me
 
 **On `PurchaseCompleted(listing_id, buyer, creator)`** — target is the buyer.
 
-**On `ListingCreated(listing_id, creator, price)`** — target is the creator. This unifies creator playback with the regular decryption path: the creator reads their own wrapped key from `WrappedKeys[(listing_id, creator)]` the same way a buyer reads theirs.
+**On `ListingCreated(listing_id, creator, price)`** — target is the creator. This unifies creator playback with the regular decryption path: the creator reads their own wrapped key from `WrappedKeys[(creator, listing_id)]` the same way a buyer reads theirs.
 
 Shared steps (applied with the appropriate target):
 
@@ -213,9 +233,9 @@ Because creators batch `register_encryption_key` with their first `create_listin
 
 ### Buyer and creator decryption flow
 
-The same flow applies to any account that has a `WrappedKeys[(listing_id, account)]` entry, whether they obtained it by purchasing the listing or by creating it.
+The same flow applies to any account that has a `WrappedKeys[(account, listing_id)]` entry, whether they obtained it by purchasing the listing or by creating it.
 
-1. Frontend subscribes to `WrappedKeys[(listing_id, currentAccount)]`.
+1. Frontend subscribes to `WrappedKeys[(currentAccount, listing_id)]`.
 2. Once populated, reads the account's x25519 private key from sandbox local-storage.
 3. Unseals `wrapped_key` in pure JS → recovers the content-lock-key. Phone is not involved.
 4. Reconstructs the content CID from `Listings[listing_id].content_cid` (CIDv1 + `codec` + multihash(blake2b-256, `digest`)) and fetches ciphertext from any public IPFS gateway. Bulletin Chain reads are served over IPFS, not the parachain RPC.
@@ -223,7 +243,7 @@ The same flow applies to any account that has a `WrappedKeys[(listing_id, accoun
 6. Recomputes `blake2b-256(plaintext)` and compares to `Listings[listing_id].content_hash`; surfaces a verified-content indicator.
 7. Renders.
 
-**Creator fast-path for the same session.** Immediately after upload the creator's frontend holds the plaintext content-lock-key in memory (step 10 of [Creator upload flow](#creator-upload-flow)) and can play back their content without waiting for the daemon to write `WrappedKeys[(listing_id, creator)]`. On any fresh session the creator falls through to the normal decryption flow above.
+**Creator fast-path for the same session.** Immediately after upload the creator's frontend holds the plaintext content-lock-key in memory (step 10 of [Creator upload flow](#creator-upload-flow)) and can play back their content without waiting for the daemon to write `WrappedKeys[(creator, listing_id)]`. On any fresh session the creator falls through to the normal decryption flow above.
 
 ## 6. Frontend model
 
