@@ -54,6 +54,12 @@ Each phase is demoable on its own.
 - **Content renewal via on-chain hooks.** Bulletin Chain content expires in ~14 days. A pallet hook (`on_initialize` or `on_finalize`) scans listings approaching expiry and triggers renewal (via OCW calling `TransactionStorage.renew` on Bulletin Chain), so creators don't have to re-upload.
 - **Session-key recovery.** Smooth recovery flow for buyers who lose their browser-held x25519 private key. Introduces a `regrant_access(listing_ids)` extrinsic (signed by the buyer) that emits events the chain-service observes to re-wrap each listing's content-lock-key under the caller's newly registered encryption key. Until this exists, a key loss means permanent loss of access to past purchases.
 
+### Phase 5 — Service key rotation
+**Not expected to be implemented short-term.** `ServiceAccountId` and `ServicePublicKey` are genesis-set and immutable in Phases 1–4; any replacement requires resetting the chain. Phase 5 would add an on-chain path to rotate both, exercised as a learning exercise in Polkadot storage migrations rather than an operational need (the demo chain is not expected to stay active).
+- **`ServiceAccountId` rotation.** Straightforward: accept `grant_access` from a new sr25519 signer going forward; past grants are already written.
+- **`ServicePublicKey` rotation.** Non-trivial. Existing `Listings[*].locked_content_lock_key` entries are sealed to the old `SVC_PUB`, so the daemon must hold both old and new `SVC_PRIV`s during a transition window — unseal past listings with the old key, seal new listings with the new one. Clients must re-fetch `ServicePublicKey` between caching and use; a version tag on the storage value lets creators detect mid-upload rotation and retry. Lost `SVC_PRIV` for any retired key makes all listings sealed under it permanently un-grantable.
+- **Governance path.** Depends on what replaces sudo by the time this phase is reached (council motion, democracy referendum, or a bespoke operator-multisig origin).
+
 ## 4. Pallet design
 
 > Exact bounds and encodings (`BoundedVec` limits, field widths, integer types) are finalized during implementation. The shapes below are intent-level, not final wire formats.
