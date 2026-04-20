@@ -93,13 +93,31 @@ describe('ListingDetailPage', () => {
     expect(screen.queryByRole('button', { name: /buy/i })).toBeNull();
   });
 
-  test('shows VideoPlayer and "Your listing" badge for the creator', async () => {
+  test('shows VideoPlayer and "Uploaded by you" for the creator', async () => {
     const creatorAddress = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
     mockFetchListing.mockResolvedValue(makeListing({ creator: creatorAddress }));
     mockHasPurchased.mockResolvedValue(false);
     renderAtId('3', creatorAddress);
     await waitFor(() => expect(screen.getByTestId('video-player')).toBeInTheDocument());
-    expect(screen.getByText(/your listing/i)).toBeInTheDocument();
+    expect(screen.getByText(/uploaded by you/i)).toBeInTheDocument();
+  });
+
+  test('does not show "Purchased" when viewer is the creator', async () => {
+    const creatorAddress = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
+    mockFetchListing.mockResolvedValue(makeListing({ creator: creatorAddress }));
+    mockHasPurchased.mockResolvedValue(false);
+    renderAtId('3', creatorAddress);
+    await waitFor(() => expect(screen.getByTestId('video-player')).toBeInTheDocument());
+    expect(screen.queryByText(/purchased/i)).toBeNull();
+  });
+
+  test('shows "Purchased" for a buyer (non-creator) with a purchase', async () => {
+    mockFetchListing.mockResolvedValue(makeListing());
+    mockHasPurchased.mockResolvedValue(true);
+    renderAtId('3');
+    await waitFor(() => expect(screen.getByTestId('video-player')).toBeInTheDocument());
+    expect(screen.getByText(/purchased/i)).toBeInTheDocument();
+    expect(screen.queryByText(/uploaded by you/i)).toBeNull();
   });
 
   test('clicking buy calls submitPurchase and transitions to purchased state', async () => {

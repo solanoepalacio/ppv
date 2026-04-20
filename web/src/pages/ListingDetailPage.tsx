@@ -123,12 +123,9 @@ export default function ListingDetailPage() {
 
           {pageState === 'purchased' && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-accent-green font-medium">✓ Purchased</span>
-              {isCreator && (
-                <span className="text-xs text-text-muted border border-white/10 rounded px-2 py-0.5">
-                  Your listing
-                </span>
-              )}
+              <span className="text-sm text-accent-green font-medium">
+                {isCreator ? 'Uploaded by you' : '✓ Purchased'}
+              </span>
             </div>
           )}
 
