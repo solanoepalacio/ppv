@@ -71,7 +71,18 @@ Plan: [`docs/plans/P2a-pallet-runtime.md`](./plans/P2a-pallet-runtime.md)
 
 ### P2b — Chain-service daemon
 
-Plan: _not written yet_
+Plan: [`docs/plans/P2b-chain-service.md`](./plans/P2b-chain-service.md)
+
+- [ ] Task 1: Scaffold chain-service crate + workspace wiring
+- [ ] Task 2: Load SVC_PRIV from PKCS#8 PEM
+- [ ] Task 3: NaCl sealed-box seal/unseal (80-byte wire format)
+- [ ] Task 4: Chain facade — readers + grant_access submission
+- [ ] Task 5: wrap_and_grant handler (idempotent)
+- [ ] Task 6: Finalized event stream (PurchaseCompleted + ListingCreated)
+- [ ] Task 7: Startup reconciliation over Listings + Purchases
+- [ ] Task 8: Main loop — backfill + live stream + SIGINT
+- [ ] Task 9: start-chain-service.sh helper + crate README
+- [ ] Task 10: Zombienet E2E — daemon grants access on purchase
 
 ### P2c — Frontend encryption flow
 
