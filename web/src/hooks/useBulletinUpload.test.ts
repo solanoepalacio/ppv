@@ -76,7 +76,7 @@ describe('uploadToBulletin', () => {
     }
   });
 
-  test('calls authorizePreimage before storing', async () => {
+  test('uses preimage-authorized unsigned path for small files (< 2 MiB)', async () => {
     const mock = new MockBulletinClient();
     const bytes = new Uint8Array(64).fill(0xaa);
 
@@ -84,6 +84,22 @@ describe('uploadToBulletin', () => {
 
     const ops = mock.getOperations();
     expect(ops.some((op) => op.type === 'authorize_preimage')).toBe(true);
+    expect(ops.some((op) => op.type === 'store_preimage_auth')).toBe(true);
+    expect(ops.every((op) => op.type !== 'store')).toBe(true);
+  });
+
+  test('uses signed chunked path for large files (> 2 MiB)', async () => {
+    const mock = new MockBulletinClient();
+    const bytes = new Uint8Array(3 * 1024 * 1024); // 3 MiB
+
+    await uploadToBulletin(bytes, undefined, mock);
+
+    const ops = mock.getOperations();
+    // Signed chunked store records a 'store' op, not 'store_preimage_auth'
+    expect(ops.some((op) => op.type === 'store')).toBe(true);
+    expect(ops.every((op) => op.type !== 'store_preimage_auth')).toBe(true);
+    // No preimage authorization needed for the signed path
+    expect(ops.every((op) => op.type !== 'authorize_preimage')).toBe(true);
   });
 
   test('throws when storage fails', async () => {
