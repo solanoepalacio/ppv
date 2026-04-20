@@ -149,6 +149,22 @@ describe('ListingDetailPage', () => {
     expect(mockSubmitPurchase).toHaveBeenCalledWith(3n);
   });
 
+  test('shows listing id with a copy button that writes id to clipboard', async () => {
+    mockFetchListing.mockResolvedValue(makeListing());
+    mockHasPurchased.mockResolvedValue(false);
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    renderAtId('3');
+    await waitFor(() => expect(screen.getByText('Cool Video')).toBeInTheDocument());
+
+    const idRow = screen.getByTestId('listing-id');
+    expect(idRow).toHaveTextContent(/3/);
+
+    fireEvent.click(screen.getByRole('button', { name: /copy id/i }));
+    expect(writeText).toHaveBeenCalledWith('3');
+  });
+
   test('shows error message when purchase fails', async () => {
     mockFetchListing.mockResolvedValue(makeListing());
     mockHasPurchased.mockResolvedValue(false);
