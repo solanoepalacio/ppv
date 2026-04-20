@@ -40,15 +40,22 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn integrity_test() {
-			assert!(
-				ServicePublicKey::<T>::get() != [0u8; 32],
-				"ServicePublicKey was left at [0; 32] — the chain-spec forgot to populate the content-registry GenesisConfig.",
-			);
-			assert!(
-				ServiceAccountId::<T>::get().is_some(),
-				"ServiceAccountId is unset — the chain-spec forgot to populate the content-registry GenesisConfig.",
-			);
+		/// Chain-boot sanity check: at block 1, assert the service keys were populated
+		/// by the chain-spec. A chain-spec that omits `ContentRegistryConfig` would
+		/// otherwise boot silently with an unusable `SVC_PUB = [0; 32]` and
+		/// `ServiceAccountId = None`, leaving `grant_access` permanently unreachable.
+		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
+			if n == 1u32.into() {
+				assert!(
+					ServicePublicKey::<T>::get() != [0u8; 32],
+					"ServicePublicKey was left at [0; 32] — the chain-spec forgot to populate the content-registry GenesisConfig.",
+				);
+				assert!(
+					ServiceAccountId::<T>::get().is_some(),
+					"ServiceAccountId is unset — the chain-spec forgot to populate the content-registry GenesisConfig.",
+				);
+			}
+			Weight::zero()
 		}
 	}
 

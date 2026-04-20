@@ -59,8 +59,8 @@ Plan: [`docs/plans/P1b-frontend.md`](./plans/P1b-frontend.md)
 Plan: [`docs/plans/P2a-pallet-runtime.md`](./plans/P2a-pallet-runtime.md)
 
 - [x] Task 1: Lock locked_content_lock_key to [u8; 80]
-- [ ] Task 2: ServicePublicKey + ServiceAccountId storage + GenesisConfig
-- [ ] Task 3: integrity_test guard
+- [x] Task 2: ServicePublicKey + ServiceAccountId storage + GenesisConfig
+- [x] Task 3: integrity_test guard
 - [ ] Task 4: ServiceOrigin Config item + mock binding
 - [ ] Task 5: EncryptionKeys + register_encryption_key
 - [ ] Task 6: WrappedKeys + grant_access (ServiceOrigin, Pays::No)

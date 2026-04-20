@@ -235,25 +235,35 @@ fn service_keys_are_set_from_genesis() {
 
 #[test]
 #[should_panic(expected = "ServicePublicKey")]
-fn integrity_test_panics_on_zero_service_pubkey() {
+fn on_initialize_block_one_panics_on_zero_service_pubkey() {
 	new_test_ext().execute_with(|| {
 		ServicePublicKey::<Test>::put([0u8; 32]);
-		<crate::pallet::Pallet<Test> as frame::traits::Hooks<u64>>::integrity_test();
+		<crate::pallet::Pallet<Test> as frame::traits::Hooks<u64>>::on_initialize(1);
 	});
 }
 
 #[test]
 #[should_panic(expected = "ServiceAccountId")]
-fn integrity_test_panics_on_unset_service_account() {
+fn on_initialize_block_one_panics_on_unset_service_account() {
 	new_test_ext().execute_with(|| {
 		ServiceAccountId::<Test>::kill();
-		<crate::pallet::Pallet<Test> as frame::traits::Hooks<u64>>::integrity_test();
+		<crate::pallet::Pallet<Test> as frame::traits::Hooks<u64>>::on_initialize(1);
 	});
 }
 
 #[test]
-fn integrity_test_passes_with_valid_genesis() {
+fn on_initialize_block_one_passes_with_valid_genesis() {
 	new_test_ext().execute_with(|| {
-		<crate::pallet::Pallet<Test> as frame::traits::Hooks<u64>>::integrity_test();
+		<crate::pallet::Pallet<Test> as frame::traits::Hooks<u64>>::on_initialize(1);
+	});
+}
+
+#[test]
+fn on_initialize_other_blocks_noop_even_when_storage_bad() {
+	new_test_ext().execute_with(|| {
+		ServicePublicKey::<Test>::put([0u8; 32]);
+		ServiceAccountId::<Test>::kill();
+		// Any block != 1 should be a no-op; this must not panic.
+		<crate::pallet::Pallet<Test> as frame::traits::Hooks<u64>>::on_initialize(2);
 	});
 }
