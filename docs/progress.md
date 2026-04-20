@@ -73,7 +73,7 @@ Plan: [`docs/plans/P2a-pallet-runtime.md`](./plans/P2a-pallet-runtime.md)
 
 Plan: [`docs/plans/P2b-chain-service.md`](./plans/P2b-chain-service.md)
 
-- [ ] Task 1: Scaffold chain-service crate + workspace wiring
+- [x] Task 1: Scaffold chain-service crate + workspace wiring
 - [ ] Task 2: Load SVC_PRIV from PKCS#8 PEM
 - [ ] Task 3: NaCl sealed-box seal/unseal (80-byte wire format)
 - [ ] Task 4: Chain facade — readers + grant_access submission

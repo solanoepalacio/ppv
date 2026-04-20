@@ -3,6 +3,7 @@ resolver = "2"
 members = [
 	"blockchain/runtime",
 	"blockchain/pallets/content-registry",
+	"blockchain/chain-service",
 ]
 
 [workspace.package]
@@ -44,6 +45,18 @@ subxt = { version = "0.38" }
 subxt-signer = { version = "0.38", features = ["sr25519", "subxt"] }
 tokio = { version = "1", features = ["full"] }
 alloy = { version = "1.8", features = ["contract", "provider-http", "signer-local"] }
+
+# Chain-service daemon dependencies
+anyhow = "1"
+clap = { version = "4", features = ["derive", "env"] }
+crypto_box = { version = "0.9", features = ["seal"] }
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+pem = "3"
+pkcs8 = "0.10"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+futures = "0.3"
+hex = "0.4"
 
 # Patch pallet-revive-proc-macro to 0.7.1 from polkadot-sdk stable2512-3.
 # Version 0.7.2 on crates.io has a compilation bug with #[stable] host function attributes.

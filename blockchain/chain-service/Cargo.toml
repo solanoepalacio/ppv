@@ -1,0 +1,32 @@
+[package]
+name = "ppview-chain-service"
+description = "Trusted off-chain daemon that wraps content-lock-keys for buyers and creators on ppview's parachain."
+version = "0.1.0"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+publish = false
+
+[[bin]]
+name = "ppview-chain-service"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+codec = { workspace = true, features = ["std"] }
+crypto_box = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
+pem = { workspace = true }
+pkcs8 = { workspace = true }
+subxt = { workspace = true }
+subxt-signer = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+x25519-dalek = { workspace = true }
+
+[dev-dependencies]
+hex-literal = { workspace = true }
+tempfile = "3"
