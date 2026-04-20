@@ -267,3 +267,37 @@ fn on_initialize_other_blocks_noop_even_when_storage_bad() {
 		<crate::pallet::Pallet<Test> as frame::traits::Hooks<u64>>::on_initialize(2);
 	});
 }
+
+use crate::pallet::EncryptionKeys;
+
+#[test]
+fn register_encryption_key_stores_and_emits() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		let pubkey = [0x11u8; 32];
+		assert_ok!(ContentRegistry::register_encryption_key(
+			RuntimeOrigin::signed(BOB),
+			pubkey,
+		));
+		assert_eq!(EncryptionKeys::<Test>::get(BOB), Some(pubkey));
+		System::assert_last_event(
+			crate::Event::EncryptionKeyRegistered { account: BOB }.into(),
+		);
+	});
+}
+
+#[test]
+fn register_encryption_key_overwrites_existing() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		assert_ok!(ContentRegistry::register_encryption_key(
+			RuntimeOrigin::signed(BOB),
+			[0x11u8; 32],
+		));
+		assert_ok!(ContentRegistry::register_encryption_key(
+			RuntimeOrigin::signed(BOB),
+			[0x22u8; 32],
+		));
+		assert_eq!(EncryptionKeys::<Test>::get(BOB), Some([0x22u8; 32]));
+	});
+}

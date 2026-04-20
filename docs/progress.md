@@ -62,7 +62,7 @@ Plan: [`docs/plans/P2a-pallet-runtime.md`](./plans/P2a-pallet-runtime.md)
 - [x] Task 2: ServicePublicKey + ServiceAccountId storage + GenesisConfig
 - [x] Task 3: integrity_test guard
 - [x] Task 4: ServiceOrigin Config item + mock binding
-- [ ] Task 5: EncryptionKeys + register_encryption_key
+- [x] Task 5: EncryptionKeys + register_encryption_key
 - [ ] Task 6: WrappedKeys + grant_access (ServiceOrigin, Pays::No)
 - [ ] Task 7: Benchmarks for new extrinsics
 - [ ] Task 8: EnsureServiceAccount runtime wiring

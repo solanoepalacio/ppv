@@ -147,6 +147,12 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type ServiceAccountId<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
+	/// x25519 public key registered by each account (buyer or creator). Consumed
+	/// off-chain by the chain-service when wrapping a content-lock-key for a target.
+	#[pallet::storage]
+	pub type EncryptionKeys<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, [u8; 32], OptionQuery>;
+
 	#[pallet::genesis_config]
 	#[derive(frame::deps::frame_support::DefaultNoBound)]
 	pub struct GenesisConfig<T: Config> {
@@ -174,6 +180,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		ListingCreated { listing_id: ListingId, creator: T::AccountId, price: BalanceOf<T> },
 		PurchaseCompleted { listing_id: ListingId, buyer: T::AccountId, creator: T::AccountId },
+		EncryptionKeyRegistered { account: T::AccountId },
 	}
 
 	#[pallet::error]
@@ -257,6 +264,18 @@ pub mod pallet {
 				buyer,
 				creator: listing.creator,
 			});
+			Ok(())
+		}
+
+		#[pallet::call_index(2)]
+		#[pallet::weight(T::WeightInfo::register_encryption_key())]
+		pub fn register_encryption_key(
+			origin: OriginFor<T>,
+			pubkey: [u8; 32],
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			EncryptionKeys::<T>::insert(&who, pubkey);
+			Self::deposit_event(Event::EncryptionKeyRegistered { account: who });
 			Ok(())
 		}
 	}
