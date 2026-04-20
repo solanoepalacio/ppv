@@ -77,5 +77,42 @@ mod benchmarks {
 		assert!(Purchases::<T>::contains_key(&buyer, 0u64));
 	}
 
+	#[benchmark]
+	fn register_encryption_key() {
+		let caller: T::AccountId = whitelisted_caller();
+
+		#[extrinsic_call]
+		register_encryption_key(RawOrigin::Signed(caller.clone()), [0x11u8; 32]);
+
+		assert!(EncryptionKeys::<T>::contains_key(&caller));
+	}
+
+	#[benchmark]
+	fn grant_access() {
+		let creator: T::AccountId = whitelisted_caller();
+		let title: BoundedVec<u8, ConstU32<128>> = vec![0u8; 32].try_into().unwrap();
+		let desc: BoundedVec<u8, ConstU32<2048>> = vec![0u8; 128].try_into().unwrap();
+		Pallet::<T>::create_listing(
+			RawOrigin::Signed(creator).into(),
+			sample_cid(),
+			sample_thumb_cid(),
+			[0u8; 32],
+			title,
+			desc,
+			100u32.into(),
+			[0u8; 80],
+		)
+		.unwrap();
+
+		let buyer: T::AccountId = account("buyer", 0, 0);
+		let service_origin = T::ServiceOrigin::try_successful_origin()
+			.expect("ServiceOrigin must provide a successful origin for benchmarking");
+
+		#[extrinsic_call]
+		grant_access(service_origin as T::RuntimeOrigin, 0u64, buyer.clone(), [0x77u8; 80]);
+
+		assert!(WrappedKeys::<T>::contains_key(&buyer, 0u64));
+	}
+
 	impl_benchmark_test_suite!(ContentRegistry, crate::mock::new_test_ext(), crate::mock::Test);
 }
