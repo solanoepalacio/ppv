@@ -31,9 +31,8 @@ pub mod pallet {
 		traits::{Currency, ExistenceRequirement},
 	};
 
-	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<
-		<T as frame_system::Config>::AccountId,
-	>>::Balance;
+	pub type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	pub type ListingId = u64;
 
@@ -78,10 +77,9 @@ pub mod pallet {
 		pub creator: T::AccountId,
 		/// Flat price in native token.
 		pub price: BalanceOf<T>,
-		/// Content CID on Bulletin Chain (ciphertext in Phase 2, plaintext in Phase 1).
+		/// Content CID on Bulletin Chain
 		pub content_cid: BulletinCid,
 		/// CID of the auto-extracted thumbnail on Bulletin. Always unencrypted
-		/// (even in Phase 2) so the browse grid renders without keys.
 		pub thumbnail_cid: BulletinCid,
 		/// blake2b-256 of plaintext. Buyer frontend verifies after decryption.
 		pub content_hash: [u8; 32],
@@ -89,8 +87,8 @@ pub mod pallet {
 		pub title: BoundedVec<u8, ConstU32<128>>,
 		/// Display description.
 		pub description: BoundedVec<u8, ConstU32<2048>>,
-		/// Phase 2: content-lock-key sealed to `SVC_PUB`. Empty in Phase 1.
-		pub locked_content_lock_key: BoundedVec<u8, ConstU32<128>>,
+		/// Fixed 80 bytes = 32-byte ephemeral pubkey ‖ 32-byte ciphertext ‖ 16-byte MAC.
+		pub locked_content_lock_key: [u8; 80],
 		/// Block number the listing was created at.
 		pub created_at: BlockNumberFor<T>,
 	}
@@ -119,16 +117,8 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		ListingCreated {
-			listing_id: ListingId,
-			creator: T::AccountId,
-			price: BalanceOf<T>,
-		},
-		PurchaseCompleted {
-			listing_id: ListingId,
-			buyer: T::AccountId,
-			creator: T::AccountId,
-		},
+		ListingCreated { listing_id: ListingId, creator: T::AccountId, price: BalanceOf<T> },
+		PurchaseCompleted { listing_id: ListingId, buyer: T::AccountId, creator: T::AccountId },
 	}
 
 	#[pallet::error]
@@ -157,7 +147,7 @@ pub mod pallet {
 			title: BoundedVec<u8, ConstU32<128>>,
 			description: BoundedVec<u8, ConstU32<2048>>,
 			price: BalanceOf<T>,
-			locked_content_lock_key: BoundedVec<u8, ConstU32<128>>,
+			locked_content_lock_key: [u8; 80],
 		) -> DispatchResult {
 			let creator = ensure_signed(origin)?;
 

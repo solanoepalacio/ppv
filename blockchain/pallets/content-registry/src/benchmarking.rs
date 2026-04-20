@@ -28,7 +28,7 @@ mod benchmarks {
 		let caller: T::AccountId = whitelisted_caller();
 		let title: BoundedVec<u8, ConstU32<128>> = vec![0u8; 32].try_into().unwrap();
 		let desc: BoundedVec<u8, ConstU32<2048>> = vec![0u8; 128].try_into().unwrap();
-		let locked: BoundedVec<u8, ConstU32<128>> = vec![].try_into().unwrap();
+		let locked: [u8; 80] = [0u8; 80];
 		let price: BalanceOf<T> = 1_000u32.into();
 
 		#[extrinsic_call]
@@ -57,7 +57,7 @@ mod benchmarks {
 
 		let title: BoundedVec<u8, ConstU32<128>> = vec![0u8; 32].try_into().unwrap();
 		let desc: BoundedVec<u8, ConstU32<2048>> = vec![0u8; 128].try_into().unwrap();
-		let locked: BoundedVec<u8, ConstU32<128>> = vec![].try_into().unwrap();
+		let locked: [u8; 80] = [0u8; 80];
 
 		Pallet::<T>::create_listing(
 			RawOrigin::Signed(creator).into(),

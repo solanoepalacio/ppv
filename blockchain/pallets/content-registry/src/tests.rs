@@ -35,7 +35,7 @@ fn listings_storage_roundtrip() {
 			content_hash: [0x22u8; 32],
 			title: b"hello".to_vec().try_into().unwrap(),
 			description: b"world".to_vec().try_into().unwrap(),
-			locked_content_lock_key: Default::default(),
+			locked_content_lock_key: [0u8; 80],
 			created_at: 0,
 		};
 		Listings::<Test>::insert(0u64, listing.clone());
@@ -71,7 +71,7 @@ fn create_listing_works() {
 			bvec::<128>(b"cool pdf"),
 			bvec::<2048>(b"a book i wrote"),
 			500,
-			bvec::<128>(&[]),
+			[0u8; 80],
 		));
 
 		assert_eq!(NextListingId::<Test>::get(), 1);
@@ -99,7 +99,7 @@ fn create_listing_fails_if_price_zero() {
 				bvec::<128>(b"free"),
 				bvec::<2048>(b""),
 				0,
-				bvec::<128>(&[]),
+				[0u8; 80],
 			),
 			crate::Error::<Test>::ZeroPrice,
 		);
@@ -126,7 +126,7 @@ fn seed_listing(creator: AccountId, price: Balance) -> u64 {
 		bvec::<128>(b"t"),
 		bvec::<2048>(b"d"),
 		price,
-		bvec::<128>(&[]),
+		[0u8; 80],
 	));
 	NextListingId::<Test>::get() - 1
 }
@@ -216,7 +216,7 @@ fn create_listing_fails_on_id_overflow() {
 				bvec::<128>(b"t"),
 				bvec::<2048>(b"d"),
 				500,
-				bvec::<128>(&[]),
+				[0u8; 80],
 			),
 			crate::Error::<Test>::ListingIdOverflow,
 		);
