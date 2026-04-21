@@ -7,7 +7,7 @@ import type { Listing } from '../hooks/useContentRegistry';
 vi.mock('../hooks/useContentRegistry', () => ({
   fetchListing: vi.fn(),
   hasPurchased: vi.fn(),
-  submitPurchase: vi.fn(),
+  submitPurchaseMaybeBatched: vi.fn(),
 }));
 vi.mock('../store/chainStore', () => ({
   useChainStore: vi.fn(),
@@ -15,12 +15,22 @@ vi.mock('../store/chainStore', () => ({
 vi.mock('../components/VideoPlayer', () => ({
   default: () => <div data-testid="video-player" />,
 }));
+vi.mock('../hooks/useEncryptionKey', () => ({
+  useEncryptionKey: vi.fn(() => ({
+    publicKey: new Uint8Array(32),
+    privateKey: new Uint8Array(32),
+    ready: true,
+  })),
+}));
+vi.mock('../hooks/contentLockKeyCache', () => ({
+  getCachedKey: vi.fn(() => undefined),
+}));
 
-import { fetchListing, hasPurchased, submitPurchase } from '../hooks/useContentRegistry';
+import { fetchListing, hasPurchased, submitPurchaseMaybeBatched } from '../hooks/useContentRegistry';
 import { useChainStore } from '../store/chainStore';
 const mockFetchListing = fetchListing as ReturnType<typeof vi.fn>;
 const mockHasPurchased = hasPurchased as ReturnType<typeof vi.fn>;
-const mockSubmitPurchase = submitPurchase as ReturnType<typeof vi.fn>;
+const mockSubmitPurchase = submitPurchaseMaybeBatched as ReturnType<typeof vi.fn>;
 const mockUseChainStore = useChainStore as unknown as ReturnType<typeof vi.fn>;
 
 function makeListing(overrides: Partial<Listing> = {}): Listing {
@@ -111,13 +121,13 @@ describe('ListingDetailPage', () => {
     expect(screen.queryByRole('button', { name: /buy/i })).toBeNull();
   });
 
-  test('shows VideoPlayer and "Uploaded by you" for the creator', async () => {
+  test('shows VideoPlayer and "Your listing" for the creator', async () => {
     const creatorAddress = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
     mockFetchListing.mockResolvedValue(makeListing({ creator: creatorAddress }));
     mockHasPurchased.mockResolvedValue(false);
     renderAtId('3', creatorAddress);
     await waitFor(() => expect(screen.getByTestId('video-player')).toBeInTheDocument());
-    expect(screen.getByText(/uploaded by you/i)).toBeInTheDocument();
+    expect(screen.getByText(/your listing/i)).toBeInTheDocument();
   });
 
   test('does not show "Purchased" when viewer is the creator', async () => {
@@ -146,7 +156,11 @@ describe('ListingDetailPage', () => {
     const buyBtn = await screen.findByRole('button', { name: /buy/i });
     fireEvent.click(buyBtn);
     await waitFor(() => expect(screen.getByTestId('video-player')).toBeInTheDocument());
-    expect(mockSubmitPurchase).toHaveBeenCalledWith(3n);
+    expect(mockSubmitPurchase).toHaveBeenCalledWith(
+      3n,
+      expect.any(String),
+      expect.any(Uint8Array),
+    );
   });
 
   test('shows listing id with a copy button that writes id to clipboard', async () => {

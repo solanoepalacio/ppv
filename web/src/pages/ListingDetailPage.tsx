@@ -4,9 +4,11 @@ import { useChainStore } from '../store/chainStore';
 import {
   fetchListing,
   hasPurchased,
-  submitPurchase,
+  submitPurchaseMaybeBatched,
   type Listing,
 } from '../hooks/useContentRegistry';
+import { useEncryptionKey } from '../hooks/useEncryptionKey';
+import { getCachedKey } from '../hooks/contentLockKeyCache';
 import VideoPlayer from '../components/VideoPlayer';
 
 function truncateAddress(addr: string): string {
@@ -22,8 +24,9 @@ type PageState = 'loading' | 'not-found' | 'unpurchased' | 'purchased';
 
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const account = useChainStore((s: any) => s.account);
-  const balance = useChainStore((s: any) => s.balance);
+  const account = useChainStore((s) => s.account);
+  const balance = useChainStore((s) => s.balance);
+  const encryptionKey = useEncryptionKey(account);
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [pageState, setPageState] = useState<PageState>('loading');
@@ -41,6 +44,7 @@ export default function ListingDetailPage() {
         if (!l) { setPageState('not-found'); return; }
         setListing(l);
         const isCreator = account === l.creator;
+        // Creator OR buyer — both render via VideoPlayer (Phase 2 unifies them).
         if (isCreator) { setPageState('purchased'); return; }
         if (!account) { setPageState('unpurchased'); return; }
         const purchased = await hasPurchased(account, listingId);
@@ -71,11 +75,11 @@ export default function ListingDetailPage() {
   const canAfford = balance >= listing.price;
 
   async function handleBuy() {
-    if (!listing) return;
+    if (!listing || !account || !encryptionKey.ready || !encryptionKey.publicKey) return;
     setBuyError(null);
     setBuyStatus('Waiting for signature…');
     try {
-      await submitPurchase(listing.id);
+      await submitPurchaseMaybeBatched(listing.id, account, encryptionKey.publicKey);
       setBuyStatus(null);
       setPageState('purchased');
     } catch (e) {
@@ -96,6 +100,9 @@ export default function ListingDetailPage() {
     setTimeout(() => setIdCopied(false), 1500);
   }
 
+  const showPlayer = pageState === 'purchased' && account && encryptionKey.ready
+    && encryptionKey.publicKey && encryptionKey.privateKey;
+
   return (
     <div>
       <Link to="/" className="text-sm text-text-muted hover:text-text-primary mb-4 inline-block">
@@ -104,8 +111,16 @@ export default function ListingDetailPage() {
 
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="flex-1">
-          {pageState === 'purchased' ? (
-            <VideoPlayer contentCid={listing.contentCid} contentHash={listing.contentHash} />
+          {showPlayer ? (
+            <VideoPlayer
+              contentCid={listing.contentCid}
+              contentHash={listing.contentHash}
+              listingId={listing.id}
+              currentAccount={account!}
+              viewerPublicKey={encryptionKey.publicKey!}
+              viewerPrivateKey={encryptionKey.privateKey!}
+              plaintextKey={getCachedKey(listing.id)}
+            />
           ) : (
             <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-800">
               <img src={listing.thumbnailUrl} alt={listing.title} className="w-full h-full object-cover" />
@@ -140,7 +155,7 @@ export default function ListingDetailPage() {
           {pageState === 'purchased' && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-accent-green font-medium">
-                {isCreator ? 'Uploaded by you' : '✓ Purchased'}
+                {isCreator ? 'Your listing' : '✓ Purchased'}
               </span>
             </div>
           )}
@@ -149,11 +164,11 @@ export default function ListingDetailPage() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleBuy}
-                disabled={!canAfford || !!buyStatus}
+                disabled={!canAfford || !!buyStatus || !encryptionKey.ready}
                 className="w-full py-2.5 rounded-lg bg-polka-500 hover:bg-polka-400 text-white text-sm
                            font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {buyStatus ?? `Buy for ${formatDot(listing.price)}`}
+                {buyStatus ?? (encryptionKey.ready ? `Buy for ${formatDot(listing.price)}` : 'Preparing encryption key…')}
               </button>
               <p className="text-xs text-text-muted">
                 Balance: {formatDot(balance)}
