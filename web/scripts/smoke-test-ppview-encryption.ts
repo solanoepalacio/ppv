@@ -10,13 +10,72 @@ import {
     mnemonicToEntropy,
 } from "@polkadot-labs/hdkd-helpers";
 import { ppview } from "@polkadot-api/descriptors";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // P2a smoke test: exercises the encryption-model surface of pallet-content-registry
-// against a running Zombienet parachain. Assumes the genesis preset wires
-// ServiceAccountId to //Dave (per blockchain/runtime/src/genesis_config_presets.rs).
+// against a running Zombienet parachain. The chain's on-chain ServiceAccountId
+// is baked into `blockchain/runtime/src/genesis_config_presets.rs` from
+// `keys/svc_signer.suri`; this script reads the same SURI file to sign
+// grant_access with a keypair that matches the on-chain account.
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const REPO_ROOT = resolve(__dirname, "../..");
 const PARACHAIN_WS = process.env.PARACHAIN_WS ?? "ws://127.0.0.1:9944";
+const SERVICE_SIGNER_PATH = process.env.PPVIEW_SERVICE_SIGNER
+    ?? resolve(REPO_ROOT, "keys/svc_signer.suri");
 const ZERO_PUB_HEX = "0x" + "00".repeat(32);
+
+function hexToBytes(hex: string): Uint8Array {
+    if (hex.length % 2 !== 0) throw new Error(`invalid hex length: ${hex.length}`);
+    const out = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < out.length; i++) {
+        out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    }
+    return out;
+}
+
+/// Mirrors subxt-signer's `SecretUri::from_str` / `Keypair::from_uri`:
+/// - `0x<64 hex>` → those 32 bytes ARE the mini-secret seed (with optional `//path`).
+/// - `//path` / `/path` → DEV_PHRASE entropy as the mini-secret, plus junctions.
+/// - BIP-39 mnemonic is not supported here; add if/when needed.
+function keypairFromSuri(suri: string) {
+    const trimmed = suri.trim();
+    if (!trimmed) throw new Error("empty SURI");
+
+    const splitIdx = trimmed.indexOf("/");
+    const phrase = splitIdx === -1 ? trimmed : trimmed.slice(0, splitIdx);
+    const path = splitIdx === -1 ? "" : trimmed.slice(splitIdx);
+
+    let miniSecret: Uint8Array;
+    if (phrase.startsWith("0x")) {
+        const hex = phrase.slice(2);
+        if (hex.length !== 64) {
+            throw new Error(`hex SURI must be 32 bytes (got ${hex.length / 2})`);
+        }
+        miniSecret = hexToBytes(hex);
+    } else if (phrase === "") {
+        // leading `//Alice` etc — default to DEV_PHRASE entropy.
+        miniSecret = entropyToMiniSecret(mnemonicToEntropy(DEV_PHRASE));
+    } else {
+        throw new Error(
+            `unsupported SURI phrase: expected 0x-prefixed hex or DEV_PHRASE derivation, got '${phrase.slice(0, 16)}...'`,
+        );
+    }
+
+    return sr25519CreateDerive(miniSecret)(path);
+}
+
+function signerFromSuri(suri: string) {
+    const keypair = keypairFromSuri(suri);
+    return {
+        signer: getPolkadotSigner(keypair.publicKey, "Sr25519", keypair.sign),
+        publicKey: keypair.publicKey,
+        ss58: fromBufferToBase58(42)(keypair.publicKey) as SS58String,
+    };
+}
 
 function devKeypair(path: string) {
     const entropy = mnemonicToEntropy(DEV_PHRASE);
@@ -42,9 +101,12 @@ async function main() {
 
     const alice = devSigner("//Alice");
     const bob = devSigner("//Bob");
-    const dave = devSigner("//Dave");
     const bobSS58 = devSs58("//Bob");
-    const daveSS58 = devSs58("//Dave");
+
+    console.log(`Loading service signer from ${SERVICE_SIGNER_PATH} ...`);
+    const suri = readFileSync(SERVICE_SIGNER_PATH, "utf8");
+    const service = signerFromSuri(suri);
+    console.log("Service AccountId (local, SS58):", service.ss58);
 
     // --- genesis sanity ---
     console.log("\n[1/5] Reading ServicePublicKey + ServiceAccountId...");
@@ -54,8 +116,10 @@ async function main() {
     if (svcPubHex === ZERO_PUB_HEX) {
         throw new Error("ServicePublicKey is zero — genesis preset did not populate it");
     }
-    if (svcAcc !== daveSS58) {
-        throw new Error(`ServiceAccountId is ${svcAcc}, expected ${daveSS58} (//Dave)`);
+    if (svcAcc !== service.ss58) {
+        throw new Error(
+            `ServiceAccountId on chain is ${svcAcc}; local signer at ${SERVICE_SIGNER_PATH} derives ${service.ss58}. Regenerate the genesis preset via 'cargo run -p ppview-chain-service -- print-service-account'.`,
+        );
     }
     console.log("ServicePublicKey:", svcPubHex);
     console.log("ServiceAccountId:", svcAcc);
@@ -113,16 +177,16 @@ async function main() {
     }
     console.log("Bob's grant_access correctly rejected.");
 
-    // --- grant_access as service account (//Dave) ---
-    console.log("\n[5/5] Dave (service account) grants access to Bob...");
+    // --- grant_access signed by the configured service signer ---
+    console.log("\n[5/5] Service signer grants access to Bob...");
     const grantTx = api.tx.ContentRegistry.grant_access({
         listing_id: listingId,
         buyer: bobSS58,
         wrapped_key: FixedSizeBinary.fromBytes(wrapped),
     });
-    const grantResult = await grantTx.signAndSubmit(dave);
+    const grantResult = await grantTx.signAndSubmit(service.signer);
     if (!grantResult.ok) {
-        throw new Error(`grant_access (Dave) failed: ${JSON.stringify(grantResult)}`);
+        throw new Error(`grant_access (service signer) failed: ${JSON.stringify(grantResult)}`);
     }
     const stored = await api.query.ContentRegistry.WrappedKeys.getValue(bobSS58, listingId);
     if (!stored) throw new Error("WrappedKeys[Bob, listing_id] missing after grant_access");

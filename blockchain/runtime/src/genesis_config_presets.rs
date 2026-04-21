@@ -29,6 +29,15 @@ const SERVICE_PUBLIC_KEY: [u8; 32] = [
 	0x70, 0x96, 0xd4, 0xaf, 0x4e, 0x31, 0xe5, 0xb3, 0x70, 0x4b, 0xc7, 0x62, 0xd3, 0x9c, 0x3a, 0x1c,
 ];
 
+/// sr25519 AccountId of the chain-service signer. Must resolve from the SURI
+/// in `<repo>/keys/svc_signer.suri`; the daemon signs `grant_access` with
+/// that key. Regenerate via `scripts/gen-service-key.sh` + derive with
+/// `cargo run -p ppview-chain-service -- print-service-account`.
+const SERVICE_ACCOUNT_ID: [u8; 32] = [
+	0xc0, 0x48, 0x83, 0xe2, 0xdf, 0x86, 0x32, 0x0a, 0x16, 0xe3, 0xdc, 0x4e, 0x4e, 0x4d, 0xac, 0x37,
+	0x83, 0x3d, 0xf6, 0xb6, 0x35, 0xba, 0x25, 0x68, 0xe4, 0x46, 0x12, 0x89, 0xe7, 0xc3, 0xf8, 0x50,
+];
+
 /// Generate the session keys from individual elements.
 pub fn session_keys(keys: AuraId) -> SessionKeys {
 	SessionKeys { aura: keys }
@@ -63,7 +72,7 @@ fn testnet_genesis(
 		sudo: SudoConfig { key: Some(root) },
 		content_registry: ContentRegistryConfig {
 			service_public_key: SERVICE_PUBLIC_KEY,
-			service_account_id: Some(Sr25519Keyring::Dave.to_account_id()),
+			service_account_id: Some(AccountId::from(SERVICE_ACCOUNT_ID)),
 		},
 	})
 }

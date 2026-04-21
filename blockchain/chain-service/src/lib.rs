@@ -6,3 +6,4 @@ pub mod crypto;
 pub mod handler;
 pub mod keys;
 pub mod reconcile;
+pub mod signer_key;
