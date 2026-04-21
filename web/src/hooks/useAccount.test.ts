@@ -1,18 +1,17 @@
 import { describe, test, expect } from 'vitest';
-import { devAccounts, aliceAccount, DEV_USER_INDEX, getAliceSigner } from './useAccount';
+import { getAliceSigner } from './useAccount';
+import { ss58Address } from '@polkadot-labs/hdkd-helpers';
 
-describe('account exports', () => {
-	test('DEV_USER_INDEX points at Bob, not Alice', () => {
-		expect(DEV_USER_INDEX).toBe(1);
-		expect(devAccounts[DEV_USER_INDEX].name).toBe('Bob');
-	});
+describe('useAccount', () => {
+  test('getAliceSigner returns a PolkadotSigner for //Alice', () => {
+    const signer = getAliceSigner();
+    // The //Alice sr25519 public key (well-known):
+    //   0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
+    const aliceAddress = ss58Address(signer.publicKey, 42);
+    expect(aliceAddress).toBe('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY');
+  });
 
-	test('aliceAccount is devAccounts[0]', () => {
-		expect(aliceAccount.name).toBe('Alice');
-		expect(aliceAccount.address).toBe(devAccounts[0].address);
-	});
-
-	test("getAliceSigner returns Alice's PAPI signer", () => {
-		expect(getAliceSigner()).toBe(devAccounts[0].signer);
-	});
+  test('getAliceSigner returns a stable instance across calls', () => {
+    expect(getAliceSigner()).toBe(getAliceSigner());
+  });
 });

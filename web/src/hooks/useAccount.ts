@@ -1,70 +1,31 @@
-import { sr25519CreateDerive } from "@polkadot-labs/hdkd";
+import { sr25519CreateDerive } from '@polkadot-labs/hdkd';
 import {
-	DEV_PHRASE,
-	entropyToMiniSecret,
-	mnemonicToEntropy,
-	ss58Address,
-} from "@polkadot-labs/hdkd-helpers";
-import { getPolkadotSigner } from "polkadot-api/signer";
-import { type PolkadotSigner } from "polkadot-api";
+  DEV_PHRASE,
+  entropyToMiniSecret,
+  mnemonicToEntropy,
+} from '@polkadot-labs/hdkd-helpers';
+import { getPolkadotSigner } from 'polkadot-api/signer';
+import { type PolkadotSigner } from 'polkadot-api';
 
-// Dev accounts derived from the well-known dev seed phrase
 const entropy = mnemonicToEntropy(DEV_PHRASE);
 const miniSecret = entropyToMiniSecret(entropy);
 const derive = sr25519CreateDerive(miniSecret);
+const aliceKeypair = derive('//Alice');
 
-export type DevAccount = {
-	name: string;
-	address: string;
-	signer: PolkadotSigner;
-};
-
-function createDevAccount(name: string, path: string): DevAccount {
-	const keypair = derive(path);
-	return {
-		name,
-		address: ss58Address(keypair.publicKey),
-		signer: getPolkadotSigner(keypair.publicKey, "Sr25519", keypair.sign),
-	};
-}
-
-export const devAccounts: DevAccount[] = [
-	createDevAccount("Alice", "//Alice"),
-	createDevAccount("Bob", "//Bob"),
-	createDevAccount("Charlie", "//Charlie"),
-];
-
-const devPaths = ["//Alice", "//Bob", "//Charlie"];
+const _aliceSigner: PolkadotSigner = getPolkadotSigner(
+  aliceKeypair.publicKey,
+  'Sr25519',
+  aliceKeypair.sign,
+);
 
 /**
- * Get the raw sr25519 keypair for a dev account by index.
- * Returns publicKey and sign function for use outside of PAPI transactions
- * (e.g., signing Statement Store statements).
- */
-export function getDevKeypair(index: number): {
-	publicKey: Uint8Array;
-	sign: (message: Uint8Array) => Uint8Array;
-} {
-	const keypair = derive(devPaths[index]);
-	return { publicKey: keypair.publicKey, sign: keypair.sign };
-}
-
-/**
- * Dev-mode: which entry in `devAccounts` acts as the connected user account.
+ * Alice's PAPI signer. Used ONLY for Bulletin `authorize_account` /
+ * `authorize_preimage`. Never use for parachain extrinsics — the user
+ * signs those via the extension wallet (see `signerManager.ts`).
  *
- * NOT Alice. Alice is reserved for Bulletin Chain authorization extrinsics
- * (see `getAliceSigner`), so using a different account as the user exercises
- * the two-signer flow end-to-end against Zombienet.
- */
-export const DEV_USER_INDEX = 1;
-
-/** Alice is always devAccounts[0] — the canonical Bulletin authorization signer. */
-export const aliceAccount = devAccounts[0];
-
-/**
- * Returns Alice's PAPI signer. Use ONLY for Bulletin `authorize_account`
- * / `authorize_preimage`. Never use to sign parachain extrinsics.
+ * Alice's keys come from the well-known DEV_PHRASE and are safe only
+ * against the local Zombienet dev chain.
  */
 export function getAliceSigner(): PolkadotSigner {
-	return aliceAccount.signer;
+  return _aliceSigner;
 }
