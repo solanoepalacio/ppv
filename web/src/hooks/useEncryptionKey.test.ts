@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { useEncryptionKey } from './useEncryptionKey';
 import { createSessionStorage } from './useSessionStorage';
