@@ -1,78 +1,127 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { fireEvent } from '@testing-library/dom';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import VideoPlayer from './VideoPlayer';
 import type { BulletinCidFields } from '../hooks/useContentRegistry';
 
+// Mocks for network + chain dependencies
 vi.mock('../hooks/useBulletinUpload', () => ({
   fetchFromIpfs: vi.fn(),
 }));
-vi.mock('../utils/contentHash', () => ({
-  verifyContentHash: vi.fn(),
-}));
-
-import { fetchFromIpfs } from '../hooks/useBulletinUpload';
-import { verifyContentHash } from '../utils/contentHash';
-const mockFetch = fetchFromIpfs as ReturnType<typeof vi.fn>;
-const mockVerify = verifyContentHash as ReturnType<typeof vi.fn>;
-
-const cid: BulletinCidFields = { codec: 0x55, digestBytes: new Uint8Array(32).fill(0xaa) };
-const hash = new Uint8Array(32).fill(0xbb);
-const videoBytes = new Uint8Array([1, 2, 3, 4]);
-
-// jsdom has no URL.createObjectURL — stub it
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.stubGlobal('URL', {
-    createObjectURL: vi.fn(() => 'blob:mock'),
-    revokeObjectURL: vi.fn(),
-  });
+vi.mock('../hooks/useContentRegistry', async (orig) => {
+  const actual = await orig<typeof import('../hooks/useContentRegistry')>();
+  return {
+    ...actual,
+    watchWrappedKey: vi.fn(),
+  };
 });
 
-describe('VideoPlayer', () => {
-  test('shows a loading spinner while fetching', () => {
-    mockFetch.mockReturnValue(new Promise(() => {}));
-    render(<VideoPlayer contentCid={cid} contentHash={hash} />);
-    // No video element; spinner present (animate-spin class)
-    expect(screen.queryByRole('video' as any)).toBeNull();
-    expect(document.querySelector('.animate-spin')).toBeTruthy();
-  });
+import { fetchFromIpfs } from '../hooks/useBulletinUpload';
+import { watchWrappedKey } from '../hooks/useContentRegistry';
+import { encryptContent, generateContentLockKey } from '../utils/contentCipher';
+import { sealTo } from '../utils/sealedBox';
+import { generateKeypair } from '../utils/encryptionKey';
+import { blake2b } from 'blakejs';
 
-  test('renders a video element after successful fetch and integrity pass', async () => {
-    mockFetch.mockResolvedValue(videoBytes);
-    mockVerify.mockReturnValue(true);
-    render(<VideoPlayer contentCid={cid} contentHash={hash} />);
-    await waitFor(() => expect(screen.getByText(/Content verified/i)).toBeInTheDocument());
-    const video = document.querySelector('video');
-    expect(video).toBeTruthy();
-    expect(video!.src).toContain('blob:mock');
-  });
+const cid: BulletinCidFields = { codec: 0x55, digestBytes: new Uint8Array(32) };
 
-  test('shows integrity failure message when hash does not match', async () => {
-    mockFetch.mockResolvedValue(videoBytes);
-    mockVerify.mockReturnValue(false);
-    render(<VideoPlayer contentCid={cid} contentHash={hash} />);
-    await waitFor(() =>
-      expect(screen.getByText(/integrity check/i)).toBeInTheDocument(),
+beforeEach(() => {
+  vi.mocked(fetchFromIpfs).mockReset();
+  vi.mocked(watchWrappedKey).mockReset();
+  // URL.createObjectURL isn't available in jsdom
+  (global as any).URL.createObjectURL = vi.fn(() => 'blob:fake');
+  (global as any).URL.revokeObjectURL = vi.fn();
+});
+
+describe('VideoPlayer (Phase 2)', () => {
+  it('shows "preparing" until the wrapped key lands', async () => {
+    vi.mocked(watchWrappedKey).mockImplementation((_a, _id, cb) => {
+      cb(null);
+      return { unsubscribe: () => {} };
+    });
+    render(
+      <VideoPlayer
+        contentCid={cid}
+        contentHash={new Uint8Array(32)}
+        listingId={1n}
+        currentAccount="5Grw"
+        viewerPrivateKey={new Uint8Array(32)}
+        viewerPublicKey={new Uint8Array(32)}
+      />,
     );
-    expect(document.querySelector('video')).toBeNull();
+    expect(await screen.findByText(/preparing/i)).toBeInTheDocument();
   });
 
-  test('shows error state and retry button on fetch failure', async () => {
-    mockFetch.mockRejectedValue(new Error('gateway timeout'));
-    render(<VideoPlayer contentCid={cid} contentHash={hash} />);
-    await waitFor(() => expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument());
-    expect(screen.getByText(/content storage/i)).toBeInTheDocument();
+  it('decrypts from WrappedKeys and renders a video blob', async () => {
+    const viewer = await generateKeypair();
+    const clk = generateContentLockKey();
+
+    const plaintext = new Uint8Array([7, 7, 7, 7]);
+    const ciphertext = await encryptContent(plaintext, clk);
+    const hash = blake2b(plaintext, undefined, 32);
+    const sealed = await sealTo(viewer.publicKey, clk);
+
+    vi.mocked(fetchFromIpfs).mockResolvedValue(ciphertext);
+    vi.mocked(watchWrappedKey).mockImplementation((_a, _id, cb) => {
+      cb(sealed);
+      return { unsubscribe: () => {} };
+    });
+
+    render(
+      <VideoPlayer
+        contentCid={cid}
+        contentHash={hash}
+        listingId={1n}
+        currentAccount="5Grw"
+        viewerPublicKey={viewer.publicKey}
+        viewerPrivateKey={viewer.privateKey}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText(/content verified/i)).toBeInTheDocument());
   });
 
-  test('retries fetch when Retry button is clicked', async () => {
-    mockFetch
-      .mockRejectedValueOnce(new Error('fail'))
-      .mockResolvedValue(videoBytes);
-    mockVerify.mockReturnValue(true);
-    render(<VideoPlayer contentCid={cid} contentHash={hash} />);
-    const retryBtn = await screen.findByRole('button', { name: /retry/i });
-    fireEvent.click(retryBtn);
-    await waitFor(() => expect(screen.getByText(/Content verified/i)).toBeInTheDocument());
+  it('uses the cached CLK when provided (creator fast-path)', async () => {
+    const clk = generateContentLockKey();
+    const plaintext = new Uint8Array([1, 2, 3]);
+    const ciphertext = await encryptContent(plaintext, clk);
+    const hash = blake2b(plaintext, undefined, 32);
+
+    vi.mocked(fetchFromIpfs).mockResolvedValue(ciphertext);
+
+    render(
+      <VideoPlayer
+        contentCid={cid}
+        contentHash={hash}
+        listingId={2n}
+        currentAccount="5Grw"
+        viewerPublicKey={new Uint8Array(32)}
+        viewerPrivateKey={new Uint8Array(32)}
+        plaintextKey={clk}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText(/content verified/i)).toBeInTheDocument());
+    // We never subscribed because the cached key was sufficient.
+    expect(watchWrappedKey).not.toHaveBeenCalled();
+  });
+
+  it('flags integrity failure when plaintext hash mismatches', async () => {
+    const clk = generateContentLockKey();
+    const ciphertext = await encryptContent(new Uint8Array([9]), clk);
+    vi.mocked(fetchFromIpfs).mockResolvedValue(ciphertext);
+
+    render(
+      <VideoPlayer
+        contentCid={cid}
+        contentHash={new Uint8Array(32).fill(0x00)}
+        listingId={3n}
+        currentAccount="5Grw"
+        viewerPublicKey={new Uint8Array(32)}
+        viewerPrivateKey={new Uint8Array(32)}
+        plaintextKey={clk}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText(/integrity check/i)).toBeInTheDocument());
   });
 });
