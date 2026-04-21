@@ -1,32 +1,77 @@
-import { describe, test, expect } from 'vitest';
-import {
-  getParachainApi,
-  getUserSigner,
-  getUserAddress,
-  getAliceSigner,
-} from './useParachainProvider';
-import { aliceAccount } from './useAccount';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
 
-describe('getParachainApi', () => {
-  test('throws before provider is initialized', () => {
-    expect(() => getParachainApi()).toThrowError('Parachain provider not initialized');
-  });
+const watchValueMock = vi.fn();
+const subscribeMock = vi.fn();
+const unsubscribeMock = vi.fn();
+
+vi.mock('polkadot-api', async (orig) => {
+  const actual = await orig<typeof import('polkadot-api')>();
+  return {
+    ...actual,
+    createClient: () => ({
+      getTypedApi: () => ({
+        query: { System: { Account: { watchValue: watchValueMock } } },
+      }),
+    }),
+  };
 });
 
-describe('getUserSigner', () => {
-  test('throws before provider is initialized', () => {
-    expect(() => getUserSigner()).toThrowError('No user signer — provider not initialized');
-  });
-});
+vi.mock('polkadot-api/ws-provider/web', () => ({
+  getWsProvider: vi.fn(() => ({})),
+}));
 
-describe('getUserAddress', () => {
-  test('returns null before provider is initialized', () => {
-    expect(getUserAddress()).toBeNull();
-  });
-});
+vi.mock('polkadot-api/polkadot-sdk-compat', () => ({
+  withPolkadotSdkCompat: vi.fn((t) => t),
+}));
 
-describe('getAliceSigner', () => {
-  test('returns Alice signer synchronously, without provider init', () => {
-    expect(getAliceSigner()).toBe(aliceAccount.signer);
+vi.mock('@novasamatech/product-sdk', () => ({
+  sandboxProvider: { isCorrectEnvironment: () => false },
+  createPapiProvider: vi.fn(),
+  hostApi: {},
+}));
+
+describe('useParachainProvider', () => {
+  beforeEach(() => {
+    watchValueMock.mockReset();
+    subscribeMock.mockReset();
+    unsubscribeMock.mockReset();
+    watchValueMock.mockReturnValue({ subscribe: subscribeMock });
+    subscribeMock.mockReturnValue({ unsubscribe: unsubscribeMock });
+  });
+
+  test('does not subscribe balance while account is null', async () => {
+    const { useChainStore } = await import('../store/chainStore');
+    useChainStore.setState({ account: null, connected: false });
+    const { useParachainProvider } = await import('./useParachainProvider');
+    renderHook(() => useParachainProvider());
+    await act(async () => { await new Promise(r => setTimeout(r, 0)); });
+    expect(watchValueMock).not.toHaveBeenCalled();
+  });
+
+  test('subscribes balance when account becomes non-null', async () => {
+    const { useChainStore } = await import('../store/chainStore');
+    useChainStore.setState({ account: null, connected: false });
+    const { useParachainProvider } = await import('./useParachainProvider');
+    renderHook(() => useParachainProvider());
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 0));
+      useChainStore.setState({ account: '5Grw...', connected: true });
+    });
+    expect(watchValueMock).toHaveBeenCalledWith('5Grw...');
+    expect(subscribeMock).toHaveBeenCalled();
+  });
+
+  test('re-subscribes balance when account changes', async () => {
+    const { useChainStore } = await import('../store/chainStore');
+    useChainStore.setState({ account: '5Grw...', connected: true });
+    const { useParachainProvider } = await import('./useParachainProvider');
+    renderHook(() => useParachainProvider());
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 0));
+      useChainStore.getState().setAccount('5HBu...');
+    });
+    expect(unsubscribeMock).toHaveBeenCalled();
+    expect(watchValueMock).toHaveBeenCalledWith('5HBu...');
   });
 });
