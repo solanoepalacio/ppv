@@ -165,7 +165,7 @@ impl Chain {
     }
 }
 
-fn value_to_bytes<T>(value: &Value<T>) -> Option<Vec<u8>> {
+pub(crate) fn value_to_bytes<T>(value: &Value<T>) -> Option<Vec<u8>> {
     // A SCALE-encoded `[u8; N]` decodes as a composite of N `u8` primitives.
     // Walk the composite and collect u128-to-u8.
     match &value.value {
