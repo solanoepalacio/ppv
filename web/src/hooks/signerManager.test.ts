@@ -87,12 +87,49 @@ describe('signerManager', () => {
     const acct = makeStubAccount('5Grw...', 'Demo');
     stubState.accounts = [acct];
     const { manager, useSignerState } = await import('./signerManager');
+    // Allow the module-level silent connect to settle before rendering.
+    await new Promise(r => setTimeout(r, 0));
     const { result } = renderHook(() => useSignerState());
-    expect(result.current.status).toBe('disconnected');
+    // Re-connect explicitly and verify the hook reflects the new selection.
     await act(async () => {
       await manager.connect('extension');
       manager.selectAccount(acct.address);
     });
     expect(result.current.selectedAccount?.address).toBe(acct.address);
+  });
+
+  test('auto-connects on module load when connect() succeeds', async () => {
+    const acct = makeStubAccount('5Grw...', 'Demo');
+    stubState.accounts = [acct];
+    // Fresh import triggers the silent connect.
+    const { manager } = await import('./signerManager');
+    // Yield to the event loop so the silent connect can settle.
+    await new Promise(r => setTimeout(r, 0));
+    expect(manager.getState().status).toBe('connected');
+  });
+
+  test('remains disconnected when silent connect fails', async () => {
+    vi.resetModules();
+    vi.doMock('./signerManagerFactory', async () => {
+      const { SignerManager } = await import('@polkadot-apps/signer');
+      return {
+        createSignerManager: () => new SignerManager({
+          dappName: 'ppview-test',
+          ss58Prefix: 42,
+          persistence: null,
+          createProvider: () => ({
+            type: 'extension' as const,
+            connect: async () => ({ ok: false, error: new Error('no extension') }),
+            disconnect: () => {},
+            onStatusChange: () => () => {},
+            onAccountsChange: () => () => {},
+          }),
+        }),
+      };
+    });
+    const { manager } = await import('./signerManager');
+    await new Promise(r => setTimeout(r, 0));
+    expect(manager.getState().status).toBe('disconnected');
+    vi.doUnmock('./signerManagerFactory');
   });
 });
