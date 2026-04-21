@@ -8,7 +8,8 @@ import {
 	type ProgressCallback,
 } from "@parity/bulletin-sdk";
 import { bulletin } from "@polkadot-api/descriptors";
-import { getAliceSigner, getUserSigner, getUserAddress } from "./useParachainProvider";
+import { getAliceSigner } from "./useAccount";
+import { getUserSigner, getUserAddress } from "./signerManager";
 import { bulletinCidToGatewayUrl } from "../utils/bulletinCid";
 import type { BulletinCidFields } from "./useContentRegistry";
 

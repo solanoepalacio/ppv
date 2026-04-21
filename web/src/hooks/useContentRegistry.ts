@@ -1,5 +1,6 @@
 import { Binary, FixedSizeBinary, type PolkadotSigner } from 'polkadot-api';
-import { getParachainApi, getUserSigner } from './useParachainProvider';
+import { getParachainApi } from './useParachainProvider';
+import { getUserSigner } from './signerManager';
 import { bulletinCidToGatewayUrl } from '../utils/bulletinCid';
 
 // ── Shared types ──────────────────────────────────────────────────────────────
