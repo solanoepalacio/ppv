@@ -288,7 +288,7 @@ impl pallet_statement::Config for Runtime {
 
 /// `EnsureOrigin` impl that accepts a signed origin iff the signer matches the
 /// on-chain `pallet_content_registry::ServiceAccountId`. Used to gate
-/// `grant_access` to the chain-service daemon's sr25519 account.
+/// `grant_access` to the content-unlock-service daemon's sr25519 account.
 pub struct EnsureServiceAccount<T>(core::marker::PhantomData<T>);
 
 impl<T> frame_support::traits::EnsureOrigin<T::RuntimeOrigin> for EnsureServiceAccount<T>

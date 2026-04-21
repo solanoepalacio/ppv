@@ -1,4 +1,4 @@
-# Why ppview's chain-service is an external daemon, not an offchain worker
+# Why ppview's content-unlock-service is an external daemon, not an offchain worker
 
 The `pallet-content-registry` design calls for a trusted off-chain component that observes `PurchaseCompleted` / `ListingCreated` events, unseals a content-lock-key encrypted to `SVC_PUB` (x25519), re-seals it to the buyer's or creator's x25519 pubkey, and submits a signed `grant_access` extrinsic.
 
@@ -41,8 +41,8 @@ All three would have to change upstream to make this path viable. That is a fork
 
 ## Consequence for ppview
 
-The chain-service is implemented as a standalone Rust binary using `subxt`, co-located with the parachain collator. It holds `SVC_PRIV` as a `chmod 600` key file outside the Substrate keystore, and signs `grant_access` with a separate sr25519 service-account key — also outside the keystore, since the daemon is an external process rather than a node plugin. The pallet authorizes it via a custom `ServiceOrigin` (see `docs/design/spec.md` §4) that checks the signer against the genesis-set `ServiceAccountId`.
+The content-unlock-service is implemented as a standalone Rust binary using `subxt`, co-located with the parachain collator. It holds `SVC_PRIV` as a `chmod 600` key file outside the Substrate keystore, and signs `grant_access` with a separate sr25519 service-account key — also outside the keystore, since the daemon is an external process rather than a node plugin. The pallet authorizes it via a custom `ServiceOrigin` (see `docs/design/spec.md` §4) that checks the signer against the genesis-set `ServiceAccountId`.
 
 A hybrid design (OCW handles events and extrinsic submission; a minimal localhost sidecar does the x25519 crypto) is technically feasible but offers no meaningful simplification: `SVC_PRIV` still lives in an external process, and the only thing removed is the sr25519 service-account key file. The hybrid trades one key file for an IPC boundary and a second deployed component, with no security gain.
 
-If a future `polkadot-sdk` release ships a first-class x25519 `Pair` + keystore surface (or exposes `sp-statement-store::ecies` to wasm), ppview's chain-service can collapse into a pallet OCW without design changes elsewhere — the on-chain shape (`ServiceOrigin`, `grant_access`, `WrappedKeys`) is already compatible.
+If a future `polkadot-sdk` release ships a first-class x25519 `Pair` + keystore surface (or exposes `sp-statement-store::ecies` to wasm), ppview's content-unlock-service can collapse into a pallet OCW without design changes elsewhere — the on-chain shape (`ServiceOrigin`, `grant_access`, `WrappedKeys`) is already compatible.

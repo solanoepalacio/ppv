@@ -3,10 +3,10 @@ use std::path::PathBuf;
 
 /// Trusted off-chain wrapper/granter for ppview listings.
 ///
-/// See `docs/design/spec.md` §5 ("Chain-service grant flow") for the end-to-end
+/// See `docs/design/spec.md` §5 ("Content-unlock-service grant flow") for the end-to-end
 /// flow this daemon implements.
 #[derive(Debug, Parser)]
-#[command(name = "ppview-chain-service", version)]
+#[command(name = "ppview-content-unlock-service", version)]
 pub struct Args {
     /// Parachain RPC endpoint (websocket).
     #[arg(long, env = "PPVIEW_RPC_URL", default_value = "ws://127.0.0.1:9944")]
@@ -29,7 +29,7 @@ pub struct Args {
     #[arg(long, env = "PPVIEW_SERVICE_SURI")]
     pub service_suri: Option<String>,
 
-    /// Tracing filter (e.g. `info`, `ppview_chain_service=debug`).
+    /// Tracing filter (e.g. `info`, `ppview_content_unlock_service=debug`).
     #[arg(long, env = "PPVIEW_LOG", default_value = "info")]
     pub log: String,
 

@@ -4,7 +4,7 @@ A FRAME pallet for a pay-per-view content marketplace. Stores listings with cont
 
 ## Dispatchables
 
-- `create_listing(content_cid, content_hash, title, description, price, locked_content_lock_key) -> ListingId` — Publishes a listing. Price must be > 0. The `locked_content_lock_key` is empty in Phase 1; in Phase 2 it carries a content-lock-key sealed to the chain-service public key.
+- `create_listing(content_cid, content_hash, title, description, price, locked_content_lock_key) -> ListingId` — Publishes a listing. Price must be > 0. The `locked_content_lock_key` is empty in Phase 1; in Phase 2 it carries a content-lock-key sealed to the content-unlock-service public key.
 - `purchase(listing_id)` — Transfers `price` from buyer to creator and records the purchase. Fails if the buyer is the creator or the buyer has already purchased this listing.
 
 ## Source Layout

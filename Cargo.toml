@@ -3,7 +3,7 @@ resolver = "2"
 members = [
 	"blockchain/runtime",
 	"blockchain/pallets/content-registry",
-	"blockchain/chain-service",
+	"offchain/content-unlock-service",
 ]
 
 [workspace.package]
@@ -46,7 +46,7 @@ subxt-signer = { version = "0.38", features = ["sr25519", "subxt"] }
 tokio = { version = "1", features = ["full"] }
 alloy = { version = "1.8", features = ["contract", "provider-http", "signer-local"] }
 
-# Chain-service daemon dependencies
+# content-unlock-service daemon dependencies
 anyhow = "1"
 clap = { version = "4", features = ["derive", "env"] }
 crypto_box = { version = "0.9", features = ["seal"] }

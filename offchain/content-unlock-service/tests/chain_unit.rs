@@ -1,4 +1,4 @@
-use ppview_chain_service::chain::signer_from_suri;
+use ppview_content_unlock_service::chain::signer_from_suri;
 
 #[test]
 fn signer_from_suri_accepts_dev_account() {

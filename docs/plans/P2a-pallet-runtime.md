@@ -9,7 +9,7 @@
 **Tech Stack:** polkadot-sdk `stable2512-3`, `polkadot-sdk-frame` umbrella crate (`frame::pallet`), `frame_system::EnsureSignedBy`, pallet `GenesisConfig` + `BuildGenesisConfig` derive, Zombienet for launch smoke.
 
 **Scope carve-outs (deferred to later plans):**
-- Chain-service daemon that subscribes to events + calls `grant_access` — P2b.
+- Content-unlock-service daemon that subscribes to events + calls `grant_access` — P2b.
 - Frontend encryption UX (content-lock-key generation, browser x25519 keys, decryption) — P2c.
 - `regrant_access` extrinsic and session-key recovery — Phase 4.
 - `ServicePublicKey` / `ServiceAccountId` rotation + migration — Phase 5.
@@ -429,7 +429,7 @@ In `lib.rs`, after `ServiceAccountId`:
 
 ```rust
 	/// x25519 public key registered by each account (buyer or creator). Consumed
-	/// off-chain by the chain-service when wrapping a content-lock-key for a target.
+	/// off-chain by the content-unlock-service when wrapping a content-lock-key for a target.
 	#[pallet::storage]
 	pub type EncryptionKeys<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, [u8; 32], OptionQuery>;
@@ -878,8 +878,8 @@ use crate::{
 Just above `testnet_genesis`, add:
 
 ```rust
-/// Dev-only SVC_PUB x25519 bytes. The matching SVC_PRIV is held by the chain-service
-/// binary (P2b); for dev it is checked in under `blockchain/chain-service/dev-keys/`.
+/// Dev-only SVC_PUB x25519 bytes. The matching SVC_PRIV is held by the content-unlock-service
+/// binary (P2b); for dev it is checked in under `offchain/content-unlock-service/dev-keys/`.
 /// DO NOT use these bytes in any public testnet or mainnet deployment.
 const DEV_SERVICE_PUBLIC_KEY: [u8; 32] = [
 	0x51, 0x56, 0xb2, 0xb7, 0x0d, 0x28, 0x0e, 0xbb, 0x7f, 0x71, 0x0c, 0x1f, 0xca, 0x32, 0xfb, 0x54,
@@ -887,7 +887,7 @@ const DEV_SERVICE_PUBLIC_KEY: [u8; 32] = [
 ];
 ```
 
-(The hex bytes above are a placeholder. In Step 2 of Task 10 we regenerate them with the chain-service key-generation script and paste the output here.)
+(The hex bytes above are a placeholder. In Step 2 of Task 10 we regenerate them with the content-unlock-service key-generation script and paste the output here.)
 
 - [ ] **Step 2: Populate the genesis builder**
 
@@ -949,7 +949,7 @@ The P2b plan will introduce a proper subxt-based E2E against the daemon. For P2a
 
 **Files:**
 - Modify: `scripts/test-zombienet.sh` (append a new phase)
-- (Optional) Create: `blockchain/chain-service/dev-keys/README.md` — placeholder doc explaining where the real dev keypair will live (written in P2b)
+- (Optional) Create: `offchain/content-unlock-service/dev-keys/README.md` — placeholder doc explaining where the real dev keypair will live (written in P2b)
 
 - [ ] **Step 1: Release build**
 
@@ -1026,7 +1026,7 @@ Plan: [`docs/plans/P2a-pallet-runtime.md`](./plans/P2a-pallet-runtime.md)
 - [ ] Task 9: Genesis presets populate ContentRegistryConfig
 - [ ] Task 10: Release build + Zombienet launch smoke
 
-### P2b — Chain-service daemon
+### P2b — Content-unlock-service daemon
 
 Plan: _not written yet_
 
@@ -1062,7 +1062,7 @@ Per the user convention, the user commits `docs/progress.md` themselves. Leave t
 - Genesis dev presets → Task 9.
 - Zombienet launch validation → Task 10.
 
-Out-of-scope for P2a (confirmed in "Scope carve-outs"): chain-service daemon (P2b), frontend encryption flow (P2c), `regrant_access` (Phase 4), service-key rotation (Phase 5).
+Out-of-scope for P2a (confirmed in "Scope carve-outs"): content-unlock-service daemon (P2b), frontend encryption flow (P2c), `regrant_access` (Phase 4), service-key rotation (Phase 5).
 
 **No placeholders.** All code blocks are concrete. Two deliberate fallbacks are flagged for runtime behavior the skill can't predict in advance: the `#[pallet::weight]` tuple-vs-`DispatchResultWithPostInfo` form in Task 6, and the `stack-cli` subcommand shape in Task 10. Both include explicit fallback instructions.
 

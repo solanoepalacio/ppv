@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Generate the chain-service keys (x25519 SVC_PRIV/SVC_PUB + sr25519 service
+# Generate the content-unlock-service keys (x25519 SVC_PRIV/SVC_PUB + sr25519 service
 # signer SURI).
 #
 # Everything lives in <repo>/keys (gitignored) and is read at runtime by the
-# chain-service daemon. The public parts (SVC_PUB bytes, sr25519 AccountId
+# content-unlock-service daemon. The public parts (SVC_PUB bytes, sr25519 AccountId
 # bytes) must be baked into the chain-spec via genesis so the pallet accepts
 # grant_access from the daemon and creators can seal content-lock-keys
 # against SVC_PUB. See docs/design/spec.md §5 for the full key model.
@@ -70,10 +70,10 @@ TAB=$'\t'
 cat <<EOF
 
 Service keys written to $KEYS_DIR:
-  - svc_priv.pem     (x25519 private key — chain-service SVC_PRIV, chmod 600)
+  - svc_priv.pem     (x25519 private key — content-unlock-service SVC_PRIV, chmod 600)
   - svc_pub.pem      (PEM-encoded x25519 public key)
   - svc_pub.bin      (raw 32-byte x25519 public key)
-  - svc_signer.suri  (sr25519 service-signer SURI — chain-service signer, chmod 600)
+  - svc_signer.suri  (sr25519 service-signer SURI — content-unlock-service signer, chmod 600)
 
 x25519 public key (hex): 0x$HEX
 
@@ -90,7 +90,7 @@ ${TAB}$(format_row "$ROW2_HEX")
 
 2) Derive the sr25519 AccountId bytes and replace SERVICE_ACCOUNT_ID. Run:
 
-  cargo run -p ppview-chain-service -- print-service-account
+  cargo run -p ppview-content-unlock-service -- print-service-account
 
 and paste its output block into the preset.
 

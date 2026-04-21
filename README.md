@@ -23,8 +23,8 @@ This is the value-prop framing, not a claim that the PoC delivers every row.
 | Component | Polkadot feature |
 |---|---|
 | Content registry + payments pallet | FRAME (Polkadot SDK) |
-| Chain-service automation | External daemon using subxt + FRAME event subscription |
-| Chain-service authorization | Custom FRAME origin (`EnsureOrigin`) + `Pays::No` |
+| Content-unlock-service automation | External daemon using subxt + FRAME event subscription |
+| Content-unlock-service authorization | Custom FRAME origin (`EnsureOrigin`) + `Pays::No` |
 | Batched first-purchase UX | `pallet-utility::batch_all` |
 | Frontend runtime | Polkadot Triangle host API + PAPI |
 | Browser↔phone signing relay | Statement Store (via TruAPI) |
@@ -34,16 +34,16 @@ This is the value-prop framing, not a claim that the PoC delivers every row.
 
 ## 4. Implementation Limitations
 
-- **Chain-service is a trusted custodian.** Whoever operates the chain-service daemon can decrypt every piece of content. In production this would be replaced with threshold encryption, TEEs, or proxy re-encryption — out of scope for a learning PoC.
-- **Chain-service lacks an encryption key rotation mechanism (until hypothetic phase 5).** If the key is compromised it can't be rotated. If the node operator looses the key all encrypted content is lost forever.
+- **Content-unlock-service is a trusted custodian.** Whoever operates the content-unlock-service daemon can decrypt every piece of content. In production this would be replaced with threshold encryption, TEEs, or proxy re-encryption — out of scope for a learning PoC.
+- **Content-unlock-service lacks an encryption key rotation mechanism (until hypothetic phase 5).** If the key is compromised it can't be rotated. If the node operator looses the key all encrypted content is lost forever.
 - **Buyer-purchase mapping is publicly observable.** `WrappedKeys[(listing_id, buyer)]` is on a public chain; anyone can see which accounts bought which listings. Pseudonymity is still a real improvement over the Web2 credit-card model, but it's not strong privacy.
-- **Session-key loss is a real failure mode.** Mitigated by `regrant_access`, at the cost of extra on-chain activity and chain-service work. Access recovery is planned for phase 4 (unlikely to be achieved during PBP).
+- **Session-key loss is a real failure mode.** Mitigated by `regrant_access`, at the cost of extra on-chain activity and content-unlock-service work. Access recovery is planned for phase 4 (unlikely to be achieved during PBP).
 - **Content expires on Bulletin Chain after ~14 days.**. Content renewal is planned to be implemented on phase 4 (unlikely to be achieved during PBP). Since on-chain data is not updated to reflect the expiration of the content the UI will break for expired content.
 - **Limited Support for Media Types.** The application supports only uploading/rendering videos at the moment. The types of media supported were limited to reduce complexity on the front-end since managing complex media types on the front-end is not related to the main goal of the project (learning about polkadot). On a real application more media types could (and probably should) be supported.
 
 ## 5. Local setup notes
 
-Before booting the chain for the first time, generate the chain-service x25519 keypair and paste its public key into the genesis preset so content encryption (Phase 2+) can work end-to-end:
+Before booting the chain for the first time, generate the content-unlock-service x25519 keypair and paste its public key into the genesis preset so content encryption (Phase 2+) can work end-to-end:
 
 ```bash
 ./scripts/gen-service-key.sh

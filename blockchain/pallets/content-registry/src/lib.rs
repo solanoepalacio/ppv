@@ -148,7 +148,7 @@ pub mod pallet {
 	pub type ServiceAccountId<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
 	/// x25519 public key registered by each account (buyer or creator). Consumed
-	/// off-chain by the chain-service when wrapping a content-lock-key for a target.
+	/// off-chain by the content-unlock-service when wrapping a content-lock-key for a target.
 	#[pallet::storage]
 	pub type EncryptionKeys<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, [u8; 32], OptionQuery>;

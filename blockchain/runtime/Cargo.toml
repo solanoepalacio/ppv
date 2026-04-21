@@ -1,6 +1,6 @@
 [package]
 name = "ppview-runtime"
-description = "Pay-per-view (ppview) parachain runtime — content listings, purchases, and the Phase 2 chain-service primitives."
+description = "Pay-per-view (ppview) parachain runtime — content listings, purchases, and the Phase 2 content-unlock-service primitives."
 version = "0.1.0"
 license.workspace = true
 authors.workspace = true

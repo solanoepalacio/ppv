@@ -69,11 +69,11 @@ Plan: [`docs/plans/P2a-pallet-runtime.md`](./plans/P2a-pallet-runtime.md)
 - [x] Task 9: Genesis presets populate ContentRegistryConfig
 - [x] Task 10: Release build + Zombienet launch smoke
 
-### P2b — Chain-service daemon
+### P2b — Content-unlock-service daemon
 
-Plan: [`docs/plans/P2b-chain-service.md`](./plans/P2b-chain-service.md)
+Plan: [`docs/plans/P2b-content-unlock-service.md`](./plans/P2b-content-unlock-service.md)
 
-- [x] Task 1: Scaffold chain-service crate + workspace wiring
+- [x] Task 1: Scaffold content-unlock-service crate + workspace wiring
 - [x] Task 2: Load SVC_PRIV from PKCS#8 PEM
 - [x] Task 3: NaCl sealed-box seal/unseal (80-byte wire format)
 - [x] Task 4: Chain facade — readers + grant_access submission
@@ -81,7 +81,7 @@ Plan: [`docs/plans/P2b-chain-service.md`](./plans/P2b-chain-service.md)
 - [x] Task 6: Finalized event stream (PurchaseCompleted + ListingCreated)
 - [x] Task 7: Startup reconciliation over Listings + Purchases
 - [x] Task 8: Main loop — backfill + live stream + SIGINT
-- [ ] Task 9: start-chain-service.sh helper + crate README
+- [ ] Task 9: start-content-unlock-service.sh helper + crate README
 - [ ] Task 10: Zombienet E2E — daemon grants access on purchase
 
 ### P2c — Frontend encryption flow

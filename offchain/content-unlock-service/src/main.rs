@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use futures::StreamExt;
-use ppview_chain_service::chain::{stream_events, Chain};
-use ppview_chain_service::handler::wrap_and_grant;
-use ppview_chain_service::reconcile::backfill;
-use ppview_chain_service::{chain, cli, keys, signer_key};
+use ppview_content_unlock_service::chain::{stream_events, Chain};
+use ppview_content_unlock_service::handler::wrap_and_grant;
+use ppview_content_unlock_service::reconcile::backfill;
+use ppview_content_unlock_service::{chain, cli, keys, signer_key};
 use subxt_signer::sr25519::Keypair;
 use tracing::{error, info};
 
@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    info!(rpc_url = %args.rpc_url, "ppview-chain-service starting");
+    info!(rpc_url = %args.rpc_url, "ppview-content-unlock-service starting");
     info!(
         service_signer_pubkey = %hex::encode(signer.public_key().0),
         "service signer loaded"

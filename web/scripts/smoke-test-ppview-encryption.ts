@@ -118,7 +118,7 @@ async function main() {
     }
     if (svcAcc !== service.ss58) {
         throw new Error(
-            `ServiceAccountId on chain is ${svcAcc}; local signer at ${SERVICE_SIGNER_PATH} derives ${service.ss58}. Regenerate the genesis preset via 'cargo run -p ppview-chain-service -- print-service-account'.`,
+            `ServiceAccountId on chain is ${svcAcc}; local signer at ${SERVICE_SIGNER_PATH} derives ${service.ss58}. Regenerate the genesis preset via 'cargo run -p ppview-content-unlock-service -- print-service-account'.`,
         );
     }
     console.log("ServicePublicKey:", svcPubHex);

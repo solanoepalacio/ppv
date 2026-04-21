@@ -110,10 +110,10 @@ Shared layout across every state. Only the media area (left) and the action area
   5. Decrypt the ciphertext in the browser.
   6. Verify `blake2b-256(plaintext) == Listing.content_hash`. Same indicator behavior as state 2.
   7. Build the Blob URL and render.
-- This state applies symmetrically to buyers (after purchase) and creators (after the chain-service observes `ListingCreated` and writes the creator's wrapped key). See spec §5.
+- This state applies symmetrically to buyers (after purchase) and creators (after the content-unlock-service observes `ListingCreated` and writes the creator's wrapped key). See spec §5.
 
 **State 5 — Creator viewing own listing, same session as upload `[P2]`**
-- Used only when the creator opens their freshly created listing before the chain-service has written `WrappedKeys[(listing_id, creator)]`, and the frontend still holds the plaintext content-lock-key in memory from the upload flow.
+- Used only when the creator opens their freshly created listing before the content-unlock-service has written `WrappedKeys[(listing_id, creator)]`, and the frontend still holds the plaintext content-lock-key in memory from the upload flow.
 - Media: inline `<video>` sourced from in-memory decryption using the retained content-lock-key. No round-trip to chain for a wrapped key.
 - Action: `Your listing` badge. No Buy button, no stats.
 - On any fresh session (page reload, new device), the creator falls through to state 3 → state 4 like a buyer. No divergent code path.
@@ -154,11 +154,11 @@ Progressive-reveal form on a single page. Each section appears only once the pre
   - `⏳ Waiting for signature…` (Triangle phone prompt for `create_listing`, or for the batched `batch_all([register_encryption_key, create_listing])` on first-ever listing creation)
   - `⏳ Submitting create_listing…`
   - `✓ Listed`
-- On success: navigate to `/listing/:new_id` (which renders state 5 in the same session, then transitions to state 4 once the chain-service writes the creator's wrapped key).
+- On success: navigate to `/listing/:new_id` (which renders state 5 in the same session, then transitions to state 4 once the content-unlock-service writes the creator's wrapped key).
 - On failure at any step: that step flips to a red error state with the underlying message. Earlier completed steps remain green. A `Retry` button retries from the failed step. Retries are naturally idempotent — Bulletin CIDs are deterministic, so re-submitting the same bytes is a no-op once the content is already stored.
 
 **First-ever listing creation `[P2]`**
-- If the creator does not yet have an `EncryptionKeys[creator]` entry on-chain, the frontend generates an x25519 keypair, persists the private half to sandbox local-storage, and submits `pallet-utility::batch_all([register_encryption_key(pub), create_listing(...)])` instead of the plain `create_listing`. One phone signature, atomic. Required so the chain-service can wrap the content-lock-key for the creator when it observes `ListingCreated`.
+- If the creator does not yet have an `EncryptionKeys[creator]` entry on-chain, the frontend generates an x25519 keypair, persists the private half to sandbox local-storage, and submits `pallet-utility::batch_all([register_encryption_key(pub), create_listing(...)])` instead of the plain `create_listing`. One phone signature, atomic. Required so the content-unlock-service can wrap the content-lock-key for the creator when it observes `ListingCreated`.
 
 **In-memory content-lock-key `[P2]`**
 - From the moment step B generates the content-lock-key, the frontend keeps the plaintext key in React/zustand state (or equivalent) until the tab is closed or the user navigates away. This key powers state 5 playback for the immediate same-session case. It is **not** persisted to local-storage — fresh sessions get the wrapped key from chain like any buyer.
@@ -199,7 +199,7 @@ This section describes the cross-view user journeys. Individual view behavior is
 7. Inline checklist runs (see §5.3 Section D).
 8. On success, lands on `/listing/:new_id`.
    - **Phase 1:** state 2 with a `Your listing` badge.
-   - **`[P2]`:** state 5 (in-memory content-lock-key playback) while the chain-service writes `WrappedKeys[(listing_id, creator)]` in the background; once the subscription fires, the page quietly promotes to state 4. No visible transition if the creator plays before the wrapped key lands.
+   - **`[P2]`:** state 5 (in-memory content-lock-key playback) while the content-unlock-service writes `WrappedKeys[(listing_id, creator)]` in the background; once the subscription fires, the page quietly promotes to state 4. No visible transition if the creator plays before the wrapped key lands.
 
 ### 6.2 First purchase (new buyer)
 
@@ -210,7 +210,7 @@ This section describes the cross-view user journeys. Individual view behavior is
 3. Frontend submits `pallet-utility::batch_all([register_encryption_key(pub), purchase(listing_id)])` via the Triangle host. The mobile host shows one signature request covering both calls.
 4. After the block finalizes, the page transitions through states 3 → 4:
    - The pallet emits `PurchaseCompleted(listing_id, buyer, creator)`.
-   - The chain-service daemon observes the event, unseals the content-lock-key with `SVC_PRIV`, re-wraps it to the buyer's registered x25519 pubkey, submits `grant_access(listing_id, buyer, wrapped_key)`.
+   - The content-unlock-service daemon observes the event, unseals the content-lock-key with `SVC_PRIV`, re-wraps it to the buyer's registered x25519 pubkey, submits `grant_access(listing_id, buyer, wrapped_key)`.
    - The frontend's `WrappedKeys[(listing_id, buyer)]` subscription fires.
    - Client-side decryption completes; integrity check passes; the player appears.
 
@@ -221,7 +221,7 @@ This section describes the cross-view user journeys. Individual view behavior is
 3. Frontend submits `purchase(listing_id)` as a single call via Triangle. One signature request.
 4. After the block finalizes:
    - **Phase 1:** the page transitions straight to state 2. Playback begins.
-   - **`[P2]`:** the page transitions through states 3 → 4 via the chain-service grant flow, same as §6.2 step 4.
+   - **`[P2]`:** the page transitions through states 3 → 4 via the content-unlock-service grant flow, same as §6.2 step 4.
 
 ### 6.4 Watch purchased content
 
@@ -236,7 +236,7 @@ A creator finds their own listings by using Browse like any other user. There is
 
 - **Phase 1:** state 2 with a `Your listing` badge. Plaintext plays directly from Bulletin.
 - **`[P2]`, same session as upload:** state 5 — plays from the in-memory content-lock-key retained by the upload flow.
-- **`[P2]`, any other session:** state 3 until the chain-service has written `WrappedKeys[(listing_id, creator)]`, then state 4 with the `Your listing` badge. This is the same path a buyer uses; no divergent code.
+- **`[P2]`, any other session:** state 3 until the content-unlock-service has written `WrappedKeys[(listing_id, creator)]`, then state 4 with the `Your listing` badge. This is the same path a buyer uses; no divergent code.
 
 ## 7. States and edge cases
 
@@ -258,7 +258,7 @@ A creator finds their own listings by using Browse like any other user. There is
 - **Creator tries to buy own listing** — not reachable from the UI: the creator sees state 5, which has no Buy button.
 - **Listing not found** — state shown at `/listing/:id` when `Listings[id]` is empty.
 - **Bulletin fetch failure** — inline retry in the media area: "Couldn't reach content storage. Retry."
-- **`[P2]` chain-service delay / outage** — state 3 ("Preparing your content…") is the indefinite waiting state. No explicit timeout in the UI; documented in `gaps.md` as the "chain-service single point of failure" gap. If operators know the daemon is down, they surface it manually.
+- **`[P2]` content-unlock-service delay / outage** — state 3 ("Preparing your content…") is the indefinite waiting state. No explicit timeout in the UI; documented in `gaps.md` as the "content-unlock-service single point of failure" gap. If operators know the daemon is down, they surface it manually.
 - **`[P2]` integrity-check mismatch** — player replaced with "⚠ Content failed integrity check." No retry; the listing itself is broken on-chain (documented as the "no consistency check between creator-submitted fields" gap).
 - **Create-listing signing rejected / failed tx** — the signing step in the checklist flips red; Retry re-submits from that step.
 
@@ -290,7 +290,7 @@ Every view listed in §5 exists in both phases. The deltas are narrow:
 All three spec updates from the initial brainstorming have been applied to `spec.md`:
 
 1. **Listing struct — thumbnail CID** (`thumbnail_cid: BulletinCid`), always unencrypted, auto-extracted from the video on upload.
-2. **Creator playback unified with buyer decryption** — the chain-service also observes `ListingCreated` and writes `WrappedKeys[(listing_id, creator)]`. Creator playback uses the same decryption flow as a buyer. Requires first-ever listing creation to batch `register_encryption_key` with `create_listing`. The frontend retains the plaintext content-lock-key in memory for the current session as a fast-path for immediate post-upload playback (no local-storage persistence keyed by `listing_id`).
+2. **Creator playback unified with buyer decryption** — the content-unlock-service also observes `ListingCreated` and writes `WrappedKeys[(listing_id, creator)]`. Creator playback uses the same decryption flow as a buyer. Requires first-ever listing creation to batch `register_encryption_key` with `create_listing`. The frontend retains the plaintext content-lock-key in memory for the current session as a fast-path for immediate post-upload playback (no local-storage persistence keyed by `listing_id`).
 3. **Flipped `Purchases` key order** — `StorageDoubleMap<AccountId, ListingId, ()>`. Enables a cheap prefix scan for "my purchases."
 
 ## 10. Known limitations (frontend-specific)

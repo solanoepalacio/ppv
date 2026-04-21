@@ -1,4 +1,4 @@
-use ppview_chain_service::keys::load_svc_priv;
+use ppview_content_unlock_service::keys::load_svc_priv;
 use std::path::Path;
 
 #[test]

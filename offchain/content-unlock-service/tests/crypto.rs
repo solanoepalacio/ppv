@@ -1,5 +1,5 @@
 use crypto_box::{PublicKey, SecretKey};
-use ppview_chain_service::crypto::{seal_to, unseal_from};
+use ppview_content_unlock_service::crypto::{seal_to, unseal_from};
 
 #[test]
 fn seal_unseal_roundtrip() {

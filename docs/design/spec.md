@@ -9,8 +9,8 @@
 - **Buyer** — the account that paid for a specific listing.
 - **Encrypted content** — the content creator's original content, encrypted client-side and uploaded to Bulletin Chain (accessed via its IPFS-compatible CID).
 - **Content-lock-key** — the symmetric key used to encrypt a specific piece of content. One per content item.
-- **Buyer encryption key** — an x25519 keypair the buyer generates in their browser. The private half stays in the sandbox; the public half is registered on-chain so the chain-service can wrap content-lock-keys to it.
-- **Chain-service** — an off-chain daemon co-located with the parachain collator. Holds a master keypair `(SVC_PUB, SVC_PRIV)`. Observes purchase events and re-wraps content-lock-keys from `SVC_PUB` to the buyer's encryption key.
+- **Buyer encryption key** — an x25519 keypair the buyer generates in their browser. The private half stays in the sandbox; the public half is registered on-chain so the content-unlock-service can wrap content-lock-keys to it.
+- **Content-unlock-service** — an off-chain daemon co-located with the parachain collator. Holds a master keypair `(SVC_PUB, SVC_PRIV)`. Observes purchase events and re-wraps content-lock-keys from `SVC_PUB` to the buyer's encryption key.
 **Identity model.** Both content creators and buyers are identified solely by their Polkadot account address. No People chain integration, no out-of-band identity binding — the platform is fully pseudonymous.
 
 ## 2. Architecture overview
@@ -20,7 +20,7 @@ End-to-end data flow:
 1. **Creator** encrypts content client-side, uploads ciphertext to Bulletin Chain, receives a CID.
 2. **Creator** submits `create_listing` with: CID, plaintext hash, price, title, description, and the content-lock-key wrapped to `SVC_PUB`.
 3. **Buyer** submits `purchase(listing_id)` (batched with `register_encryption_key` on the first buy). The pallet transfers funds and records the purchase.
-4. **Chain-service** observes the `PurchaseCompleted` event, unwraps the content-lock-key with `SVC_PRIV`, re-wraps it to the buyer's registered x25519 pubkey, and writes the result to `WrappedKeys[(buyer, listing_id)]`.
+4. **Content-unlock-service** observes the `PurchaseCompleted` event, unwraps the content-lock-key with `SVC_PRIV`, re-wraps it to the buyer's registered x25519 pubkey, and writes the result to `WrappedKeys[(buyer, listing_id)]`.
 5. **Buyer's frontend** reads `WrappedKeys[(buyer, listing_id)]`, decrypts the wrapped key in pure JS using the browser-held x25519 private key, fetches ciphertext from Bulletin Chain, decrypts the content, verifies the plaintext hash, renders.
 
 ## 3. Phased scope
@@ -38,7 +38,7 @@ Each phase is demoable on its own.
 ### Phase 2 — Content encryption with a browser-held session key registered on-chain
 - Creator encrypts content client-side before upload (see [Encryption model](#7-encryption-model-phase-2)).
 - Pallet gains `EncryptionKeys` (buyer x25519 pubkeys) and `WrappedKeys` (buyer-specific wrapped content-lock-keys) storage.
-- Chain-service daemon automates key re-wrapping on payment events.
+- Content-unlock-service daemon automates key re-wrapping on payment events.
 - Buyer frontend decrypts in pure JS, using a session private key held in sandbox-local storage.
 - Access control becomes cryptographic.
 
@@ -52,7 +52,7 @@ Each phase is demoable on its own.
 ### Phase 4 — UX improvements
 **Nice-to-have; will be designed and built only if the earlier phases land with time to spare.** Not a primary deliverable. Until this phase is built, both items below are acknowledged limitations of the PoC.
 - **Content renewal via on-chain hooks.** Bulletin Chain content expires in ~14 days. A pallet hook (`on_initialize` or `on_finalize`) scans listings approaching expiry and triggers renewal (via OCW calling `TransactionStorage.renew` on Bulletin Chain), so creators don't have to re-upload.
-- **Session-key recovery.** Smooth recovery flow for buyers who lose their browser-held x25519 private key. Introduces a `regrant_access(listing_ids)` extrinsic (signed by the buyer) that emits events the chain-service observes to re-wrap each listing's content-lock-key under the caller's newly registered encryption key. Until this exists, a key loss means permanent loss of access to past purchases.
+- **Session-key recovery.** Smooth recovery flow for buyers who lose their browser-held x25519 private key. Introduces a `regrant_access(listing_ids)` extrinsic (signed by the buyer) that emits events the content-unlock-service observes to re-wrap each listing's content-lock-key under the caller's newly registered encryption key. Until this exists, a key loss means permanent loss of access to past purchases.
 
 ### Phase 5 — Service key rotation
 **Not expected to be implemented short-term.** `ServiceAccountId` and `ServicePublicKey` are genesis-set and immutable in Phases 1–4; any replacement requires resetting the chain. Phase 5 would add an on-chain path to rotate both, exercised as a learning exercise in Polkadot storage migrations rather than an operational need (the demo chain is not expected to stay active).
@@ -109,10 +109,10 @@ struct BulletinCid {
 **Phase 2**
 - `register_encryption_key(pubkey: [u8; 32])` — writes `EncryptionKeys[caller]`.
 - `create_listing` gains a `locked_content_lock_key` parameter.
-- `grant_access(listing_id, buyer, wrapped_key)` — origin must satisfy `T::ServiceOrigin` (see [Service origin](#service-origin) below). Writes `WrappedKeys[(buyer, listing_id)]`. Marked `Pays::No` so the chain-service account does not pay transaction fees.
+- `grant_access(listing_id, buyer, wrapped_key)` — origin must satisfy `T::ServiceOrigin` (see [Service origin](#service-origin) below). Writes `WrappedKeys[(buyer, listing_id)]`. Marked `Pays::No` so the content-unlock-service account does not pay transaction fees.
 
 **Phase 4** (deferred — see §3)
-- `regrant_access(listing_ids)` — signed origin (the buyer). Session-key recovery; emits events the chain-service observes to re-wrap each listing's content-lock-key under the caller's newly registered encryption key.
+- `regrant_access(listing_ids)` — signed origin (the buyer). Session-key recovery; emits events the content-unlock-service observes to re-wrap each listing's content-lock-key under the caller's newly registered encryption key.
 
 ### Events
 - `ListingCreated { listing_id, creator, price }`
@@ -151,7 +151,7 @@ Pallet extrinsics enforce the following preconditions; violations return a dispa
 ### Batched first-write UX
 The first on-chain write that depends on an `EncryptionKeys[caller]` entry must register one first. This applies symmetrically to:
 - **First purchase** — `pallet-utility::batch_all([register_encryption_key, purchase])`.
-- **First listing creation** — `pallet-utility::batch_all([register_encryption_key, create_listing])`. Required because the chain-service wraps the content-lock-key for the creator on `ListingCreated` (see [Chain-service grant flow](#chain-service-grant-flow)), which needs the creator's x25519 pubkey to already be on-chain.
+- **First listing creation** — `pallet-utility::batch_all([register_encryption_key, create_listing])`. Required because the content-unlock-service wraps the content-lock-key for the creator on `ListingCreated` (see [Content-unlock-service grant flow](#content-unlock-service-grant-flow)), which needs the creator's x25519 pubkey to already be on-chain.
 
 Both batches produce a single phone signature and are atomic. Subsequent calls of either extrinsic use the plain extrinsic directly.
 
@@ -160,7 +160,7 @@ Fallback if `batch_all` proves awkward UX using Triangle (e.g., phone UI doesn't
 ### Fee model
 - Content creators set a fixed flat price per listing. No tiers, no promotional pricing, no per-buyer negotiation.
 - No platform fee, no treasury cut. The buyer's payment is transferred in full to the creator as part of `purchase`.
-- Transaction fees are paid by each extrinsic's caller — the standard Polkadot default. The creator pays the fee for `create_listing` and the buyer pays the fee for `purchase` (and, in Phase 4, for `regrant_access`). `grant_access` is marked `Pays::No`: the chain-service account is authorized via `ServiceOrigin` but is not charged for the call. The account only requires a one-time existential deposit; no ongoing top-ups. Since only `ServiceOrigin` can call, the fee-free path is not a spam vector.
+- Transaction fees are paid by each extrinsic's caller — the standard Polkadot default. The creator pays the fee for `create_listing` and the buyer pays the fee for `purchase` (and, in Phase 4, for `regrant_access`). `grant_access` is marked `Pays::No`: the content-unlock-service account is authorized via `ServiceOrigin` but is not charged for the call. The account only requires a one-time existential deposit; no ongoing top-ups. Since only `ServiceOrigin` can call, the fee-free path is not a spam vector.
 
 ### Integrity checks
 
@@ -179,7 +179,7 @@ Without this guard, `ValueQuery` would silently return zero bytes and every Phas
   - `SVC_PUB` is published on-chain via the `ServicePublicKey` storage item; set once in the genesis config; immutable thereafter. Creators fetch it via PAPI before sealing `locked_content_lock_key`.
   - `SVC_PRIV` is held by the daemon as a single key file on disk (`chmod 600`, daemon-owned directory `chmod 700`). Path passed to the daemon at startup via CLI flag or env var. No passphrase protection in the PoC.
   - Rotation is out of scope.
-- **`SERVICE_ACCOUNT_KEY`** — separate sr25519 keypair held by the daemon as a key file (not in the Substrate keystore, since the daemon is an external process, not a node plugin). Signs `grant_access` and the chain-service's response to `regrant_access` events. The corresponding AccountId is stored on-chain in `ServiceAccountId` (genesis-set) and is the only signer accepted by the pallet's `ServiceOrigin`. The account needs a one-time existential deposit to exist, but does not pay transaction fees (`grant_access` is marked `Pays::No`).
+- **`SERVICE_ACCOUNT_KEY`** — separate sr25519 keypair held by the daemon as a key file (not in the Substrate keystore, since the daemon is an external process, not a node plugin). Signs `grant_access` and the content-unlock-service's response to `regrant_access` events. The corresponding AccountId is stored on-chain in `ServiceAccountId` (genesis-set) and is the only signer accepted by the pallet's `ServiceOrigin`. The account needs a one-time existential deposit to exist, but does not pay transaction fees (`grant_access` is marked `Pays::No`).
 - **Buyer encryption keypair** — x25519 generated client-side in the buyer's browser. Private half persisted to sandbox-local storage; public half registered on-chain via `register_encryption_key`.
 - **Content-lock-key** — random symmetric 32-byte key generated client-side, one per content item. Never stored or transmitted in the clear.
 
@@ -207,14 +207,14 @@ Thumbnail extraction and upload apply to both Phase 1 and Phase 2; encryption an
 7. Compute `blake2b-256(plaintext)` for the `content_hash` field.
 8. *(Phase 2 only)* Fetch `SVC_PUB` from the `ServicePublicKey` storage item via PAPI; seal the content-lock-key to it → `locked_content_lock_key`.
 9. Submit `create_listing(content_cid, thumbnail_cid, content_hash, title, description, price[, locked_content_lock_key])`. The `locked_content_lock_key` parameter is Phase 2 only. On first-ever listing creation, this is batched with `register_encryption_key` via `pallet-utility::batch_all` — see [Batched first-write UX](#batched-first-write-ux).
-10. *(Phase 2 only)* The creator's frontend retains the plaintext content-lock-key in memory for the remainder of the current session, so the creator can play back the content they just uploaded without waiting for the chain-service to write `WrappedKeys[(creator, listing_id)]`. The key is **not** persisted to local-storage — on a fresh session the creator reads the wrapped key from chain like any buyer would.
+10. *(Phase 2 only)* The creator's frontend retains the plaintext content-lock-key in memory for the remainder of the current session, so the creator can play back the content they just uploaded without waiting for the content-unlock-service to write `WrappedKeys[(creator, listing_id)]`. The key is **not** persisted to local-storage — on a fresh session the creator reads the wrapped key from chain like any buyer would.
 
 ### Purchase flow
 1. If the buyer hasn't registered an encryption key yet, generate an x25519 keypair in the browser and persist the private half to sandbox local-storage.
 2. Submit `purchase(listing_id)` — batched with `register_encryption_key` on the first purchase.
 3. Pallet transfers funds (if user has enough funds), records the purchase, emits `PurchaseCompleted`.
 
-### Chain-service grant flow
+### Content-unlock-service grant flow
 
 The daemon subscribes to two events via subxt (types generated from parachain metadata via `subxt-codegen`): `PurchaseCompleted` and `ListingCreated`. Both dispatch the same wrap-and-grant routine, differing only in which account receives the wrapped key.
 
@@ -261,7 +261,7 @@ The same flow applies to any account that has a `WrappedKeys[(account, listing_i
 - **Local development.** Relay + parachain via Zombienet. This is the supported path for Statement Store RPCs in the current SDK release, and Statement Store is required by Triangle. Single machine; no external registration needed.
 - **Phase 1–2 frontend.** Built as a static bundle, hosted on **Bulletin Chain** and registered on **DotNS** (`.dot` domain resolving to the Bulletin CID). Deployment runs through the `.github/workflows/deploy-frontend.yml` GitHub Action, which invokes the reusable `paritytech/dotns-sdk/.github/workflows/deploy.yml@main` workflow — it handles bundle upload (`dotns bulletin authorize` + `dotns bulletin upload`) and DotNS content-hash registration (`dotns content set`) as a single operation. On Paseo, Alice signs DotNS registration (free for dev accounts); no repo secret needed for the PoC. Bulletin's ~14-day retention is acknowledged: the action is re-run before each demo to refresh the pin. The older IPFS-via-w3.storage path (`scripts/deploy-frontend.sh`) is kept as a manual fallback but is not the supported Phase 1c path. Full trace in `docs/research/frontend-deploy.md`.
 - **Phase 3 infrastructure.** Parachain registers on Paseo (collator, parachain slot, HRMP channel to Asset Hub for XCM). Real ops lift, planned for when Phase 3 is active.
-- **Operational setup (chain-service keys).**
+- **Operational setup (content-unlock-service keys).**
   - Operator generates the x25519 SVC keypair (`SVC_PRIV` / `SVC_PUB`) on a secure machine. `SVC_PUB` bytes are embedded in the genesis config under `ServicePublicKey`.
   - Operator generates (or reuses) the sr25519 service account keypair. The corresponding AccountId is embedded in the genesis config under `ServiceAccountId` and receives a one-time existential deposit transfer at setup time.
   - Daemon configured with both key files (`SVC_PRIV` and the sr25519 service key) at locked-down paths (files `chmod 600`, daemon-owned directory `chmod 700`). Paths passed via CLI flags or env vars.

@@ -1,4 +1,4 @@
-use ppview_chain_service::signer_key::load_signer;
+use ppview_content_unlock_service::signer_key::load_signer;
 use std::io::Write;
 
 fn write_tmp(content: &str) -> tempfile::NamedTempFile {

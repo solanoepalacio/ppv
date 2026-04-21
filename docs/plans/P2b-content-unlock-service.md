@@ -1,10 +1,10 @@
-# P2b — Chain-Service Daemon Implementation Plan
+# P2b — Content-Unlock-Service Daemon Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a standalone Rust daemon (`chain-service`) that subscribes to the parachain's finalized events, unseals each listing's `locked_content_lock_key` with the operator's `SVC_PRIV` x25519 key, re-seals it to the target account's registered x25519 pubkey, and submits `grant_access(listing_id, target, wrapped_key)` signed by the genesis-configured service account. Handles both `PurchaseCompleted` (target = buyer) and `ListingCreated` (target = creator). Closes the gap between P2a (on-chain surface) and P2c (frontend encryption UX).
+**Goal:** Build a standalone Rust daemon (`content-unlock-service`) that subscribes to the parachain's finalized events, unseals each listing's `locked_content_lock_key` with the operator's `SVC_PRIV` x25519 key, re-seals it to the target account's registered x25519 pubkey, and submits `grant_access(listing_id, target, wrapped_key)` signed by the genesis-configured service account. Handles both `PurchaseCompleted` (target = buyer) and `ListingCreated` (target = creator). Closes the gap between P2a (on-chain surface) and P2c (frontend encryption UX).
 
-**Architecture:** New Rust binary crate at `blockchain/chain-service/`, added to the workspace alongside `runtime` and `pallets/content-registry`. All chain access is via subxt's **dynamic** API (no metadata codegen — matches the template's `stack-cli` pattern), so the daemon stays decoupled from pallet Rust types. Crypto is done with `crypto_box`'s NaCl sealed-box primitive — wire-format-compatible with the TweetNaCl `crypto_box_seal` the browser uses. `SVC_PRIV` is loaded from the PKCS#8 PEM file written by `scripts/gen-service-key.sh` (`keys/svc_priv.pem`). The sr25519 service signer is configurable via SURI (default `//Dave`, matching the dev genesis preset in `genesis_config_presets.rs`) or a raw-seed file for production. Event loop is finalized-block-driven, per-event jobs are sequential, idempotent (skip if `WrappedKeys[(target, listing_id)]` already exists), and include a startup reconciliation pass that scans on-chain state for missed pairs (handles daemon downtime).
+**Architecture:** New Rust binary crate at `offchain/content-unlock-service/`, added to the workspace alongside `runtime` and `pallets/content-registry`. All chain access is via subxt's **dynamic** API (no metadata codegen — matches the template's `stack-cli` pattern), so the daemon stays decoupled from pallet Rust types. Crypto is done with `crypto_box`'s NaCl sealed-box primitive — wire-format-compatible with the TweetNaCl `crypto_box_seal` the browser uses. `SVC_PRIV` is loaded from the PKCS#8 PEM file written by `scripts/gen-service-key.sh` (`keys/svc_priv.pem`). The sr25519 service signer is configurable via SURI (default `//Dave`, matching the dev genesis preset in `genesis_config_presets.rs`) or a raw-seed file for production. Event loop is finalized-block-driven, per-event jobs are sequential, idempotent (skip if `WrappedKeys[(target, listing_id)]` already exists), and include a startup reconciliation pass that scans on-chain state for missed pairs (handles daemon downtime).
 
 **Tech Stack:** subxt `0.38` + subxt-signer `0.38` (already workspace-pinned), `tokio`, `clap` (CLI), `crypto_box 0.9` with `seal` feature (NaCl sealed-box), `x25519-dalek 2` (re-exported via `crypto_box`), `pem 3` + `pkcs8 0.10` (decode `keys/svc_priv.pem`), `tracing` + `tracing-subscriber` (logs), `anyhow` (error plumbing), `futures` (stream combinators).
 
@@ -15,7 +15,7 @@
 - Persistent on-disk cursor for finalized-block position — the startup reconciliation pass (Task 9) covers restart correctness without it; revisit only if reconciliation proves too slow on a populated chain.
 - Production hardening (systemd unit, log rotation, metrics endpoint) — out of scope for the PoC; the daemon is operated by hand alongside the collator during the demo.
 
-**Spec reference:** `docs/design/spec.md` §2 (Architecture overview, step 4), §4 (Service origin, `grant_access`), §5 (Encryption model — keys in play, cryptographic primitives, chain-service grant flow), §7 (Operational setup). Rationale for external daemon vs OCW: `docs/why-not-ocw.md`.
+**Spec reference:** `docs/design/spec.md` §2 (Architecture overview, step 4), §4 (Service origin, `grant_access`), §5 (Encryption model — keys in play, cryptographic primitives, content-unlock-service grant flow), §7 (Operational setup). Rationale for external daemon vs OCW: `docs/why-not-ocw.md`.
 
 **User convention:** The user commits docs themselves. For source code changes, each task ends with a code commit (staged and run in the same session). Progress tracked in `docs/progress.md`; a `[ ]` flips to `[x]` only after the user validates task completion, in a dedicated commit.
 
@@ -24,20 +24,20 @@
 ## File Structure
 
 **Created:**
-- `blockchain/chain-service/Cargo.toml` — binary crate manifest
-- `blockchain/chain-service/src/main.rs` — CLI entry point + tokio runtime bootstrap
-- `blockchain/chain-service/src/cli.rs` — `clap` Args struct + defaults
-- `blockchain/chain-service/src/keys.rs` — PEM loader for `SVC_PRIV`; sr25519 signer construction from SURI
-- `blockchain/chain-service/src/crypto.rs` — NaCl sealed-box seal + unseal; keeps crypto surface small and testable
-- `blockchain/chain-service/src/chain.rs` — subxt client facade: storage reads (`Listings`, `EncryptionKeys`, `WrappedKeys`), extrinsic submission (`grant_access`), finalized event stream
-- `blockchain/chain-service/src/handler.rs` — per-event wrap-and-grant pipeline (crypto + storage + extrinsic composition, idempotency)
-- `blockchain/chain-service/src/reconcile.rs` — startup backfill pass (scans `Listings` + `Purchases` for gaps in `WrappedKeys`)
-- `blockchain/chain-service/README.md` — operator-oriented runbook
-- `scripts/start-chain-service.sh` — thin wrapper matching the style of other `scripts/start-*.sh`
+- `offchain/content-unlock-service/Cargo.toml` — binary crate manifest
+- `offchain/content-unlock-service/src/main.rs` — CLI entry point + tokio runtime bootstrap
+- `offchain/content-unlock-service/src/cli.rs` — `clap` Args struct + defaults
+- `offchain/content-unlock-service/src/keys.rs` — PEM loader for `SVC_PRIV`; sr25519 signer construction from SURI
+- `offchain/content-unlock-service/src/crypto.rs` — NaCl sealed-box seal + unseal; keeps crypto surface small and testable
+- `offchain/content-unlock-service/src/chain.rs` — subxt client facade: storage reads (`Listings`, `EncryptionKeys`, `WrappedKeys`), extrinsic submission (`grant_access`), finalized event stream
+- `offchain/content-unlock-service/src/handler.rs` — per-event wrap-and-grant pipeline (crypto + storage + extrinsic composition, idempotency)
+- `offchain/content-unlock-service/src/reconcile.rs` — startup backfill pass (scans `Listings` + `Purchases` for gaps in `WrappedKeys`)
+- `offchain/content-unlock-service/README.md` — operator-oriented runbook
+- `scripts/start-content-unlock-service.sh` — thin wrapper matching the style of other `scripts/start-*.sh`
 
 **Modified:**
-- `Cargo.toml` — add `chain-service` to `[workspace] members`, add new workspace deps (`crypto_box`, `x25519-dalek`, `pem`, `pkcs8`, `tracing`, `tracing-subscriber`, `clap`, `anyhow`, `futures`)
-- `scripts/README.md` — add row for `start-chain-service.sh`
+- `Cargo.toml` — add `content-unlock-service` to `[workspace] members`, add new workspace deps (`crypto_box`, `x25519-dalek`, `pem`, `pkcs8`, `tracing`, `tracing-subscriber`, `clap`, `anyhow`, `futures`)
+- `scripts/README.md` — add row for `start-content-unlock-service.sh`
 - `scripts/test-zombienet.sh` — append a P2b phase that exercises the full purchase → grant_access loop with the daemon running
 - `docs/progress.md` — add P2b task list
 
@@ -48,19 +48,19 @@
 
 ---
 
-## Task 1 — Scaffold `chain-service` crate + workspace wiring
+## Task 1 — Scaffold `content-unlock-service` crate + workspace wiring
 
 Create the empty binary crate, register it in the workspace, confirm it builds and runs with `--help`. No behaviour yet — this is pure scaffolding so subsequent tasks have a home.
 
 **Files:**
-- Create: `blockchain/chain-service/Cargo.toml`
-- Create: `blockchain/chain-service/src/main.rs`
-- Create: `blockchain/chain-service/src/cli.rs`
+- Create: `offchain/content-unlock-service/Cargo.toml`
+- Create: `offchain/content-unlock-service/src/main.rs`
+- Create: `offchain/content-unlock-service/src/cli.rs`
 - Modify: `Cargo.toml` (workspace members + new deps)
 
 - [ ] **Step 1: Extend the workspace root `Cargo.toml`**
 
-Edit `Cargo.toml`. Add `blockchain/chain-service` to `members` and append new dependencies under `[workspace.dependencies]`:
+Edit `Cargo.toml`. Add `offchain/content-unlock-service` to `members` and append new dependencies under `[workspace.dependencies]`:
 
 ```toml
 [workspace]
@@ -68,12 +68,12 @@ resolver = "2"
 members = [
 	"blockchain/runtime",
 	"blockchain/pallets/content-registry",
-	"blockchain/chain-service",
+	"offchain/content-unlock-service",
 ]
 ```
 
 ```toml
-# Chain-service daemon dependencies
+# Content-unlock-service daemon dependencies
 anyhow = "1"
 clap = { version = "4", features = ["derive", "env"] }
 crypto_box = { version = "0.9", features = ["seal"] }
@@ -90,11 +90,11 @@ hex = "0.4"
 
 - [ ] **Step 2: Write the crate `Cargo.toml`**
 
-Create `blockchain/chain-service/Cargo.toml`:
+Create `offchain/content-unlock-service/Cargo.toml`:
 
 ```toml
 [package]
-name = "ppview-chain-service"
+name = "ppview-content-unlock-service"
 description = "Trusted off-chain daemon that wraps content-lock-keys for buyers and creators on ppview's parachain."
 version = "0.1.0"
 license.workspace = true
@@ -103,7 +103,7 @@ edition.workspace = true
 publish = false
 
 [[bin]]
-name = "ppview-chain-service"
+name = "ppview-content-unlock-service"
 path = "src/main.rs"
 
 [dependencies]
@@ -129,7 +129,7 @@ tempfile = "3"
 
 - [ ] **Step 3: Stub `cli.rs`**
 
-Create `blockchain/chain-service/src/cli.rs`:
+Create `offchain/content-unlock-service/src/cli.rs`:
 
 ```rust
 use clap::Parser;
@@ -137,10 +137,10 @@ use std::path::PathBuf;
 
 /// Trusted off-chain wrapper/granter for ppview listings.
 ///
-/// See `docs/design/spec.md` §5 ("Chain-service grant flow") for the end-to-end
+/// See `docs/design/spec.md` §5 ("Content-unlock-service grant flow") for the end-to-end
 /// flow this daemon implements.
 #[derive(Debug, Parser)]
-#[command(name = "ppview-chain-service", version)]
+#[command(name = "ppview-content-unlock-service", version)]
 pub struct Args {
     /// Parachain RPC endpoint (websocket).
     #[arg(long, env = "PPVIEW_RPC_URL", default_value = "ws://127.0.0.1:9944")]
@@ -156,7 +156,7 @@ pub struct Args {
     #[arg(long, env = "PPVIEW_SERVICE_SURI", default_value = "//Dave")]
     pub service_suri: String,
 
-    /// Tracing filter (e.g. `info`, `ppview_chain_service=debug`).
+    /// Tracing filter (e.g. `info`, `ppview_content_unlock_service=debug`).
     #[arg(long, env = "PPVIEW_LOG", default_value = "info")]
     pub log: String,
 }
@@ -164,7 +164,7 @@ pub struct Args {
 
 - [ ] **Step 4: Stub `main.rs`**
 
-Create `blockchain/chain-service/src/main.rs`:
+Create `offchain/content-unlock-service/src/main.rs`:
 
 ```rust
 mod cli;
@@ -182,7 +182,7 @@ async fn main() -> Result<()> {
         .with_target(false)
         .init();
 
-    info!(rpc_url = %args.rpc_url, "ppview-chain-service starting");
+    info!(rpc_url = %args.rpc_url, "ppview-content-unlock-service starting");
     info!("scaffold only — event loop lands in Task 9");
 
     Ok(())
@@ -191,17 +191,17 @@ async fn main() -> Result<()> {
 
 - [ ] **Step 5: Build and run `--help`**
 
-Run: `cargo run -p ppview-chain-service -- --help`
+Run: `cargo run -p ppview-content-unlock-service -- --help`
 Expected: prints the clap help text listing `--rpc-url`, `--svc-priv-path`, `--service-suri`, `--log`.
 
-Then run: `cargo run -p ppview-chain-service`
-Expected: emits a single `ppview-chain-service starting` log line, then `scaffold only`, then exits 0.
+Then run: `cargo run -p ppview-content-unlock-service`
+Expected: emits a single `ppview-content-unlock-service starting` log line, then `scaffold only`, then exits 0.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add Cargo.toml blockchain/chain-service/
-git commit -m "feat(chain-service): scaffold binary crate + CLI args"
+git add Cargo.toml offchain/content-unlock-service/
+git commit -m "feat(content-unlock-service): scaffold binary crate + CLI args"
 ```
 
 ---
@@ -211,9 +211,9 @@ git commit -m "feat(chain-service): scaffold binary crate + CLI args"
 Load the x25519 secret from `keys/svc_priv.pem` (PKCS#8 PEM, as written by `scripts/gen-service-key.sh`) and return a `crypto_box::SecretKey`. This is the only path `SVC_PRIV` enters the process — keep the surface tiny and well-tested.
 
 **Files:**
-- Create: `blockchain/chain-service/src/keys.rs`
-- Create: `blockchain/chain-service/tests/fixtures/svc_priv_sample.pem` (generated once by openssl; committed)
-- Modify: `blockchain/chain-service/src/main.rs` (add `mod keys;`)
+- Create: `offchain/content-unlock-service/src/keys.rs`
+- Create: `offchain/content-unlock-service/tests/fixtures/svc_priv_sample.pem` (generated once by openssl; committed)
+- Modify: `offchain/content-unlock-service/src/main.rs` (add `mod keys;`)
 
 - [ ] **Step 1: Generate a deterministic fixture**
 
@@ -221,14 +221,14 @@ Run (locally, one-off — output is checked in so tests don't need openssl):
 
 ```bash
 openssl genpkey -algorithm X25519 \
-  -out blockchain/chain-service/tests/fixtures/svc_priv_sample.pem
-openssl pkey -in blockchain/chain-service/tests/fixtures/svc_priv_sample.pem \
+  -out offchain/content-unlock-service/tests/fixtures/svc_priv_sample.pem
+openssl pkey -in offchain/content-unlock-service/tests/fixtures/svc_priv_sample.pem \
   -pubout -outform DER | tail -c 32 | xxd -p -c 32
 ```
 
 Record the 32-byte hex output — you'll paste it into the test in Step 2 as the expected public-key. (The private key bytes themselves should NOT be logged or committed anywhere outside the fixture file.)
 
-Create `blockchain/chain-service/tests/fixtures/.gitattributes` with:
+Create `offchain/content-unlock-service/tests/fixtures/.gitattributes` with:
 
 ```
 svc_priv_sample.pem text eol=lf
@@ -236,10 +236,10 @@ svc_priv_sample.pem text eol=lf
 
 - [ ] **Step 2: Write the failing test**
 
-Create `blockchain/chain-service/tests/keys.rs`:
+Create `offchain/content-unlock-service/tests/keys.rs`:
 
 ```rust
-use ppview_chain_service::keys::load_svc_priv;
+use ppview_content_unlock_service::keys::load_svc_priv;
 use std::path::Path;
 
 #[test]
@@ -271,12 +271,12 @@ fn load_svc_priv_rejects_non_x25519_pem() {
 }
 ```
 
-For this to work, `lib.rs` must exist and expose `keys` as a public module. Subtask: flip `chain-service` into a "binary + library" crate.
+For this to work, `lib.rs` must exist and expose `keys` as a public module. Subtask: flip `content-unlock-service` into a "binary + library" crate.
 
-Create `blockchain/chain-service/src/lib.rs`:
+Create `offchain/content-unlock-service/src/lib.rs`:
 
 ```rust
-//! Library surface for `ppview-chain-service`. Exposing modules here lets the
+//! Library surface for `ppview-content-unlock-service`. Exposing modules here lets the
 //! integration tests under `tests/` exercise them without going through `main`.
 pub mod chain;
 pub mod cli;
@@ -291,28 +291,28 @@ Each module is created in the task that introduces it; Task 2 is the first to po
 ```bash
 for f in chain crypto handler reconcile; do
   echo "// placeholder; populated in a later task" \
-    > blockchain/chain-service/src/${f}.rs
+    > offchain/content-unlock-service/src/${f}.rs
 done
 ```
 
 (`cli.rs` was created in Task 1; `keys.rs` is created in Step 4 below.)
 
-Update `blockchain/chain-service/Cargo.toml`, add above `[[bin]]`:
+Update `offchain/content-unlock-service/Cargo.toml`, add above `[[bin]]`:
 
 ```toml
 [lib]
-name = "ppview_chain_service"
+name = "ppview_content_unlock_service"
 path = "src/lib.rs"
 ```
 
 - [ ] **Step 3: Run test — expect failure**
 
-Run: `cargo test -p ppview-chain-service --test keys`
+Run: `cargo test -p ppview-content-unlock-service --test keys`
 Expected: FAIL — `load_svc_priv` not defined.
 
 - [ ] **Step 4: Implement `keys.rs`**
 
-Create `blockchain/chain-service/src/keys.rs`:
+Create `offchain/content-unlock-service/src/keys.rs`:
 
 ```rust
 use anyhow::{anyhow, Context, Result};
@@ -380,24 +380,24 @@ Also add `pub mod keys;` in `src/main.rs` below the existing `mod cli;` so `main
 
 - [ ] **Step 5: Run the tests**
 
-Run: `cargo test -p ppview-chain-service --test keys`
+Run: `cargo test -p ppview-content-unlock-service --test keys`
 Expected: all three PASS. If `load_svc_priv_reads_pkcs8_pem_and_derives_pubkey` fails with a 34-vs-32 byte mismatch, the `match` arms in `load_svc_priv` cover both variants — re-run `openssl pkey -in <fixture> -noout -text` locally to inspect which shape your openssl version produced, and if neither matches, widen the match.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add blockchain/chain-service/Cargo.toml \
-        blockchain/chain-service/src/lib.rs \
-        blockchain/chain-service/src/main.rs \
-        blockchain/chain-service/src/keys.rs \
-        blockchain/chain-service/src/chain.rs \
-        blockchain/chain-service/src/crypto.rs \
-        blockchain/chain-service/src/handler.rs \
-        blockchain/chain-service/src/reconcile.rs \
-        blockchain/chain-service/tests/keys.rs \
-        blockchain/chain-service/tests/fixtures/svc_priv_sample.pem \
-        blockchain/chain-service/tests/fixtures/.gitattributes
-git commit -m "feat(chain-service): load SVC_PRIV from PKCS#8 PEM"
+git add offchain/content-unlock-service/Cargo.toml \
+        offchain/content-unlock-service/src/lib.rs \
+        offchain/content-unlock-service/src/main.rs \
+        offchain/content-unlock-service/src/keys.rs \
+        offchain/content-unlock-service/src/chain.rs \
+        offchain/content-unlock-service/src/crypto.rs \
+        offchain/content-unlock-service/src/handler.rs \
+        offchain/content-unlock-service/src/reconcile.rs \
+        offchain/content-unlock-service/tests/keys.rs \
+        offchain/content-unlock-service/tests/fixtures/svc_priv_sample.pem \
+        offchain/content-unlock-service/tests/fixtures/.gitattributes
+git commit -m "feat(content-unlock-service): load SVC_PRIV from PKCS#8 PEM"
 ```
 
 ---
@@ -407,16 +407,16 @@ git commit -m "feat(chain-service): load SVC_PRIV from PKCS#8 PEM"
 The daemon's sole cryptographic operation: unseal an 80-byte `locked_content_lock_key` to a 32-byte plaintext content-lock-key, then re-seal that plaintext to the target's x25519 pubkey. Roundtrip tests prove the wire format stays libsodium-compatible with the browser.
 
 **Files:**
-- Modify: `blockchain/chain-service/src/crypto.rs` (replace placeholder with real impl)
-- Create: `blockchain/chain-service/tests/crypto.rs`
+- Modify: `offchain/content-unlock-service/src/crypto.rs` (replace placeholder with real impl)
+- Create: `offchain/content-unlock-service/tests/crypto.rs`
 
 - [ ] **Step 1: Write the failing roundtrip test**
 
-Create `blockchain/chain-service/tests/crypto.rs`:
+Create `offchain/content-unlock-service/tests/crypto.rs`:
 
 ```rust
 use crypto_box::{PublicKey, SecretKey};
-use ppview_chain_service::crypto::{seal_to, unseal_from};
+use ppview_content_unlock_service::crypto::{seal_to, unseal_from};
 
 #[test]
 fn seal_unseal_roundtrip() {
@@ -450,12 +450,12 @@ fn unseal_rejects_wrong_length_input() {
 
 - [ ] **Step 2: Run — expect failure**
 
-Run: `cargo test -p ppview-chain-service --test crypto`
+Run: `cargo test -p ppview-content-unlock-service --test crypto`
 Expected: FAIL — `seal_to` and `unseal_from` not defined.
 
 - [ ] **Step 3: Implement `crypto.rs`**
 
-Replace `blockchain/chain-service/src/crypto.rs` with:
+Replace `offchain/content-unlock-service/src/crypto.rs` with:
 
 ```rust
 //! NaCl sealed-box wrappers. Wire format: 32-byte ephemeral pubkey ‖
@@ -510,15 +510,15 @@ If `crypto_box::seal` / `crypto_box::seal_open` are not in scope under those pat
 
 - [ ] **Step 4: Run tests**
 
-Run: `cargo test -p ppview-chain-service --test crypto`
+Run: `cargo test -p ppview-content-unlock-service --test crypto`
 Expected: all three PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add blockchain/chain-service/src/crypto.rs \
-        blockchain/chain-service/tests/crypto.rs
-git commit -m "feat(chain-service): sealed-box seal/unseal (80-byte wire format)"
+git add offchain/content-unlock-service/src/crypto.rs \
+        offchain/content-unlock-service/tests/crypto.rs
+git commit -m "feat(content-unlock-service): sealed-box seal/unseal (80-byte wire format)"
 ```
 
 ---
@@ -528,12 +528,12 @@ git commit -m "feat(chain-service): sealed-box seal/unseal (80-byte wire format)
 Encapsulate all subxt interactions in one module. Storage reads are dynamic (match `stack-cli`'s pattern in `cli/src/commands/pallet.rs`) — no metadata codegen, no type generation step. Three readers are needed: `Listings[id]` → `locked_content_lock_key`, `EncryptionKeys[target]` → optional 32-byte pubkey, `WrappedKeys[(target, id)]` → optional 80 bytes (used later for idempotency).
 
 **Files:**
-- Modify: `blockchain/chain-service/src/chain.rs`
-- Create: `blockchain/chain-service/tests/chain_unit.rs` (type-shape smoke tests; real network tests live in the Zombienet smoke)
+- Modify: `offchain/content-unlock-service/src/chain.rs`
+- Create: `offchain/content-unlock-service/tests/chain_unit.rs` (type-shape smoke tests; real network tests live in the Zombienet smoke)
 
 - [ ] **Step 1: Implement the chain facade**
 
-Replace `blockchain/chain-service/src/chain.rs` with:
+Replace `offchain/content-unlock-service/src/chain.rs` with:
 
 ```rust
 use anyhow::{anyhow, Context, Result};
@@ -735,10 +735,10 @@ fn _legacy_rpc_placeholder<C>(_: LegacyRpcMethods<C>) {}
 
 - [ ] **Step 2: Write type-shape smoke tests**
 
-Create `blockchain/chain-service/tests/chain_unit.rs`:
+Create `offchain/content-unlock-service/tests/chain_unit.rs`:
 
 ```rust
-use ppview_chain_service::chain::signer_from_suri;
+use ppview_content_unlock_service::chain::signer_from_suri;
 
 #[test]
 fn signer_from_suri_accepts_dev_account() {
@@ -757,18 +757,18 @@ Storage-fetch tests require a running node and are covered by the Zombienet smok
 
 - [ ] **Step 3: Build and run**
 
-Run: `cargo test -p ppview-chain-service --test chain_unit`
+Run: `cargo test -p ppview-content-unlock-service --test chain_unit`
 Expected: both tests PASS.
 
-Also run: `cargo build -p ppview-chain-service`
+Also run: `cargo build -p ppview-content-unlock-service`
 Expected: OK. If `subxt::dynamic::Value::u128` does not accept a `u128` directly, swap to `Value::primitive_u128(...)` — confirm against `cargo doc -p subxt --open`. Similarly, if `Value::from_bytes` expects `&[u8]` instead of `[u8; 32]`, adjust the `AccountId32.0` to `&target.0`.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add blockchain/chain-service/src/chain.rs \
-        blockchain/chain-service/tests/chain_unit.rs
-git commit -m "feat(chain-service): chain facade — readers + grant_access submission"
+git add offchain/content-unlock-service/src/chain.rs \
+        offchain/content-unlock-service/tests/chain_unit.rs
+git commit -m "feat(content-unlock-service): chain facade — readers + grant_access submission"
 ```
 
 ---
@@ -778,12 +778,12 @@ git commit -m "feat(chain-service): chain facade — readers + grant_access subm
 Compose the crypto module and chain facade into one function that, given an event target pair, wraps the content-lock-key and submits `grant_access`. Idempotent: if `WrappedKeys[(target, listing_id)]` already exists, return early.
 
 **Files:**
-- Modify: `blockchain/chain-service/src/handler.rs`
-- Modify: `blockchain/chain-service/tests/crypto.rs` (unchanged — keep focused) or create a new integration test file if you want — this task's primary validation lives in the Zombienet smoke
+- Modify: `offchain/content-unlock-service/src/handler.rs`
+- Modify: `offchain/content-unlock-service/tests/crypto.rs` (unchanged — keep focused) or create a new integration test file if you want — this task's primary validation lives in the Zombienet smoke
 
 - [ ] **Step 1: Implement the handler**
 
-Replace `blockchain/chain-service/src/handler.rs` with:
+Replace `offchain/content-unlock-service/src/handler.rs` with:
 
 ```rust
 use anyhow::{anyhow, Context, Result};
@@ -859,14 +859,14 @@ pub async fn wrap_and_grant(
 
 - [ ] **Step 2: Build**
 
-Run: `cargo build -p ppview-chain-service`
+Run: `cargo build -p ppview-content-unlock-service`
 Expected: OK. If `SecretKey` is not in scope (`crypto_box` re-exports it), import `crypto_box::SecretKey` explicitly — already done in the snippet.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add blockchain/chain-service/src/handler.rs
-git commit -m "feat(chain-service): wrap_and_grant handler (idempotent)"
+git add offchain/content-unlock-service/src/handler.rs
+git commit -m "feat(content-unlock-service): wrap_and_grant handler (idempotent)"
 ```
 
 ---
@@ -876,11 +876,11 @@ git commit -m "feat(chain-service): wrap_and_grant handler (idempotent)"
 Subscribe to `ContentRegistry::PurchaseCompleted` and `ContentRegistry::ListingCreated` events on the finalized block stream. For each decoded event, emit a `(listing_id, target, TargetKind)` tuple. This task wires the subscription and the decoder; Task 7 plugs the handler in.
 
 **Files:**
-- Modify: `blockchain/chain-service/src/chain.rs` (add `stream_events`)
+- Modify: `offchain/content-unlock-service/src/chain.rs` (add `stream_events`)
 
 - [ ] **Step 1: Extend `chain.rs`**
 
-Append to `blockchain/chain-service/src/chain.rs`:
+Append to `offchain/content-unlock-service/src/chain.rs`:
 
 ```rust
 use futures::{Stream, StreamExt};
@@ -970,21 +970,21 @@ fn account_from_bytes(bytes: &[u8]) -> Option<AccountId32> {
 }
 ```
 
-Add `async-stream = "0.3"` to workspace deps in `Cargo.toml` and reference it in the chain-service crate's `[dependencies]`.
+Add `async-stream = "0.3"` to workspace deps in `Cargo.toml` and reference it in the content-unlock-service crate's `[dependencies]`.
 
 If `field_values()` / `.at()` do not exist on `EventDetails` in subxt `0.38`, the fallback is `evt.as_root_event::<subxt::dynamic::DecodedValueThunk>()?.to_value()?` which returns the same composite shape — update the two decoders to navigate the composite directly (`value.at("listing_id")` on the decoded `Value`).
 
 - [ ] **Step 2: Build**
 
-Run: `cargo build -p ppview-chain-service`
+Run: `cargo build -p ppview-content-unlock-service`
 Expected: OK.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add Cargo.toml blockchain/chain-service/Cargo.toml \
-        blockchain/chain-service/src/chain.rs
-git commit -m "feat(chain-service): finalized event stream (Purchase + ListingCreated)"
+git add Cargo.toml offchain/content-unlock-service/Cargo.toml \
+        offchain/content-unlock-service/src/chain.rs
+git commit -m "feat(content-unlock-service): finalized event stream (Purchase + ListingCreated)"
 ```
 
 ---
@@ -997,11 +997,11 @@ Before entering the live stream, walk `Listings` + `Purchases` on the current fi
 - Daemon restart after downtime — catches events missed while offline without a persisted cursor.
 
 **Files:**
-- Modify: `blockchain/chain-service/src/reconcile.rs`
+- Modify: `offchain/content-unlock-service/src/reconcile.rs`
 
 - [ ] **Step 1: Implement reconciliation**
 
-Replace `blockchain/chain-service/src/reconcile.rs` with:
+Replace `offchain/content-unlock-service/src/reconcile.rs` with:
 
 ```rust
 use anyhow::{Context, Result};
@@ -1118,15 +1118,15 @@ If `subxt::dynamic::storage_iter` is not the correct entry point in subxt `0.38`
 
 - [ ] **Step 2: Build**
 
-Run: `cargo build -p ppview-chain-service`
+Run: `cargo build -p ppview-content-unlock-service`
 Expected: OK. If `storage_iter` does not exist, apply the fallback noted above and re-run.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add blockchain/chain-service/src/reconcile.rs \
-        blockchain/chain-service/src/chain.rs
-git commit -m "feat(chain-service): startup reconciliation over Listings + Purchases"
+git add offchain/content-unlock-service/src/reconcile.rs \
+        offchain/content-unlock-service/src/chain.rs
+git commit -m "feat(content-unlock-service): startup reconciliation over Listings + Purchases"
 ```
 
 ---
@@ -1136,11 +1136,11 @@ git commit -m "feat(chain-service): startup reconciliation over Listings + Purch
 Wire everything into `main.rs`. Connect → load keys → backfill → consume event stream until signal.
 
 **Files:**
-- Modify: `blockchain/chain-service/src/main.rs`
+- Modify: `offchain/content-unlock-service/src/main.rs`
 
 - [ ] **Step 1: Replace `main.rs`**
 
-Replace `blockchain/chain-service/src/main.rs` with:
+Replace `offchain/content-unlock-service/src/main.rs` with:
 
 ```rust
 use anyhow::{Context, Result};
@@ -1148,11 +1148,11 @@ use clap::Parser;
 use futures::StreamExt;
 use tracing::{error, info};
 
-use ppview_chain_service::chain::{signer_from_suri, stream_events, Chain};
-use ppview_chain_service::cli::Args;
-use ppview_chain_service::handler::wrap_and_grant;
-use ppview_chain_service::keys::load_svc_priv;
-use ppview_chain_service::reconcile::backfill;
+use ppview_content_unlock_service::chain::{signer_from_suri, stream_events, Chain};
+use ppview_content_unlock_service::cli::Args;
+use ppview_content_unlock_service::handler::wrap_and_grant;
+use ppview_content_unlock_service::keys::load_svc_priv;
+use ppview_content_unlock_service::reconcile::backfill;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -1223,44 +1223,44 @@ async fn main() -> Result<()> {
 
 - [ ] **Step 2: Build the release binary**
 
-Run: `cargo build --release -p ppview-chain-service`
-Expected: OK. The binary lives at `target/release/ppview-chain-service`.
+Run: `cargo build --release -p ppview-content-unlock-service`
+Expected: OK. The binary lives at `target/release/ppview-content-unlock-service`.
 
 - [ ] **Step 3: Smoke with `--help` and against a dead RPC**
 
-Run: `./target/release/ppview-chain-service --help`
+Run: `./target/release/ppview-content-unlock-service --help`
 Expected: full CLI help prints.
 
-Run: `./target/release/ppview-chain-service --rpc-url ws://127.0.0.1:1 --svc-priv-path /tmp/nonexistent.pem`
+Run: `./target/release/ppview-content-unlock-service --rpc-url ws://127.0.0.1:1 --svc-priv-path /tmp/nonexistent.pem`
 Expected: exits non-zero with a chained error starting at `loading SVC_PRIV from /tmp/nonexistent.pem` — proves both the path plumbing and the error plumbing work without standing up a chain.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add blockchain/chain-service/src/main.rs
-git commit -m "feat(chain-service): main loop — backfill + finalized event stream"
+git add offchain/content-unlock-service/src/main.rs
+git commit -m "feat(content-unlock-service): main loop — backfill + finalized event stream"
 ```
 
 ---
 
-## Task 9 — `start-chain-service.sh` helper + crate README
+## Task 9 — `start-content-unlock-service.sh` helper + crate README
 
 Operator ergonomics: a one-liner that runs the daemon against the locally running Zombienet with sensible defaults, plus a short runbook.
 
 **Files:**
-- Create: `scripts/start-chain-service.sh`
-- Create: `blockchain/chain-service/README.md`
+- Create: `scripts/start-content-unlock-service.sh`
+- Create: `offchain/content-unlock-service/README.md`
 - Modify: `scripts/README.md` (one new table row)
 
-- [ ] **Step 1: Write `scripts/start-chain-service.sh`**
+- [ ] **Step 1: Write `scripts/start-content-unlock-service.sh`**
 
-Create `scripts/start-chain-service.sh`:
+Create `scripts/start-content-unlock-service.sh`:
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Start the ppview chain-service daemon against a locally running Zombienet.
+# Start the ppview content-unlock-service daemon against a locally running Zombienet.
 # Assumes:
 #   - the parachain is reachable at ws://127.0.0.1:9944 (default; override via
 #     STACK_SUBSTRATE_RPC_PORT, matching the pattern in scripts/start-all.sh);
@@ -1285,8 +1285,8 @@ fi
 LOG_FILTER="${PPVIEW_LOG:-info}"
 SURI="${PPVIEW_SERVICE_SURI:-//Dave}"
 
-echo "Starting ppview-chain-service against $RPC_URL (signer=$SURI)..."
-exec cargo run --release -p ppview-chain-service -- \
+echo "Starting ppview-content-unlock-service against $RPC_URL (signer=$SURI)..."
+exec cargo run --release -p ppview-content-unlock-service -- \
   --rpc-url "$RPC_URL" \
   --svc-priv-path "$KEY_FILE" \
   --service-suri "$SURI" \
@@ -1296,17 +1296,17 @@ exec cargo run --release -p ppview-chain-service -- \
 Mark executable:
 
 ```bash
-chmod +x scripts/start-chain-service.sh
+chmod +x scripts/start-content-unlock-service.sh
 ```
 
 If `scripts/common.sh` does not export `resolve_ports` (check with `grep -n resolve_ports scripts/common.sh`), inline the port-resolution logic instead: `STACK_SUBSTRATE_RPC_PORT="${STACK_SUBSTRATE_RPC_PORT:-$((9944 + ${STACK_PORT_OFFSET:-0}))}"`.
 
-- [ ] **Step 2: Write `blockchain/chain-service/README.md`**
+- [ ] **Step 2: Write `offchain/content-unlock-service/README.md`**
 
-Create `blockchain/chain-service/README.md`:
+Create `offchain/content-unlock-service/README.md`:
 
 ```markdown
-# ppview-chain-service
+# ppview-content-unlock-service
 
 Trusted off-chain daemon that wraps content-lock-keys for buyers and creators on ppview's parachain. See `docs/design/spec.md` §5 for the full flow and `docs/why-not-ocw.md` for why this lives outside the runtime.
 
@@ -1335,7 +1335,7 @@ At startup it runs a reconciliation scan over all existing listings and purchase
 1. Generate the keypair once: `scripts/gen-service-key.sh`.
 2. Paste the printed `SERVICE_PUBLIC_KEY` array into `blockchain/runtime/src/genesis_config_presets.rs`.
 3. Start the chain: `scripts/start-all.sh`.
-4. Start the daemon (new terminal): `scripts/start-chain-service.sh`.
+4. Start the daemon (new terminal): `scripts/start-content-unlock-service.sh`.
 
 ## Environment variables
 
@@ -1357,18 +1357,18 @@ All CLI flags are env-backed:
 
 - [ ] **Step 3: Extend `scripts/README.md`**
 
-In the table under "Script Guide", insert a new row for `start-chain-service.sh` (keep alphabetical ordering next to the other `start-*` scripts):
+In the table under "Script Guide", insert a new row for `start-content-unlock-service.sh` (keep alphabetical ordering next to the other `start-*` scripts):
 
 ```markdown
-| `start-chain-service.sh` | Runs the `ppview-chain-service` daemon against the local Zombienet chain, loading `keys/svc_priv.pem` and signing `grant_access` as `//Dave`. | Use this after `scripts/start-all.sh` so Phase 2 `WrappedKeys` entries land automatically. |
+| `start-content-unlock-service.sh` | Runs the `ppview-content-unlock-service` daemon against the local Zombienet chain, loading `keys/svc_priv.pem` and signing `grant_access` as `//Dave`. | Use this after `scripts/start-all.sh` so Phase 2 `WrappedKeys` entries land automatically. |
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add scripts/start-chain-service.sh scripts/README.md \
-        blockchain/chain-service/README.md
-git commit -m "chore(chain-service): start-chain-service.sh helper + runbook"
+git add scripts/start-content-unlock-service.sh scripts/README.md \
+        offchain/content-unlock-service/README.md
+git commit -m "chore(content-unlock-service): start-content-unlock-service.sh helper + runbook"
 ```
 
 ---
@@ -1390,14 +1390,14 @@ Append a new phase after the last existing one:
 
 ```bash
 # -----------------------------------------------------------------------
-# Phase 2b — chain-service daemon: purchase triggers grant_access
+# Phase 2b — content-unlock-service daemon: purchase triggers grant_access
 # -----------------------------------------------------------------------
 echo "[N/N] Phase 2b — daemon observes PurchaseCompleted and writes WrappedKeys..."
 
 # Start the daemon in the background.
-DAEMON_LOG="$(mktemp -t ppview-chain-service.XXXXXX.log)"
-PPVIEW_LOG=ppview_chain_service=debug \
-  ./target/release/ppview-chain-service \
+DAEMON_LOG="$(mktemp -t ppview-content-unlock-service.XXXXXX.log)"
+PPVIEW_LOG=ppview_content_unlock_service=debug \
+  ./target/release/ppview-content-unlock-service \
     --rpc-url "$RPC_URL" \
     --svc-priv-path ./keys/svc_priv.pem \
     --service-suri //Dave \
@@ -1446,7 +1446,7 @@ tail -n 40 "$DAEMON_LOG"
 ```
 
 Important placeholders the user must tune for their local `stack-cli` version:
-- `content-registry create-listing` / `register-encryption-key` / `purchase` / `query content-registry *` subcommand names and flag shapes. If the template doesn't expose them, run the assertions directly via `subxt::dynamic::storage` from a tiny helper binary (`blockchain/chain-service/examples/p2b-smoke.rs`) instead of via the CLI; the `bash -c` wrappers above become `cargo run --release -p ppview-chain-service --example p2b-smoke ...`.
+- `content-registry create-listing` / `register-encryption-key` / `purchase` / `query content-registry *` subcommand names and flag shapes. If the template doesn't expose them, run the assertions directly via `subxt::dynamic::storage` from a tiny helper binary (`offchain/content-unlock-service/examples/p2b-smoke.rs`) instead of via the CLI; the `bash -c` wrappers above become `cargo run --release -p ppview-content-unlock-service --example p2b-smoke ...`.
 
 - [ ] **Step 3: Run the smoke end-to-end**
 
@@ -1470,12 +1470,12 @@ Add the P2b task list so the scoreboard reflects the plan. Per user convention, 
 **Files:**
 - Modify: `docs/progress.md`
 
-- [ ] **Step 1: Replace the `P2b — Chain-service daemon` block**
+- [ ] **Step 1: Replace the `P2b — Content-unlock-service daemon` block**
 
 Edit `docs/progress.md`. Replace:
 
 ```markdown
-### P2b — Chain-service daemon
+### P2b — Content-unlock-service daemon
 
 Plan: _not written yet_
 ```
@@ -1483,11 +1483,11 @@ Plan: _not written yet_
 with:
 
 ```markdown
-### P2b — Chain-service daemon
+### P2b — Content-unlock-service daemon
 
-Plan: [`docs/plans/P2b-chain-service.md`](./plans/P2b-chain-service.md)
+Plan: [`docs/plans/P2b-content-unlock-service.md`](./plans/P2b-content-unlock-service.md)
 
-- [ ] Task 1: Scaffold chain-service crate + workspace wiring
+- [ ] Task 1: Scaffold content-unlock-service crate + workspace wiring
 - [ ] Task 2: Load SVC_PRIV from PKCS#8 PEM
 - [ ] Task 3: NaCl sealed-box seal/unseal (80-byte wire format)
 - [ ] Task 4: Chain facade — readers + grant_access submission
@@ -1495,7 +1495,7 @@ Plan: [`docs/plans/P2b-chain-service.md`](./plans/P2b-chain-service.md)
 - [ ] Task 6: Finalized event stream (PurchaseCompleted + ListingCreated)
 - [ ] Task 7: Startup reconciliation over Listings + Purchases
 - [ ] Task 8: Main loop — backfill + live stream + SIGINT
-- [ ] Task 9: start-chain-service.sh helper + crate README
+- [ ] Task 9: start-content-unlock-service.sh helper + crate README
 - [ ] Task 10: Zombienet E2E — daemon grants access on purchase
 ```
 
@@ -1508,14 +1508,14 @@ Per the user convention (see the header of this plan), `docs/progress.md` commit
 ## Execution notes
 
 - **Direct to main.** Each task commit goes straight to `main` — no branches, no worktrees, no PRs.
-- **User validates before `[x]`.** After each code commit lands, surface a short validation prompt (typically `cargo test -p ppview-chain-service && cargo build --release -p ppview-chain-service` for the pallet-independent tasks, and for Task 10 the full `scripts/test-zombienet.sh`). Do not tick `docs/progress.md` yourself.
-- **Rebuild cost.** The first build against subxt + crypto_box pulls in ~400 crates; budget 3–5 min on a cold cache. Subsequent tasks recompile only the chain-service crate and are sub-minute.
-- **Failure recovery.** If the daemon behaves unexpectedly against Zombienet, try (in order): (1) tail `DAEMON_LOG` for the `wrap_and_grant failed` line and its chained `context` trail; (2) run with `PPVIEW_LOG=ppview_chain_service=debug`; (3) inspect on-chain storage with `stack-cli query content-registry wrapped-keys --account //<signer> --listing-id <id>`; (4) restart the daemon — the reconciliation pass will retry any failed grants idempotently.
+- **User validates before `[x]`.** After each code commit lands, surface a short validation prompt (typically `cargo test -p ppview-content-unlock-service && cargo build --release -p ppview-content-unlock-service` for the pallet-independent tasks, and for Task 10 the full `scripts/test-zombienet.sh`). Do not tick `docs/progress.md` yourself.
+- **Rebuild cost.** The first build against subxt + crypto_box pulls in ~400 crates; budget 3–5 min on a cold cache. Subsequent tasks recompile only the content-unlock-service crate and are sub-minute.
+- **Failure recovery.** If the daemon behaves unexpectedly against Zombienet, try (in order): (1) tail `DAEMON_LOG` for the `wrap_and_grant failed` line and its chained `context` trail; (2) run with `PPVIEW_LOG=ppview_content_unlock_service=debug`; (3) inspect on-chain storage with `stack-cli query content-registry wrapped-keys --account //<signer> --listing-id <id>`; (4) restart the daemon — the reconciliation pass will retry any failed grants idempotently.
 - **Security posture.** `keys/svc_priv.pem` is `chmod 600` and inside the gitignored `keys/` directory. Confirm with `ls -la keys/` before any demo. The binary does not log the private key under any log level (the only crypto call site logs the public key derived from it).
 
 ## Self-Review
 
-**Spec coverage.** Every mandatory piece of the chain-service grant flow (spec §5 "Chain-service grant flow") maps to a task:
+**Spec coverage.** Every mandatory piece of the content-unlock-service grant flow (spec §5 "Content-unlock-service grant flow") maps to a task:
 - Subscribe to `PurchaseCompleted` + `ListingCreated` → Task 6.
 - Read `Listings[listing_id].locked_content_lock_key` + `EncryptionKeys[target]` → Task 4 (readers), Task 5 (consumed).
 - Unseal with `SVC_PRIV` → Task 3.

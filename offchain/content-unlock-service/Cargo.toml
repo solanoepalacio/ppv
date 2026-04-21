@@ -1,5 +1,5 @@
 [package]
-name = "ppview-chain-service"
+name = "ppview-content-unlock-service"
 description = "Trusted off-chain daemon that wraps content-lock-keys for buyers and creators on ppview's parachain."
 version = "0.1.0"
 license.workspace = true
@@ -8,11 +8,11 @@ edition.workspace = true
 publish = false
 
 [lib]
-name = "ppview_chain_service"
+name = "ppview_content_unlock_service"
 path = "src/lib.rs"
 
 [[bin]]
-name = "ppview-chain-service"
+name = "ppview-content-unlock-service"
 path = "src/main.rs"
 
 [dependencies]
