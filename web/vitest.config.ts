@@ -15,11 +15,8 @@ const libsodiumCjs = fileURLToPath(
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}'],
-    environmentMatchGlobs: [
-      ['src/**/*.test.tsx', 'jsdom'],
-    ],
+    environment: 'jsdom',
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     setupFiles: ['src/test-setup.ts'],
     alias: {
       'libsodium-wrappers': libsodiumCjs,

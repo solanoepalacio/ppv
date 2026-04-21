@@ -1,3 +1,9 @@
+// @vitest-environment node
+// blakejs' `normalizeInput` checks `input instanceof Uint8Array` against the
+// Node realm's Uint8Array. Under jsdom, `TextEncoder().encode(...)` and
+// `new Uint8Array(...)` return instances from the jsdom realm, so the check
+// fails with "Input must be an string, Buffer or Uint8Array". Pin this test
+// file to the node environment to keep the realms aligned.
 import { describe, test, expect } from 'vitest';
 import { blake2b } from 'blakejs';
 import { verifyContentHash } from './contentHash';
