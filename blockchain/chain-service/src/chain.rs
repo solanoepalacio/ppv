@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Context, Result};
+use futures::Stream;
 use subxt::{
     backend::legacy::LegacyRpcMethods,
     dynamic::{At, Value},
@@ -6,6 +7,8 @@ use subxt::{
     OnlineClient, PolkadotConfig,
 };
 use subxt_signer::sr25519::Keypair as Sr25519Keypair;
+
+use crate::handler::TargetKind;
 
 pub type AccountId32 = subxt::utils::AccountId32;
 
@@ -192,3 +195,85 @@ pub fn signer_from_suri(suri: &str) -> Result<Sr25519Keypair> {
 // needs it directly; remove if it stays unused.
 #[allow(dead_code)]
 fn _legacy_rpc_placeholder<C>(_: LegacyRpcMethods<C>) {}
+
+/// Event the daemon acts on. `target` is the account whose x25519 pubkey the
+/// content-lock-key should be re-sealed to.
+#[derive(Debug, Clone)]
+pub struct GrantTrigger {
+    pub listing_id: u64,
+    pub target: AccountId32,
+    pub kind: TargetKind,
+}
+
+/// Subscribe to finalized blocks and yield one `GrantTrigger` per matching
+/// event. Errors inside the stream short-circuit it — the main loop should
+/// restart from connect on a stream error (see Task 8).
+pub fn stream_events(chain: Chain) -> impl Stream<Item = Result<GrantTrigger>> + Send + 'static {
+    async_stream::try_stream! {
+        let mut blocks = chain.inner().blocks().subscribe_finalized().await?;
+        while let Some(block) = blocks.next().await {
+            let block = block?;
+            let events = block.events().await?;
+            for evt in events.iter() {
+                let evt = evt?;
+                if evt.pallet_name() != PALLET { continue; }
+                match evt.variant_name() {
+                    "PurchaseCompleted" => {
+                        let trigger = decode_purchase_completed(&evt)?;
+                        yield trigger;
+                    }
+                    "ListingCreated" => {
+                        let trigger = decode_listing_created(&evt)?;
+                        yield trigger;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+}
+
+fn decode_purchase_completed(
+    evt: &subxt::events::EventDetails<PolkadotConfig>,
+) -> Result<GrantTrigger> {
+    let fields = evt
+        .field_values()
+        .context("decoding PurchaseCompleted fields")?;
+    let listing_id = fields
+        .at("listing_id")
+        .and_then(|v| v.as_u128())
+        .ok_or_else(|| anyhow!("PurchaseCompleted: missing listing_id"))? as u64;
+    let buyer_bytes = fields
+        .at("buyer")
+        .and_then(value_to_bytes)
+        .ok_or_else(|| anyhow!("PurchaseCompleted: missing buyer"))?;
+    let target = account_from_bytes(&buyer_bytes)
+        .ok_or_else(|| anyhow!("PurchaseCompleted: buyer bytes length {}", buyer_bytes.len()))?;
+    Ok(GrantTrigger { listing_id, target, kind: TargetKind::Buyer })
+}
+
+fn decode_listing_created(
+    evt: &subxt::events::EventDetails<PolkadotConfig>,
+) -> Result<GrantTrigger> {
+    let fields = evt
+        .field_values()
+        .context("decoding ListingCreated fields")?;
+    let listing_id = fields
+        .at("listing_id")
+        .and_then(|v| v.as_u128())
+        .ok_or_else(|| anyhow!("ListingCreated: missing listing_id"))? as u64;
+    let creator_bytes = fields
+        .at("creator")
+        .and_then(value_to_bytes)
+        .ok_or_else(|| anyhow!("ListingCreated: missing creator"))?;
+    let target = account_from_bytes(&creator_bytes)
+        .ok_or_else(|| anyhow!("ListingCreated: creator bytes length {}", creator_bytes.len()))?;
+    Ok(GrantTrigger { listing_id, target, kind: TargetKind::Creator })
+}
+
+fn account_from_bytes(bytes: &[u8]) -> Option<AccountId32> {
+    if bytes.len() != 32 { return None; }
+    let mut a = [0u8; 32];
+    a.copy_from_slice(bytes);
+    Some(subxt::utils::AccountId32(a))
+}

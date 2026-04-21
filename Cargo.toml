@@ -57,6 +57,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 futures = "0.3"
 hex = "0.4"
+async-stream = "0.3"
 
 # Patch pallet-revive-proc-macro to 0.7.1 from polkadot-sdk stable2512-3.
 # Version 0.7.2 on crates.io has a compilation bug with #[stable] host function attributes.
