@@ -1,6 +1,11 @@
 import { describe, test, expect, vi, afterEach } from 'vitest';
 import { MockBulletinClient } from '@parity/bulletin-sdk';
 
+vi.mock('./signerManager', () => ({
+  getUserSigner: vi.fn(),
+  getUserAddress: vi.fn(),
+}));
+
 import { fetchFromIpfs, uploadToBulletin } from './useBulletinUpload';
 import type { BulletinCidFields } from './useContentRegistry';
 
@@ -178,5 +183,31 @@ describe('uploadToBulletin', () => {
     await expect(uploadToBulletin(bytes, undefined, ctx)).rejects.toThrow();
 
     expect(ctx.userClient.getOperations().some((op) => op.type === 'store')).toBe(false);
+  });
+});
+
+// ── user client address invalidation ─────────────────────────────────────────
+
+describe('user client address invalidation', () => {
+  test('rebuilds user client when selected address changes', async () => {
+    const { _resetUserClientForTests, getUserClientForTests } = await import('./useBulletinUpload');
+    // First address
+    const signerA = { publicKey: new Uint8Array([1]) };
+    const getUserSigner = (await import('./signerManager')).getUserSigner as ReturnType<typeof vi.fn>;
+    const getUserAddress = (await import('./signerManager')).getUserAddress as ReturnType<typeof vi.fn>;
+    getUserSigner.mockReturnValue(signerA);
+    getUserAddress.mockReturnValue('5AAAA');
+    const first = getUserClientForTests();
+    const firstAgain = getUserClientForTests();
+    expect(first).toBe(firstAgain); // same address → cached
+
+    // Address changes → rebuild
+    const signerB = { publicKey: new Uint8Array([2]) };
+    getUserSigner.mockReturnValue(signerB);
+    getUserAddress.mockReturnValue('5BBBB');
+    const second = getUserClientForTests();
+    expect(second).not.toBe(first);
+
+    _resetUserClientForTests();
   });
 });

@@ -25,7 +25,7 @@ export const AUTH_BYTES = 100n * 1024n * 1024n;
 
 let _bulletinPapiClient: PolkadotClient | null = null;
 let _aliceClient: AsyncBulletinClient | null = null;
-let _userClient: AsyncBulletinClient | null = null;
+let _userClient: { address: string; client: AsyncBulletinClient } | null = null;
 
 function getPapiClient(): PolkadotClient {
 	if (!_bulletinPapiClient) {
@@ -46,9 +46,19 @@ function getAliceClient(): AsyncBulletinClient {
 }
 
 function getUserClient(): AsyncBulletinClient {
-	if (!_userClient) _userClient = buildClient(getUserSigner());
-	return _userClient;
+	const address = getUserAddress();
+	if (!address) {
+		throw new Error('No user account selected — connect a wallet before uploading');
+	}
+	if (!_userClient || _userClient.address !== address) {
+		_userClient = { address, client: buildClient(getUserSigner()) };
+	}
+	return _userClient.client;
 }
+
+// Test hooks — not part of the public API.
+export function _resetUserClientForTests(): void { _userClient = null; }
+export function getUserClientForTests(): AsyncBulletinClient { return getUserClient(); }
 
 export interface RemainingAuthorization {
 	transactions: number;
