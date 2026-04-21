@@ -12,6 +12,9 @@ export interface UseEncryptionKeyOptions {
   storage?: SessionStorage;
 }
 
+// Module-level default: stable across renders, so effect deps don't churn.
+const _defaultStorage = createSessionStorage();
+
 /**
  * Ensure-or-create a per-account x25519 keypair. The private half is
  * persisted via `SessionStorage`; the public half is derived in-memory
@@ -21,7 +24,7 @@ export function useEncryptionKey(
   address: string | null,
   opts: UseEncryptionKeyOptions = {},
 ): EncryptionKeyState {
-  const storage = opts.storage ?? createSessionStorage();
+  const storage = opts.storage ?? _defaultStorage;
   const [state, setState] = useState<EncryptionKeyState>({
     publicKey: null,
     privateKey: null,
@@ -30,7 +33,13 @@ export function useEncryptionKey(
 
   useEffect(() => {
     if (!address) {
-      setState({ publicKey: null, privateKey: null, ready: false });
+      // Functional setState: returning `prev` when already reset tells React
+      // there's no state change, so no re-render, so no effect loop.
+      setState((prev) =>
+        prev.ready || prev.publicKey || prev.privateKey
+          ? { publicKey: null, privateKey: null, ready: false }
+          : prev,
+      );
       return;
     }
 
