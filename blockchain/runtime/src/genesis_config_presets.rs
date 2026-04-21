@@ -25,8 +25,8 @@ pub const PARACHAIN_ID: u32 = 1000;
 /// SVC_PRIV is held by the content-unlock-service daemon (see `scripts/gen-service-key.sh`,
 /// which writes the keypair into `<repo>/keys/`).
 const SERVICE_PUBLIC_KEY: [u8; 32] = [
-	0x51, 0x56, 0xb2, 0xb7, 0x0d, 0x28, 0x0e, 0xbb, 0x7f, 0x71, 0x0c, 0x1f, 0xca, 0x32, 0xfb, 0x54,
-	0x70, 0x96, 0xd4, 0xaf, 0x4e, 0x31, 0xe5, 0xb3, 0x70, 0x4b, 0xc7, 0x62, 0xd3, 0x9c, 0x3a, 0x1c,
+	0x3b, 0x15, 0x6d, 0xa6, 0x2a, 0xef, 0x24, 0x16, 0x02, 0xac, 0x4c, 0x20, 0xaf, 0x93, 0x4a, 0xa8,
+	0xbd, 0x8d, 0xb9, 0x22, 0xeb, 0x20, 0x4c, 0x66, 0xdd, 0x20, 0x08, 0x86, 0xab, 0x01, 0x49, 0x04,
 ];
 
 /// sr25519 AccountId of the content-unlock-service signer. Must resolve from the SURI
@@ -49,9 +49,20 @@ fn testnet_genesis(
 	root: AccountId,
 	id: ParaId,
 ) -> Value {
+	// The content-unlock-service daemon signs `grant_access` extrinsics from
+	// SERVICE_ACCOUNT_ID. Even though `grant_access` is `Pays::No`, the
+	// tx-payment signed extension still validates the signer can pay fees
+	// before applying the refund, so the account must exist on chain with at
+	// least ED. Endow it here so the daemon works out of the box.
+	let mut endowed = endowed_accounts;
+	let service_account = AccountId::from(SERVICE_ACCOUNT_ID);
+	if !endowed.contains(&service_account) {
+		endowed.push(service_account);
+	}
+
 	build_struct_json_patch!(RuntimeGenesisConfig {
 		balances: BalancesConfig {
-			balances: endowed_accounts
+			balances: endowed
 				.iter()
 				.cloned()
 				.map(|k| (k, 1u128 << 60))
