@@ -1,9 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useChainStore } from '../store/chainStore';
 import ThumbnailPicker from '../components/ThumbnailPicker';
 import CreateChecklist, { type ChecklistStep, type StepStatus } from '../components/CreateChecklist';
 import { uploadToBulletin, MAX_UPLOAD_BYTES } from '../hooks/useBulletinUpload';
-import { submitCreateListing } from '../hooks/useContentRegistry';
+import {
+  fetchServicePublicKey,
+  submitCreateListingMaybeBatched,
+} from '../hooks/useContentRegistry';
+import { useEncryptionKey } from '../hooks/useEncryptionKey';
+import { setCachedKey } from '../hooks/contentLockKeyCache';
+import { encryptContent, generateContentLockKey } from '../utils/contentCipher';
+import { sealTo } from '../utils/sealedBox';
 import { getContentHash, HashAlgorithm } from '@parity/bulletin-sdk';
 
 type Section = 'A' | 'B' | 'C' | 'D';
@@ -34,6 +42,9 @@ export default function CreatePage() {
   const [steps, setSteps] = useState<ChecklistStep[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  const account = useChainStore((s) => s.account);
+  const encryptionKey = useEncryptionKey(account);
+
   const pricePlanck = priceInput ? BigInt(Math.round(parseFloat(priceInput) * 1e10)) : 0n;
 
   const section: Section =
@@ -46,8 +57,8 @@ export default function CreatePage() {
     setVideoError(null);
     setThumbnailBytes(null);
 
-    if (file.size > MAX_UPLOAD_BYTES) {
-      setVideoError('File is too large. Phase 1 PoC supports videos up to 2 MiB.');
+    if (file.size > MAX_UPLOAD_BYTES - 40) {
+      setVideoError('File is too large. Phase-2 PoC supports videos up to ~2 MiB of plaintext (encryption adds 40 bytes).');
       return;
     }
 
@@ -93,21 +104,36 @@ export default function CreatePage() {
 
   async function handleSubmit() {
     if (!videoFile || !thumbnailBytes || !title || !description || pricePlanck <= 0n) return;
+    if (!account || !encryptionKey.ready || !encryptionKey.publicKey) {
+      setVideoError('Encryption key not ready — refresh and try again.');
+      return;
+    }
 
     setSubmitting(true);
     const initialSteps: ChecklistStep[] = [
-      { id: 'cid',     label: 'Computing content CID…',              status: 'pending' },
-      { id: 'thumb',   label: 'Uploading thumbnail to Bulletin…',    status: 'pending' },
-      { id: 'content', label: 'Uploading content to Bulletin…',      status: 'pending' },
-      { id: 'submit',  label: 'Submitting create_listing…',          status: 'pending' },
+      { id: 'clk',     label: 'Generating content-lock-key…',         status: 'pending' },
+      { id: 'encrypt', label: 'Encrypting content…',                  status: 'pending' },
+      { id: 'hash',    label: 'Computing content hash…',              status: 'pending' },
+      { id: 'thumb',   label: 'Uploading thumbnail to Bulletin…',     status: 'pending' },
+      { id: 'content', label: 'Uploading encrypted content…',         status: 'pending' },
+      { id: 'seal',    label: 'Sealing content-lock-key to SVC_PUB…', status: 'pending' },
+      { id: 'submit',  label: 'Submitting create_listing…',           status: 'pending' },
     ];
     setSteps(initialSteps);
 
     try {
-      setStep('cid', 'running');
-      const videoBytes = new Uint8Array(await videoFile.arrayBuffer());
-      const contentHash = await getContentHash(videoBytes, HashAlgorithm.Blake2b256);
-      setStep('cid', 'done');
+      setStep('clk', 'running');
+      const contentLockKey = generateContentLockKey();
+      setStep('clk', 'done');
+
+      setStep('encrypt', 'running');
+      const plaintextBytes = new Uint8Array(await videoFile.arrayBuffer());
+      const ciphertextBytes = await encryptContent(plaintextBytes, contentLockKey);
+      setStep('encrypt', 'done');
+
+      setStep('hash', 'running');
+      const contentHash = await getContentHash(plaintextBytes, HashAlgorithm.Blake2b256);
+      setStep('hash', 'done');
 
       setStep('thumb', 'running');
       const thumbnailCid = await uploadToBulletin(
@@ -118,21 +144,35 @@ export default function CreatePage() {
 
       setStep('content', 'running');
       const contentCid = await uploadToBulletin(
-        videoBytes,
+        ciphertextBytes,
         (pct) => setStep('content', 'running', `${Math.round(pct)}%`),
       );
       setStep('content', 'done');
 
+      setStep('seal', 'running');
+      const svcPub = await fetchServicePublicKey();
+      const lockedContentLockKey = await sealTo(svcPub, contentLockKey);
+      setStep('seal', 'done');
+
       setStep('submit', 'running');
-      const newId = await submitCreateListing({
-        contentCid,
-        thumbnailCid,
-        contentHash,
-        title,
-        description,
-        price: pricePlanck,
-      });
+      const newId = await submitCreateListingMaybeBatched(
+        {
+          contentCid,
+          thumbnailCid,
+          contentHash,
+          title,
+          description,
+          price: pricePlanck,
+          lockedContentLockKey,
+        },
+        account,
+        encryptionKey.publicKey,
+      );
       setStep('submit', 'done');
+
+      // Creator fast-path: retain plaintext CLK so the just-created listing
+      // plays back in-session without waiting for the content-unlock-service.
+      setCachedKey(newId, contentLockKey);
 
       navigate(`/listing/${newId}`);
     } catch (e) {
@@ -258,11 +298,11 @@ export default function CreatePage() {
             <button
               data-testid="submit-btn"
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || !encryptionKey.ready}
               className="w-full py-2.5 rounded-lg bg-polka-500 hover:bg-polka-400 text-white text-sm
                          font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create listing
+              {encryptionKey.ready ? 'Create listing' : 'Preparing encryption key…'}
             </button>
           ) : (
             <CreateChecklist

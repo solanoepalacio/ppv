@@ -8,18 +8,50 @@ vi.mock('../hooks/useBulletinUpload', () => ({
   MAX_UPLOAD_BYTES: 2 * 1024 * 1024,
 }));
 vi.mock('../hooks/useContentRegistry', () => ({
-  submitCreateListing: vi.fn(),
+  submitCreateListingMaybeBatched: vi.fn(),
+  fetchServicePublicKey: vi.fn(),
 }));
 vi.mock('@parity/bulletin-sdk', () => ({
   getContentHash: vi.fn(),
   HashAlgorithm: { Blake2b256: 'blake2b256' },
 }));
+vi.mock('../utils/contentCipher', () => ({
+  generateContentLockKey: vi.fn(() => new Uint8Array(32)),
+  encryptContent: vi.fn(async (bytes: Uint8Array) => {
+    // pretend-ciphertext: plaintext + 40-byte (nonce+MAC) overhead
+    const out = new Uint8Array(bytes.length + 40);
+    out.set(bytes, 0);
+    return out;
+  }),
+}));
+vi.mock('../utils/sealedBox', () => ({
+  sealTo: vi.fn(async () => new Uint8Array(80)),
+}));
+vi.mock('../hooks/contentLockKeyCache', () => ({
+  setCachedKey: vi.fn(),
+}));
+vi.mock('../hooks/useEncryptionKey', () => ({
+  useEncryptionKey: vi.fn(() => ({
+    publicKey: new Uint8Array(32),
+    privateKey: new Uint8Array(32),
+    ready: true,
+  })),
+}));
+vi.mock('../store/chainStore', () => ({
+  useChainStore: vi.fn((selector: (s: { account: string | null }) => unknown) =>
+    selector({ account: '5Alice' }),
+  ),
+}));
 
 import { uploadToBulletin } from '../hooks/useBulletinUpload';
-import { submitCreateListing } from '../hooks/useContentRegistry';
+import {
+  submitCreateListingMaybeBatched,
+  fetchServicePublicKey,
+} from '../hooks/useContentRegistry';
 import { getContentHash } from '@parity/bulletin-sdk';
 const mockUpload = uploadToBulletin as ReturnType<typeof vi.fn>;
-const mockSubmit = submitCreateListing as ReturnType<typeof vi.fn>;
+const mockSubmit = submitCreateListingMaybeBatched as ReturnType<typeof vi.fn>;
+const mockFetchServicePub = fetchServicePublicKey as ReturnType<typeof vi.fn>;
 const mockGetContentHash = getContentHash as ReturnType<typeof vi.fn>;
 
 // Mock ThumbnailPicker — canvas/video extraction doesn't run in jsdom
@@ -161,6 +193,7 @@ describe('CreatePage Section D — submit flow', () => {
   test('clicking Create listing shows the checklist', async () => {
     mockGetContentHash.mockResolvedValue(new Uint8Array(32));
     mockUpload.mockResolvedValue({ codec: 0x55, digestBytes: new Uint8Array(32) });
+    mockFetchServicePub.mockResolvedValue(new Uint8Array(32));
     mockSubmit.mockResolvedValue(5n);
 
     await fillToSectionD();
@@ -174,6 +207,7 @@ describe('CreatePage Section D — submit flow', () => {
   test('navigates to the new listing after successful submit', async () => {
     mockGetContentHash.mockResolvedValue(new Uint8Array(32));
     mockUpload.mockResolvedValue({ codec: 0x55, digestBytes: new Uint8Array(32) });
+    mockFetchServicePub.mockResolvedValue(new Uint8Array(32));
     mockSubmit.mockResolvedValue(7n);
 
     await fillToSectionD();
@@ -189,6 +223,7 @@ describe('CreatePage Section D — submit flow', () => {
   test('marks step as error when upload fails', async () => {
     mockGetContentHash.mockResolvedValue(new Uint8Array(32));
     mockUpload.mockRejectedValue(new Error('Bulletin unavailable'));
+    mockFetchServicePub.mockResolvedValue(new Uint8Array(32));
     mockSubmit.mockResolvedValue(0n);
 
     await fillToSectionD();
@@ -205,6 +240,7 @@ describe('CreatePage Section D — submit flow', () => {
     mockUpload
       .mockRejectedValueOnce(new Error('timeout'))
       .mockResolvedValue({ codec: 0x55, digestBytes: new Uint8Array(32) });
+    mockFetchServicePub.mockResolvedValue(new Uint8Array(32));
     mockSubmit.mockResolvedValue(3n);
 
     await fillToSectionD();
