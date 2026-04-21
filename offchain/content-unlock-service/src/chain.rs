@@ -167,15 +167,29 @@ impl Chain {
 
 pub(crate) fn value_to_bytes<T>(value: &Value<T>) -> Option<Vec<u8>> {
     // A SCALE-encoded `[u8; N]` decodes as a composite of N `u8` primitives.
-    // Walk the composite and collect u128-to-u8.
+    // `AccountId32` (and other newtypes wrapping `[u8; N]`) decodes as an
+    // extra single-item composite wrapping that array. Peel newtype wrappers
+    // recursively before trying to read the array.
     match &value.value {
-        ValueDef::Composite(Composite::Unnamed(items)) => items
-            .iter()
-            .map(|v| match &v.value {
-                ValueDef::Primitive(Primitive::U128(n)) if *n <= u8::MAX as u128 => Some(*n as u8),
-                _ => None,
-            })
-            .collect::<Option<Vec<u8>>>(),
+        ValueDef::Composite(Composite::Unnamed(items)) => {
+            if items.len() == 1 {
+                if let Some(peeled) = value_to_bytes(&items[0]) {
+                    return Some(peeled);
+                }
+                // Fall through: single-item composite where the inner value is
+                // itself a single byte primitive — the iter/map path below
+                // still handles it correctly.
+            }
+            items
+                .iter()
+                .map(|v| match &v.value {
+                    ValueDef::Primitive(Primitive::U128(n)) if *n <= u8::MAX as u128 => {
+                        Some(*n as u8)
+                    }
+                    _ => None,
+                })
+                .collect::<Option<Vec<u8>>>()
+        }
         ValueDef::Primitive(Primitive::U256(bytes)) => Some(bytes.to_vec()),
         _ => None,
     }
@@ -195,6 +209,77 @@ pub fn signer_from_suri(suri: &str) -> Result<Sr25519Keypair> {
 // needs it directly; remove if it stays unused.
 #[allow(dead_code)]
 fn _legacy_rpc_placeholder<C>(_: LegacyRpcMethods<C>) {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use subxt::ext::scale_value::{Composite, Primitive, Value, ValueDef};
+
+    fn v(def: ValueDef<()>) -> Value<()> {
+        Value { value: def, context: () }
+    }
+
+    fn u8_primitive(b: u8) -> Value<()> {
+        v(ValueDef::Primitive(Primitive::U128(b as u128)))
+    }
+
+    fn unnamed(items: Vec<Value<()>>) -> Value<()> {
+        v(ValueDef::Composite(Composite::Unnamed(items)))
+    }
+
+    // Plain `[u8; N]` — what Listings.locked_content_lock_key and
+    // EncryptionKeys look like. Regression guard for the original shape.
+    #[test]
+    fn value_to_bytes_plain_byte_array() {
+        let items: Vec<Value<()>> = (0..32u8).map(u8_primitive).collect();
+        let got = value_to_bytes(&unnamed(items)).expect("plain array decodes");
+        let expected: Vec<u8> = (0..32).collect();
+        assert_eq!(got, expected);
+    }
+
+    // `subxt::utils::AccountId32` is registered in metadata as
+    // `struct AccountId32([u8; 32])` — a newtype. scale-value decodes it as
+    // `Composite::Unnamed([Composite::Unnamed([u8; 32])])` — one extra layer
+    // vs. a plain byte array. This was the cause of the production bug
+    // "ListingCreated: missing creator": `.at("creator")` correctly returned
+    // the AccountId value, but `value_to_bytes` couldn't peel the newtype.
+    #[test]
+    fn value_to_bytes_peels_account_id_newtype_wrapper() {
+        let inner_bytes: Vec<Value<()>> = (0..32u8).map(u8_primitive).collect();
+        let account_id = unnamed(vec![unnamed(inner_bytes)]);
+        let got = value_to_bytes(&account_id).expect("newtype-wrapped array decodes");
+        let expected: Vec<u8> = (0..32).collect();
+        assert_eq!(got, expected);
+    }
+
+    // Some scale-value versions collapse 32-byte arrays to U256. Keep
+    // coverage of that path so we don't regress it while fixing the
+    // newtype case.
+    #[test]
+    fn value_to_bytes_u256_primitive() {
+        let mut bytes = [0u8; 32];
+        for (i, b) in bytes.iter_mut().enumerate() {
+            *b = i as u8;
+        }
+        let got = value_to_bytes(&v(ValueDef::Primitive(Primitive::U256(bytes))))
+            .expect("u256 decodes");
+        assert_eq!(got, bytes.to_vec());
+    }
+
+    #[test]
+    fn value_to_bytes_rejects_non_byte_primitive() {
+        assert_eq!(value_to_bytes(&v(ValueDef::Primitive(Primitive::Bool(true)))), None);
+    }
+
+    // Defence in depth: a single-byte array (Composite::Unnamed with one
+    // u8 primitive item) must still decode as `[b]` and not be mistaken
+    // for a newtype wrapper.
+    #[test]
+    fn value_to_bytes_single_byte_array_not_confused_with_newtype() {
+        let got = value_to_bytes(&unnamed(vec![u8_primitive(0x42)])).expect("decodes");
+        assert_eq!(got, vec![0x42u8]);
+    }
+}
 
 /// Event the daemon acts on. `target` is the account whose x25519 pubkey the
 /// content-lock-key should be re-sealed to.

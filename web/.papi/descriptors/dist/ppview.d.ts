@@ -662,7 +662,7 @@ type IStorage = {
         ServiceAccountId: StorageDescriptor<[], SS58String, true, never>;
         /**
          * x25519 public key registered by each account (buyer or creator). Consumed
-         * off-chain by the chain-service when wrapping a content-lock-key for a target.
+         * off-chain by the content-unlock-service when wrapping a content-lock-key for a target.
          */
         EncryptionKeys: StorageDescriptor<[Key: SS58String], FixedSizeBinary<32>, true, never>;
         /**
