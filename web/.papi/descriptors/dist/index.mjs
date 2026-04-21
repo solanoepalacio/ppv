@@ -14,13 +14,13 @@ var toBinary = (base64) => {
 };
 
 // .papi/descriptors/src/ppview.ts
-var descriptorValues = import("./descriptors-E5UABU4E.mjs").then((module) => module["Ppview"]);
-var metadataTypes = import("./metadataTypes-6XMEG55K.mjs").then(
+var descriptorValues = import("./descriptors-PY46V3KI.mjs").then((module) => module["Ppview"]);
+var metadataTypes = import("./metadataTypes-HNBE3VED.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
 var asset = {};
 var extensions = {};
-var getMetadata = () => import("./ppview_metadata-ZCKMRG7Y.mjs").then(
+var getMetadata = () => import("./ppview_metadata-YNX3IYTI.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
 var genesis = "0x4545454545454545454545454545454545454545454545454545454545454545";
@@ -28,8 +28,8 @@ var _allDescriptors = { descriptors: descriptorValues, metadataTypes, asset, ext
 var ppview_default = _allDescriptors;
 
 // .papi/descriptors/src/bulletin.ts
-var descriptorValues2 = import("./descriptors-E5UABU4E.mjs").then((module) => module["Bulletin"]);
-var metadataTypes2 = import("./metadataTypes-6XMEG55K.mjs").then(
+var descriptorValues2 = import("./descriptors-PY46V3KI.mjs").then((module) => module["Bulletin"]);
+var metadataTypes2 = import("./metadataTypes-HNBE3VED.mjs").then(
   (module) => toBinary("default" in module ? module.default : module)
 );
 var asset2 = {};
@@ -95,7 +95,7 @@ var XcmVersionedAsset = _Enum;
 
 // .papi/descriptors/src/index.ts
 var metadatas = {
-  ["0x23962512ffaa8022b586df0d73b660066da7c6279a848ac4ba8bc4e339f7007a"]: ppview_default,
+  ["0x86961a8bc8a7c7e28247a5088594ee59518f7985960bfd6610c3ae3ec4338bda"]: ppview_default,
   ["0x1a82e5143be3211ded412b0368b486ce83bd41a80ec95eb267f6c204adda8365"]: bulletin_default
 };
 var getMetadata3 = async (codeHash) => {

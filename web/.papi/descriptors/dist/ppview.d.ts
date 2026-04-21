@@ -1,5 +1,5 @@
 import { StorageDescriptor, PlainDescriptor, TxDescriptor, RuntimeDescriptor, Enum, ApisFromDef, QueryFromPalletsDef, TxFromPalletsDef, EventsFromPalletsDef, ErrorsFromPalletsDef, ConstFromPalletsDef, ViewFnsFromPalletsDef, SS58String, FixedSizeBinary, Binary, FixedSizeArray } from "polkadot-api";
-import { I5sesotjlssv2d, Iffmde3ekjedi9, I4mddgoa69c0a2, Ibajauope01his, I95g6i7ilua7lq, Ieniouoqkq4icf, Phase, Ibgl04rn6nbfm6, I4q39t5hn830vp, I1v7jbnil3tjns, I8jgj1nhcr2dg8, Ifn6q3equiq9qi, Ia3sb0vgvovhtg, Iav8k1edbj86k7, Itom7fk49o0c9, I4i91h98n3cv1b, I4iumukclgj8ej, Iqnbvitf7a7l3, I48i407regf59r, I6r5cbv8ttrb09, I1q8tnt1cluu5j, I8ds64oj6581v0, Ia7pdug7cdsg8g, I63lqt6dl3kn9k, I9bin2jc70qt6q, TransactionPaymentReleases, Ia2lhg7l2hilo3, Ifi4da1gej1fri, Ifvgo9568rpmqc, I82jm9g7pufuel, Ic5m5lp1oioo8r, I6cs1itejju2vv, Icgljjb6j82uhn, Ib77b0fp1a6mjr, I5g2vv0ckl2m8b, Ifup3lg9ro8a0f, I5qfubnuvrnqn6, I8t3u2dv73ahbd, I7vlvrrl2pnbgk, Ie0rpl5bahldfk, XcmPalletVersionMigrationStage, I7e5oaj2qi4kl1, Ie849h3gncgvok, Iat62vud7hlod2, Ict03eedr8de9s, Ici7ejds60vj52, XcmVersionedLocation, Idh2ug6ou4a8og, Iejeo53sea6n4q, I53esa2ms463bk, Ib4jhb8tt3uung, I3rn7sp8519tct, I95l2k9b1re95f, I834nfrf667ag1, I14i9pui8lc778, I8t4pajubp34g3, I10nrsmn0hji4l, I3oiqcurom3m43, I20ichc5j0l1u7, I1p16diuhde12h, Id4f5q01qh34o3, In7a38730s6qs, If15el53dd76v9, I9s0ave7t0vnrk, I4fo08joqmcqnm, XcmV5Junctions, Iasb8k6ash5mjn, I8ofcg5rbj0g2c, I4adgbll7gku4i, I6pjjpfvhvcfru, I9pj91mj79qekl, I39uah9nss64h9, Ik64dknsq7k08, Ib51vk42m1po4n, Ial23jn8hp0aen, Ifpj261e8s63m3, Idcr6u6361oad9, I4ktuaksf5i1gk, I9bqtpv2ii35mp, I9j7pagd6d4bda, I2h9pmio37r7fb, Ibmr18suc9ikh9, I9iq22t0burs89, I5u8olqbbvfnvf, I5utcetro501ir, Ihrm9d8fau2fu, I7nkig54i6uo71, I8k3rnvpeeh4hv, Ibg7r88nttloqp, Ifccifqltb5obi, Iadtsfv699cq8b, Ialpmgmhr3gk5r, I4cbvqmqadhrea, I3sdol54kg5jaq, I8fougodaj6di6, I81vt5eq60l4b6, I3vh014cqgmrfd, Ia5cotcvi888ln, I21jsa919m88fd, Iegif7m3upfe1k, I9kt8c221c83ln, Ic76kfh5ebqkpl, Icscpmubum33bq, I21d2olof7eb60, Ibgm4rnf22lal1, Ie68np0vpihith, I9bnv6lu0crf1q, Iauhjqifrdklq7, Ie1uso9m8rt5cf, I40pqum1mu8qg3, I1r4c2ghbtvjuc, I27tlk31j25ovv, I86988dfkhkjot, Icmtuqsikv2bvd, I2dpff3lc7r29l, Ida37oe44osb06, I6v02o6j4snahe, I27569neuh5t1o, Id92o6smntb9m5, I5nmb2hfkgk9ol, Iav55bcqlrqn51, Ibapi7a37bpjjv, I10ra4g1rl6k2f, I1uihehkdsggvp, Ia82mnkmeo2rhc, I7ug77enbl49oi, Icbccs0ug47ilf, I855j4i3kr8ko1, Ibnggp0nb7485i, Idd7hd99u0ho0n, Iafscmv8tjf0ou, I100l07kaehdlp, I6gnbnvip5vvdi, Icv68aq8841478, Ic262ibdoec56a, Iflcfm9b6nlmdd, Ijrsf4mnp3eka, Id5fm4p8lj5qgi, I8tjvj9uq4b7hi, I3qt1hgg4djhgb, I4fooe9dun9o0t, I2sjgp7v0b4kr7, Iq8n5b8q00vqa, Iaa6lo6ksjs4p7, Iph9c4rn81ub2, Ier2cke86dqbr2, Ifsuide4d4u6mf, I5rtkmhm2dng4u, I39t01nnod9109, I6v8sm60vvkmk7, I1qmtmbe5so8r3, Ih99m6ehpcar7, Idgorhsbgdq2ap, I9ubb2kqevnu6t, I2hq50pu2kdjpo, I9acqruh7322g2, I137t1cld92pod, I61d51nv4cou88, If8u5kl4h8070m, Ibmuil6p3vl83l, I7lul91g50ae87, Icl7nl1rfeog3i, Iasr6pj6shs0fl, I2uqmls7kcdnii, Idg69klialbkb8, I7r6b7145022pp, I30pg328m00nr3, Icmrn7bogp28cs, I7m9b5plj4h5ot, I9onhk772nfs4f, I3l6bnksrmt56r, Idh09k0l2pmdcg, I7uoiphbm0tj4r, I512p1n7qt24l8, I6s1nbislhk619, I3gghqnh2mj0is, I6iv852roh6t3h, I9oc2o6itbiopq, Ibslgga81p36aa, I1rvj4ubaplho0, Ia3uu7lqcc1q1i, I7crucfnonitkn, I7tmrp94r9sq4n, I3uua81e9uvgnp, I4bhdacj94gm5h, I1qlkt0vja6l8u, I3d0l4kr6qmhba, I7svbvm6hg57aj, I8jhsbaiultviu, I2vtb72j3qgf19, I5r8t4iaend96p, Iaqet9jc3ihboe, Ic952bubvq4k7d, I2v50gu3s1aqk6, Iabpgqcjikia83, I4gil44d08grh, I7u915mvkdsb08, I8v37tlvqtef7q, If7uv525tdvv7a, I2an1fs2eiebjp, TransactionValidityTransactionSource, I9ask1o4tfvcvs, Icerf8h8pdu8ss, I6spmpef2c7svf, Iei2mvq0mjvt81, Iab0rfeoic4do, Ic1d4u2opv3fst, Ico18ks790i2bl, I815pbp5omtss, I3ju6ot8lfmk90, Ie9sr1iqcg3cgm, I1mqgk2tmnn9i2, I6lr8sctk0bi4e, I4totqt881mlti, I4s6vifaf8k998, I35p85j063s0il, Id3266bntbqudq, I9sijb8gfrns29, I79sb1vb3codno, I6f9v7emp7t5ba, Ida7d8eqrkav55, Idmrtv8jbbitnu, I3q96iudj01bn, I5gknsq18lkggf, I63nhnkgg114n5, I1l7ajs6s9ur3a, Ice9mpbhevl5b7, Idt5popft6i714, I512dtcl0pn07c, I1f347u8t14roe } from "./common-types";
+import { I5sesotjlssv2d, Iffmde3ekjedi9, I4mddgoa69c0a2, I7d6up4tucbvvq, I95g6i7ilua7lq, Ieniouoqkq4icf, Phase, Ibgl04rn6nbfm6, I4q39t5hn830vp, I1v7jbnil3tjns, I8jgj1nhcr2dg8, Ifn6q3equiq9qi, Ia3sb0vgvovhtg, Iav8k1edbj86k7, Itom7fk49o0c9, I4i91h98n3cv1b, I4iumukclgj8ej, Iqnbvitf7a7l3, I48i407regf59r, I6r5cbv8ttrb09, I1q8tnt1cluu5j, I8ds64oj6581v0, Ia7pdug7cdsg8g, I63lqt6dl3kn9k, I9bin2jc70qt6q, TransactionPaymentReleases, Ia2lhg7l2hilo3, Ifi4da1gej1fri, Ifvgo9568rpmqc, I82jm9g7pufuel, Ic5m5lp1oioo8r, I6cs1itejju2vv, Icgljjb6j82uhn, Ib77b0fp1a6mjr, I5g2vv0ckl2m8b, Ifup3lg9ro8a0f, I5qfubnuvrnqn6, I8t3u2dv73ahbd, I7vlvrrl2pnbgk, Ie0rpl5bahldfk, XcmPalletVersionMigrationStage, I7e5oaj2qi4kl1, Ie849h3gncgvok, Iat62vud7hlod2, Ict03eedr8de9s, Ici7ejds60vj52, XcmVersionedLocation, Idh2ug6ou4a8og, Iejeo53sea6n4q, I53esa2ms463bk, Ib4jhb8tt3uung, I3rn7sp8519tct, I95l2k9b1re95f, I834nfrf667ag1, I14i9pui8lc778, I8t4pajubp34g3, I10nrsmn0hji4l, I3oiqcurom3m43, I20ichc5j0l1u7, I1p16diuhde12h, Id4f5q01qh34o3, In7a38730s6qs, If15el53dd76v9, I9s0ave7t0vnrk, I4fo08joqmcqnm, XcmV5Junctions, Iasb8k6ash5mjn, I8ofcg5rbj0g2c, I4adgbll7gku4i, I6pjjpfvhvcfru, I9pj91mj79qekl, I39uah9nss64h9, Ik64dknsq7k08, Ib51vk42m1po4n, Ial23jn8hp0aen, Ifpj261e8s63m3, Idcr6u6361oad9, I4ktuaksf5i1gk, I9bqtpv2ii35mp, I9j7pagd6d4bda, I2h9pmio37r7fb, Ibmr18suc9ikh9, I9iq22t0burs89, I5u8olqbbvfnvf, I5utcetro501ir, Ia0dhomeuclld2, I6l9u2trv62g1e, I8k3rnvpeeh4hv, Id2gbq03b2hr4h, I6pqh000is1p71, I5oiq94r5m6hn8, I8f2lrbv2fds33, Iemch1bu6l1qal, Ifccifqltb5obi, Iadtsfv699cq8b, Ialpmgmhr3gk5r, I4cbvqmqadhrea, I3sdol54kg5jaq, I8fougodaj6di6, I81vt5eq60l4b6, I3vh014cqgmrfd, Ia5cotcvi888ln, I21jsa919m88fd, Iegif7m3upfe1k, I9kt8c221c83ln, Ic76kfh5ebqkpl, Icscpmubum33bq, I21d2olof7eb60, Ibgm4rnf22lal1, Ie68np0vpihith, I9bnv6lu0crf1q, Iauhjqifrdklq7, Ie1uso9m8rt5cf, I40pqum1mu8qg3, I1r4c2ghbtvjuc, I27tlk31j25ovv, I86988dfkhkjot, Icmtuqsikv2bvd, I2dpff3lc7r29l, Ida37oe44osb06, I6v02o6j4snahe, I27569neuh5t1o, Id92o6smntb9m5, I5nmb2hfkgk9ol, Iav55bcqlrqn51, I4jjitt3odaann, I10ra4g1rl6k2f, I1uihehkdsggvp, Ia82mnkmeo2rhc, I697l2qoi5c2g5, Icbccs0ug47ilf, I855j4i3kr8ko1, Idmtl9171u4vbr, Idd7hd99u0ho0n, Iafscmv8tjf0ou, I100l07kaehdlp, I6gnbnvip5vvdi, Icv68aq8841478, Ic262ibdoec56a, Iflcfm9b6nlmdd, Ijrsf4mnp3eka, Id5fm4p8lj5qgi, I8tjvj9uq4b7hi, I3qt1hgg4djhgb, I4fooe9dun9o0t, I2sjgp7v0b4kr7, Iq8n5b8q00vqa, Iaa6lo6ksjs4p7, Iph9c4rn81ub2, Ier2cke86dqbr2, Iajbf0qf8df9gt, I5rtkmhm2dng4u, I4d12bibdmica8, Ia1np6dogduog6, Ibvibj2kt1psjk, I8mcr63lbd5n74, I39t01nnod9109, I6v8sm60vvkmk7, I1qmtmbe5so8r3, Ih99m6ehpcar7, Idgorhsbgdq2ap, I9ubb2kqevnu6t, I2hq50pu2kdjpo, I9acqruh7322g2, I137t1cld92pod, I61d51nv4cou88, If8u5kl4h8070m, Ibmuil6p3vl83l, I7lul91g50ae87, Icl7nl1rfeog3i, Iasr6pj6shs0fl, I2uqmls7kcdnii, Idg69klialbkb8, I7r6b7145022pp, I30pg328m00nr3, Icmrn7bogp28cs, I7m9b5plj4h5ot, I9onhk772nfs4f, I3l6bnksrmt56r, Idh09k0l2pmdcg, I7uoiphbm0tj4r, I512p1n7qt24l8, I6s1nbislhk619, I3gghqnh2mj0is, I6iv852roh6t3h, I9oc2o6itbiopq, Ibslgga81p36aa, I1rvj4ubaplho0, Ia3uu7lqcc1q1i, I7crucfnonitkn, I7tmrp94r9sq4n, I3uua81e9uvgnp, I4bhdacj94gm5h, I1qlkt0vja6l8u, I3d0l4kr6qmhba, I7svbvm6hg57aj, I8jhsbaiultviu, I38jbk9vrpfv0i, I5r8t4iaend96p, Iaqet9jc3ihboe, Ic952bubvq4k7d, I2v50gu3s1aqk6, Iabpgqcjikia83, I4gil44d08grh, I7u915mvkdsb08, I552figkuupl9t, If7uv525tdvv7a, I2an1fs2eiebjp, TransactionValidityTransactionSource, I9ask1o4tfvcvs, Icerf8h8pdu8ss, I6spmpef2c7svf, Iei2mvq0mjvt81, I2004jg4nchdns, Ic1d4u2opv3fst, Ico18ks790i2bl, I815pbp5omtss, I3ju6ot8lfmk90, Ie9sr1iqcg3cgm, I1mqgk2tmnn9i2, I6lr8sctk0bi4e, I4totqt881mlti, I4s6vifaf8k998, I35p85j063s0il, I6r08e9psr96la, I9sijb8gfrns29, I8rh37a5gg0kb7, I6f9v7emp7t5ba, Ida7d8eqrkav55, Idmrtv8jbbitnu, Ibq2uamqt4878a, I8dahmmusldq0b, I63nhnkgg114n5, I1l7ajs6s9ur3a, Ice9mpbhevl5b7, Idt5popft6i714, I512dtcl0pn07c, I8m5djc03sjan9 } from "./common-types";
 type AnonymousEnum<T extends {}> = T & {
     __anonymous: true;
 };
@@ -61,7 +61,7 @@ type IStorage = {
          * Events have a large in-memory size. Box the events to not go out-of-memory
          * just in case someone still reads them from within the runtime.
          */
-        Events: StorageDescriptor<[], Anonymize<Ibajauope01his>, false, never>;
+        Events: StorageDescriptor<[], Anonymize<I7d6up4tucbvvq>, false, never>;
         /**
          * The number of events in the `Events<T>` list.
          */
@@ -961,7 +961,7 @@ type ICalls = {
         /**
          * Authenticates the sudo key and dispatches a function call with `Root` origin.
          */
-        sudo: TxDescriptor<Anonymize<Ihrm9d8fau2fu>>;
+        sudo: TxDescriptor<Anonymize<Ia0dhomeuclld2>>;
         /**
          * Authenticates the sudo key and dispatches a function call with `Root` origin.
          * This function does not check the weight of the call, and instead allows the
@@ -969,7 +969,7 @@ type ICalls = {
          *
          * The dispatch origin for this call must be _Signed_.
          */
-        sudo_unchecked_weight: TxDescriptor<Anonymize<I7nkig54i6uo71>>;
+        sudo_unchecked_weight: TxDescriptor<Anonymize<I6l9u2trv62g1e>>;
         /**
          * Authenticates the current sudo key and sets the given AccountId (`new`) as the new sudo
          * key.
@@ -981,13 +981,136 @@ type ICalls = {
          *
          * The dispatch origin for this call must be _Signed_.
          */
-        sudo_as: TxDescriptor<Anonymize<Ibg7r88nttloqp>>;
+        sudo_as: TxDescriptor<Anonymize<Id2gbq03b2hr4h>>;
         /**
          * Permanently removes the sudo key.
          *
          * **This cannot be un-done.**
          */
         remove_key: TxDescriptor<undefined>;
+    };
+    Utility: {
+        /**
+         * Send a batch of dispatch calls.
+         *
+         * May be called from any origin except `None`.
+         *
+         * - `calls`: The calls to be dispatched from the same origin. The number of call must not
+         * exceed the constant: `batched_calls_limit` (available in constant metadata).
+         *
+         * If origin is root then the calls are dispatched without checking origin filter. (This
+         * includes bypassing `frame_system::Config::BaseCallFilter`).
+         *
+         * ## Complexity
+         * - O(C) where C is the number of calls to be batched.
+         *
+         * This will return `Ok` in all circumstances. To determine the success of the batch, an
+         * event is deposited. If a call failed and the batch was interrupted, then the
+         * `BatchInterrupted` event is deposited, along with the number of successful calls made
+         * and the error of the failed call. If all were successful, then the `BatchCompleted`
+         * event is deposited.
+         */
+        batch: TxDescriptor<Anonymize<I6pqh000is1p71>>;
+        /**
+         * Send a call through an indexed pseudonym of the sender.
+         *
+         * Filter from origin are passed along. The call will be dispatched with an origin which
+         * use the same filter as the origin of this call.
+         *
+         * NOTE: If you need to ensure that any account-based filtering is not honored (i.e.
+         * because you expect `proxy` to have been used prior in the call stack and you do not want
+         * the call restrictions to apply to any sub-accounts), then use `as_multi_threshold_1`
+         * in the Multisig pallet instead.
+         *
+         * NOTE: Prior to version *12, this was called `as_limited_sub`.
+         *
+         * The dispatch origin for this call must be _Signed_.
+         */
+        as_derivative: TxDescriptor<Anonymize<I5oiq94r5m6hn8>>;
+        /**
+         * Send a batch of dispatch calls and atomically execute them.
+         * The whole transaction will rollback and fail if any of the calls failed.
+         *
+         * May be called from any origin except `None`.
+         *
+         * - `calls`: The calls to be dispatched from the same origin. The number of call must not
+         * exceed the constant: `batched_calls_limit` (available in constant metadata).
+         *
+         * If origin is root then the calls are dispatched without checking origin filter. (This
+         * includes bypassing `frame_system::Config::BaseCallFilter`).
+         *
+         * ## Complexity
+         * - O(C) where C is the number of calls to be batched.
+         */
+        batch_all: TxDescriptor<Anonymize<I6pqh000is1p71>>;
+        /**
+         * Dispatches a function call with a provided origin.
+         *
+         * The dispatch origin for this call must be _Root_.
+         *
+         * ## Complexity
+         * - O(1).
+         */
+        dispatch_as: TxDescriptor<Anonymize<I8f2lrbv2fds33>>;
+        /**
+         * Send a batch of dispatch calls.
+         * Unlike `batch`, it allows errors and won't interrupt.
+         *
+         * May be called from any origin except `None`.
+         *
+         * - `calls`: The calls to be dispatched from the same origin. The number of call must not
+         * exceed the constant: `batched_calls_limit` (available in constant metadata).
+         *
+         * If origin is root then the calls are dispatch without checking origin filter. (This
+         * includes bypassing `frame_system::Config::BaseCallFilter`).
+         *
+         * ## Complexity
+         * - O(C) where C is the number of calls to be batched.
+         */
+        force_batch: TxDescriptor<Anonymize<I6pqh000is1p71>>;
+        /**
+         * Dispatch a function call with a specified weight.
+         *
+         * This function does not check the weight of the call, and instead allows the
+         * Root origin to specify the weight of the call.
+         *
+         * The dispatch origin for this call must be _Root_.
+         */
+        with_weight: TxDescriptor<Anonymize<I6l9u2trv62g1e>>;
+        /**
+         * Dispatch a fallback call in the event the main call fails to execute.
+         * May be called from any origin except `None`.
+         *
+         * This function first attempts to dispatch the `main` call.
+         * If the `main` call fails, the `fallback` is attemted.
+         * if the fallback is successfully dispatched, the weights of both calls
+         * are accumulated and an event containing the main call error is deposited.
+         *
+         * In the event of a fallback failure the whole call fails
+         * with the weights returned.
+         *
+         * - `main`: The main call to be dispatched. This is the primary action to execute.
+         * - `fallback`: The fallback call to be dispatched in case the `main` call fails.
+         *
+         * ## Dispatch Logic
+         * - If the origin is `root`, both the main and fallback calls are executed without
+         * applying any origin filters.
+         * - If the origin is not `root`, the origin filter is applied to both the `main` and
+         * `fallback` calls.
+         *
+         * ## Use Case
+         * - Some use cases might involve submitting a `batch` type call in either main, fallback
+         * or both.
+         */
+        if_else: TxDescriptor<Anonymize<Iemch1bu6l1qal>>;
+        /**
+         * Dispatches a function call with a provided origin.
+         *
+         * Almost the same as [`Pallet::dispatch_as`] but forwards any error of the inner call.
+         *
+         * The dispatch origin for this call must be _Root_.
+         */
+        dispatch_as_fallible: TxDescriptor<Anonymize<I8f2lrbv2fds33>>;
     };
     CollatorSelection: {
         /**
@@ -1596,7 +1719,7 @@ type ICalls = {
          * * `call`: The Substrate runtime call to execute.
          * * `transaction_encoded`: The RLP encoding of the Ethereum transaction,
          */
-        eth_substrate_call: TxDescriptor<Anonymize<Ibapi7a37bpjjv>>;
+        eth_substrate_call: TxDescriptor<Anonymize<I4jjitt3odaann>>;
         /**
          * Upload new `code` without instantiating a contract from it.
          *
@@ -1655,7 +1778,7 @@ type ICalls = {
          * is the `AccountId20` with the last 12 bytes set to `0xEE`. This is essentially a
          * recovery function in case an `AccountId20` was used without creating a mapping first.
          */
-        dispatch_as_fallback_account: TxDescriptor<Anonymize<Ihrm9d8fau2fu>>;
+        dispatch_as_fallback_account: TxDescriptor<Anonymize<Ia0dhomeuclld2>>;
     };
 };
 type IEvent = {
@@ -1667,7 +1790,7 @@ type IEvent = {
         /**
          * An extrinsic failed.
          */
-        ExtrinsicFailed: PlainDescriptor<Anonymize<I7ug77enbl49oi>>;
+        ExtrinsicFailed: PlainDescriptor<Anonymize<I697l2qoi5c2g5>>;
         /**
          * `:code` was updated.
          */
@@ -1691,7 +1814,7 @@ type IEvent = {
         /**
          * An invalid authorized upgrade was rejected while trying to apply it.
          */
-        RejectedInvalidAuthorizedUpgrade: PlainDescriptor<Anonymize<Ibnggp0nb7485i>>;
+        RejectedInvalidAuthorizedUpgrade: PlainDescriptor<Anonymize<Idmtl9171u4vbr>>;
     };
     ParachainSystem: {
         /**
@@ -1854,7 +1977,7 @@ type IEvent = {
         /**
          * A sudo call just took place.
          */
-        Sudid: PlainDescriptor<Anonymize<Ifsuide4d4u6mf>>;
+        Sudid: PlainDescriptor<Anonymize<Iajbf0qf8df9gt>>;
         /**
          * The sudo key has been updated.
          */
@@ -1866,7 +1989,42 @@ type IEvent = {
         /**
          * A [sudo_as](Pallet::sudo_as) call just took place.
          */
-        SudoAsDone: PlainDescriptor<Anonymize<Ifsuide4d4u6mf>>;
+        SudoAsDone: PlainDescriptor<Anonymize<Iajbf0qf8df9gt>>;
+    };
+    Utility: {
+        /**
+         * Batch of dispatches did not complete fully. Index of first failing dispatch given, as
+         * well as the error.
+         */
+        BatchInterrupted: PlainDescriptor<Anonymize<I4d12bibdmica8>>;
+        /**
+         * Batch of dispatches completed fully with no error.
+         */
+        BatchCompleted: PlainDescriptor<undefined>;
+        /**
+         * Batch of dispatches completed but has errors.
+         */
+        BatchCompletedWithErrors: PlainDescriptor<undefined>;
+        /**
+         * A single item within a Batch of dispatches has completed with no error.
+         */
+        ItemCompleted: PlainDescriptor<undefined>;
+        /**
+         * A single item within a Batch of dispatches has completed with error.
+         */
+        ItemFailed: PlainDescriptor<Anonymize<Ia1np6dogduog6>>;
+        /**
+         * A call was dispatched.
+         */
+        DispatchedAs: PlainDescriptor<Anonymize<Ibvibj2kt1psjk>>;
+        /**
+         * Main call was dispatched.
+         */
+        IfElseMainSuccess: PlainDescriptor<undefined>;
+        /**
+         * The fallback call was dispatched.
+         */
+        IfElseFallbackCalled: PlainDescriptor<Anonymize<I8mcr63lbd5n74>>;
     };
     CollatorSelection: {
         /**
@@ -2164,7 +2322,7 @@ type IEvent = {
          * To distinguish reverted calls from successful ones, this event is emitted
          * for failed Ethereum transactions.
          */
-        EthExtrinsicRevert: PlainDescriptor<Anonymize<I2vtb72j3qgf19>>;
+        EthExtrinsicRevert: PlainDescriptor<Anonymize<I38jbk9vrpfv0i>>;
     };
 };
 type IError = {
@@ -2292,6 +2450,12 @@ type IError = {
          * Sender must be the Sudo account.
          */
         RequireSudo: PlainDescriptor<undefined>;
+    };
+    Utility: {
+        /**
+         * Too many calls batched.
+         */
+        TooManyCalls: PlainDescriptor<undefined>;
     };
     CollatorSelection: {
         /**
@@ -2951,6 +3115,12 @@ type IConstants = {
          */
         OperationalFeeMultiplier: PlainDescriptor<number>;
     };
+    Utility: {
+        /**
+         * The limit on the number of batched calls.
+         */
+        batched_calls_limit: PlainDescriptor<number>;
+    };
     CollatorSelection: {
         /**
          * Account Identifier from which the internal Pot is generated.
@@ -3311,7 +3481,7 @@ type IRuntimeCalls = {
          * Returns an inclusion outcome which specifies if this extrinsic is included in
          * this block or not.
          */
-        apply_extrinsic: RuntimeDescriptor<[extrinsic: Binary], Anonymize<I8v37tlvqtef7q>>;
+        apply_extrinsic: RuntimeDescriptor<[extrinsic: Binary], Anonymize<I552figkuupl9t>>;
         /**
          * Finish the current block.
          */
@@ -3409,11 +3579,11 @@ type IRuntimeCalls = {
         /**
          * Query information of a dispatch class, weight, and fee of a given encoded `Call`.
          */
-        query_call_info: RuntimeDescriptor<[call: Anonymize<Iab0rfeoic4do>, len: number], Anonymize<I6spmpef2c7svf>>;
+        query_call_info: RuntimeDescriptor<[call: Anonymize<I2004jg4nchdns>, len: number], Anonymize<I6spmpef2c7svf>>;
         /**
          * Query fee details of a given encoded `Call`.
          */
-        query_call_fee_details: RuntimeDescriptor<[call: Anonymize<Iab0rfeoic4do>, len: number], Anonymize<Iei2mvq0mjvt81>>;
+        query_call_fee_details: RuntimeDescriptor<[call: Anonymize<I2004jg4nchdns>, len: number], Anonymize<Iei2mvq0mjvt81>>;
         /**
          * Query the output of the current `WeightToFee` given some input.
          */
@@ -3533,13 +3703,13 @@ type IRuntimeCalls = {
          *
          * See [`crate::Pallet::bare_call`].
          */
-        call: RuntimeDescriptor<[origin: SS58String, dest: FixedSizeBinary<20>, value: bigint, gas_limit: Anonymize<Iasb8k6ash5mjn>, storage_deposit_limit: Anonymize<I35p85j063s0il>, input_data: Binary], Anonymize<Id3266bntbqudq>>;
+        call: RuntimeDescriptor<[origin: SS58String, dest: FixedSizeBinary<20>, value: bigint, gas_limit: Anonymize<Iasb8k6ash5mjn>, storage_deposit_limit: Anonymize<I35p85j063s0il>, input_data: Binary], Anonymize<I6r08e9psr96la>>;
         /**
          * Instantiate a new contract.
          *
          * See `[crate::Pallet::bare_instantiate]`.
          */
-        instantiate: RuntimeDescriptor<[origin: SS58String, value: bigint, gas_limit: Anonymize<Iasb8k6ash5mjn>, storage_deposit_limit: Anonymize<I35p85j063s0il>, code: Anonymize<I9sijb8gfrns29>, data: Binary, salt: Anonymize<I4s6vifaf8k998>], Anonymize<I79sb1vb3codno>>;
+        instantiate: RuntimeDescriptor<[origin: SS58String, value: bigint, gas_limit: Anonymize<Iasb8k6ash5mjn>, storage_deposit_limit: Anonymize<I35p85j063s0il>, code: Anonymize<I9sijb8gfrns29>, data: Binary, salt: Anonymize<I4s6vifaf8k998>], Anonymize<I8rh37a5gg0kb7>>;
         /**
          * Perform an Ethereum call.
          *
@@ -3558,7 +3728,7 @@ type IRuntimeCalls = {
          *
          * See [`crate::Pallet::bare_upload_code`].
          */
-        upload_code: RuntimeDescriptor<[origin: SS58String, code: Binary, storage_deposit_limit: Anonymize<I35p85j063s0il>], Anonymize<I3q96iudj01bn>>;
+        upload_code: RuntimeDescriptor<[origin: SS58String, code: Binary, storage_deposit_limit: Anonymize<I35p85j063s0il>], Anonymize<Ibq2uamqt4878a>>;
         /**
          * Query a given storage key in a given contract.
          *
@@ -3566,7 +3736,7 @@ type IRuntimeCalls = {
          * specified account and `Ok(None)` if it doesn't. If the account specified by the address
          * doesn't exist, or doesn't have a contract then `Err` is returned.
          */
-        get_storage: RuntimeDescriptor<[address: FixedSizeBinary<20>, key: FixedSizeBinary<32>], Anonymize<I5gknsq18lkggf>>;
+        get_storage: RuntimeDescriptor<[address: FixedSizeBinary<20>, key: FixedSizeBinary<32>], Anonymize<I8dahmmusldq0b>>;
         /**
          * Query a given variable-sized storage key in a given contract.
          *
@@ -3574,7 +3744,7 @@ type IRuntimeCalls = {
          * specified account and `Ok(None)` if it doesn't. If the account specified by the address
          * doesn't exist, or doesn't have a contract then `Err` is returned.
          */
-        get_storage_var_key: RuntimeDescriptor<[address: FixedSizeBinary<20>, key: Binary], Anonymize<I5gknsq18lkggf>>;
+        get_storage_var_key: RuntimeDescriptor<[address: FixedSizeBinary<20>, key: Binary], Anonymize<I8dahmmusldq0b>>;
         /**
          * Traces the execution of an entire block and returns call traces.
          *
@@ -3625,7 +3795,7 @@ type IRuntimeCalls = {
         new_balance_with_dust: RuntimeDescriptor<[balance: Anonymize<I4totqt881mlti>], Anonymize<I512dtcl0pn07c>>;
     };
 };
-export type PpviewDispatchError = Anonymize<I1f347u8t14roe>;
+export type PpviewDispatchError = Anonymize<I8m5djc03sjan9>;
 type IAsset = PlainDescriptor<void>;
 export type PpviewExtensions = {};
 type PalletsTypedef = {
@@ -3656,7 +3826,7 @@ export type PpviewEvents = EventsFromPalletsDef<PalletsTypedef>;
 export type PpviewErrors = ErrorsFromPalletsDef<PalletsTypedef>;
 export type PpviewConstants = ConstFromPalletsDef<PalletsTypedef>;
 export type PpviewViewFns = ViewFnsFromPalletsDef<PalletsTypedef>;
-export type PpviewCallData = Anonymize<Iab0rfeoic4do> & {
+export type PpviewCallData = Anonymize<I2004jg4nchdns> & {
     value: {
         type: string;
     };
@@ -3687,6 +3857,7 @@ type AllInteractions = {
         Timestamp: ['set'];
         Balances: ['transfer_allow_death', 'force_transfer', 'transfer_keep_alive', 'transfer_all', 'force_unreserve', 'upgrade_accounts', 'force_set_balance', 'force_adjust_total_issuance', 'burn'];
         Sudo: ['sudo', 'sudo_unchecked_weight', 'set_key', 'sudo_as', 'remove_key'];
+        Utility: ['batch', 'as_derivative', 'batch_all', 'dispatch_as', 'force_batch', 'with_weight', 'if_else', 'dispatch_as_fallible'];
         CollatorSelection: ['set_invulnerables', 'set_desired_candidates', 'set_candidacy_bond', 'register_as_candidate', 'leave_intent', 'add_invulnerable', 'remove_invulnerable', 'update_bond', 'take_candidate_slot'];
         Session: ['set_keys', 'purge_keys'];
         XcmpQueue: ['suspend_xcm_execution', 'resume_xcm_execution', 'update_suspend_threshold', 'update_drop_threshold', 'update_resume_threshold'];
@@ -3701,6 +3872,7 @@ type AllInteractions = {
         Balances: ['Endowed', 'DustLost', 'Transfer', 'BalanceSet', 'Reserved', 'Unreserved', 'ReserveRepatriated', 'Deposit', 'Withdraw', 'Slashed', 'Minted', 'MintedCredit', 'Burned', 'BurnedDebt', 'Suspended', 'Restored', 'Upgraded', 'Issued', 'Rescinded', 'Locked', 'Unlocked', 'Frozen', 'Thawed', 'TotalIssuanceForced', 'Held', 'BurnedHeld', 'TransferOnHold', 'TransferAndHold', 'Released', 'Unexpected'];
         TransactionPayment: ['TransactionFeePaid'];
         Sudo: ['Sudid', 'KeyChanged', 'KeyRemoved', 'SudoAsDone'];
+        Utility: ['BatchInterrupted', 'BatchCompleted', 'BatchCompletedWithErrors', 'ItemCompleted', 'ItemFailed', 'DispatchedAs', 'IfElseMainSuccess', 'IfElseFallbackCalled'];
         CollatorSelection: ['NewInvulnerables', 'InvulnerableAdded', 'InvulnerableRemoved', 'NewDesiredCandidates', 'NewCandidacyBond', 'CandidateAdded', 'CandidateBondUpdated', 'CandidateRemoved', 'CandidateReplaced', 'InvalidInvulnerableSkipped'];
         Session: ['NewSession', 'NewQueued', 'ValidatorDisabled', 'ValidatorReenabled'];
         XcmpQueue: ['XcmpMessageSent'];
@@ -3716,6 +3888,7 @@ type AllInteractions = {
         ParachainSystem: ['OverlappingUpgrades', 'ProhibitedByPolkadot', 'TooBig', 'ValidationDataNotAvailable', 'HostConfigurationNotAvailable', 'NotScheduled'];
         Balances: ['VestingBalance', 'LiquidityRestrictions', 'InsufficientBalance', 'ExistentialDeposit', 'Expendability', 'ExistingVestingSchedule', 'DeadAccount', 'TooManyReserves', 'TooManyHolds', 'TooManyFreezes', 'IssuanceDeactivated', 'DeltaZero'];
         Sudo: ['RequireSudo'];
+        Utility: ['TooManyCalls'];
         CollatorSelection: ['TooManyCandidates', 'TooFewEligibleCollators', 'AlreadyCandidate', 'NotCandidate', 'TooManyInvulnerables', 'AlreadyInvulnerable', 'NotInvulnerable', 'NoAssociatedValidatorId', 'ValidatorNotRegistered', 'InsertToCandidateListFailed', 'RemoveFromCandidateListFailed', 'DepositTooLow', 'UpdateCandidateListFailed', 'InsufficientBond', 'TargetIsNotCandidate', 'IdenticalDeposit', 'InvalidUnreserve'];
         Session: ['InvalidProof', 'NoAssociatedValidatorId', 'DuplicatedKey', 'NoKeys', 'NoAccount'];
         XcmpQueue: ['BadQueueConfig', 'AlreadySuspended', 'AlreadyResumed', 'TooManyActiveOutboundChannels', 'TooBig'];
@@ -3730,6 +3903,7 @@ type AllInteractions = {
         Timestamp: ['MinimumPeriod'];
         Balances: ['ExistentialDeposit', 'MaxLocks', 'MaxReserves', 'MaxFreezes'];
         TransactionPayment: ['OperationalFeeMultiplier'];
+        Utility: ['batched_calls_limit'];
         CollatorSelection: ['PotId', 'MaxCandidates', 'MinEligibleCollators', 'MaxInvulnerables', 'KickThreshold', 'pot_account'];
         Session: ['KeyDeposit'];
         Aura: ['SlotDuration'];

@@ -41,14 +41,15 @@ export type DigestItem = Enum<{
 }>;
 export declare const DigestItem: GetEnum<DigestItem>;
 export type I82jm9g7pufuel = [FixedSizeBinary<4>, Binary];
-export type Ibajauope01his = Array<{
+export type I7d6up4tucbvvq = Array<{
     "phase": Phase;
     "event": Enum<{
-        "System": Anonymize<I759vkrbthobmk>;
+        "System": Anonymize<Id1k4lnmvp52ih>;
         "ParachainSystem": Anonymize<Icbsekf57miplo>;
         "Balances": Anonymize<I6pikrrn79qkf8>;
         "TransactionPayment": TransactionPaymentEvent;
-        "Sudo": Anonymize<I65g0j3qbrbgsf>;
+        "Sudo": Anonymize<Id3rsvioq9ddv5>;
+        "Utility": Anonymize<I9elk54jtngea6>;
         "CollatorSelection": Anonymize<I4srakrmf0fspo>;
         "Session": Anonymize<I6ue0ck5fc3u44>;
         "XcmpQueue": Anonymize<Idsqc7mhp6nnle>;
@@ -57,7 +58,7 @@ export type Ibajauope01his = Array<{
         "MessageQueue": Anonymize<I2kosejppk3jon>;
         "Statement": Anonymize<Ic1vdi0e9te2la>;
         "ContentRegistry": Anonymize<I57h5d4h79u6lm>;
-        "Revive": Anonymize<I9dteckdeq1j48>;
+        "Revive": Anonymize<I18t49sbablavb>;
     }>;
     "topics": Anonymize<Ic5m5lp1oioo8r>;
 }>;
@@ -67,7 +68,7 @@ export type Phase = Enum<{
     "Initialization": undefined;
 }>;
 export declare const Phase: GetEnum<Phase>;
-export type I759vkrbthobmk = AnonymousEnum<{
+export type Id1k4lnmvp52ih = AnonymousEnum<{
     /**
      * An extrinsic completed successfully.
      */
@@ -75,7 +76,7 @@ export type I759vkrbthobmk = AnonymousEnum<{
     /**
      * An extrinsic failed.
      */
-    "ExtrinsicFailed": Anonymize<I7ug77enbl49oi>;
+    "ExtrinsicFailed": Anonymize<I697l2qoi5c2g5>;
     /**
      * `:code` was updated.
      */
@@ -99,7 +100,7 @@ export type I759vkrbthobmk = AnonymousEnum<{
     /**
      * An invalid authorized upgrade was rejected while trying to apply it.
      */
-    "RejectedInvalidAuthorizedUpgrade": Anonymize<Ibnggp0nb7485i>;
+    "RejectedInvalidAuthorizedUpgrade": Anonymize<Idmtl9171u4vbr>;
 }>;
 export type Ia82mnkmeo2rhc = {
     "dispatch_info": Anonymize<Ic9s8f85vjtncc>;
@@ -119,11 +120,11 @@ export type Iehg04bj71rkd = AnonymousEnum<{
     "Yes": undefined;
     "No": undefined;
 }>;
-export type I7ug77enbl49oi = {
-    "dispatch_error": Anonymize<I1f347u8t14roe>;
+export type I697l2qoi5c2g5 = {
+    "dispatch_error": Anonymize<I8m5djc03sjan9>;
     "dispatch_info": Anonymize<Ic9s8f85vjtncc>;
 };
-export type I1f347u8t14roe = AnonymousEnum<{
+export type I8m5djc03sjan9 = AnonymousEnum<{
     "Other": undefined;
     "CannotLookup": undefined;
     "BadOrigin": undefined;
@@ -136,6 +137,7 @@ export type I1f347u8t14roe = AnonymousEnum<{
         "Balances": Anonymize<Idj13i7adlomht>;
         "TransactionPayment": undefined;
         "Sudo": Anonymize<Iaug04qjhbli00>;
+        "Utility": Anonymize<I8dt2g2hcrgh36>;
         "Authorship": undefined;
         "CollatorSelection": Anonymize<I36bcffk2387dv>;
         "Session": Anonymize<I1e07dgbaqd1sq>;
@@ -285,6 +287,12 @@ export type Iaug04qjhbli00 = AnonymousEnum<{
      * Sender must be the Sudo account.
      */
     "RequireSudo": undefined;
+}>;
+export type I8dt2g2hcrgh36 = AnonymousEnum<{
+    /**
+     * Too many calls batched.
+     */
+    "TooManyCalls": undefined;
 }>;
 export type I36bcffk2387dv = AnonymousEnum<{
     /**
@@ -936,9 +944,9 @@ export type Ibgl04rn6nbfm6 = {
     "code_hash": FixedSizeBinary<32>;
     "check_version": boolean;
 };
-export type Ibnggp0nb7485i = {
+export type Idmtl9171u4vbr = {
     "code_hash": FixedSizeBinary<32>;
-    "error": Anonymize<I1f347u8t14roe>;
+    "error": Anonymize<I8m5djc03sjan9>;
 };
 export type Icbsekf57miplo = AnonymousEnum<{
     /**
@@ -1195,11 +1203,11 @@ export type Ier2cke86dqbr2 = {
     "actual_fee": bigint;
     "tip": bigint;
 };
-export type I65g0j3qbrbgsf = AnonymousEnum<{
+export type Id3rsvioq9ddv5 = AnonymousEnum<{
     /**
      * A sudo call just took place.
      */
-    "Sudid": Anonymize<Ifsuide4d4u6mf>;
+    "Sudid": Anonymize<Iajbf0qf8df9gt>;
     /**
      * The sudo key has been updated.
      */
@@ -1211,15 +1219,15 @@ export type I65g0j3qbrbgsf = AnonymousEnum<{
     /**
      * A [sudo_as](Pallet::sudo_as) call just took place.
      */
-    "SudoAsDone": Anonymize<Ifsuide4d4u6mf>;
+    "SudoAsDone": Anonymize<Iajbf0qf8df9gt>;
 }>;
-export type Ifsuide4d4u6mf = {
+export type Iajbf0qf8df9gt = {
     /**
      * The result of the call made by the sudo user.
      */
-    "sudo_result": Anonymize<I562ju1earebou>;
+    "sudo_result": Anonymize<Ijdfvg3qovm92>;
 };
-export type I562ju1earebou = ResultPayload<undefined, Anonymize<I1f347u8t14roe>>;
+export type Ijdfvg3qovm92 = ResultPayload<undefined, Anonymize<I8m5djc03sjan9>>;
 export type I5rtkmhm2dng4u = {
     /**
      * The old sudo key (if one was previously set).
@@ -1229,6 +1237,54 @@ export type I5rtkmhm2dng4u = {
      * The new sudo key (if one was set).
      */
     "new": SS58String;
+};
+export type I9elk54jtngea6 = AnonymousEnum<{
+    /**
+     * Batch of dispatches did not complete fully. Index of first failing dispatch given, as
+     * well as the error.
+     */
+    "BatchInterrupted": Anonymize<I4d12bibdmica8>;
+    /**
+     * Batch of dispatches completed fully with no error.
+     */
+    "BatchCompleted": undefined;
+    /**
+     * Batch of dispatches completed but has errors.
+     */
+    "BatchCompletedWithErrors": undefined;
+    /**
+     * A single item within a Batch of dispatches has completed with no error.
+     */
+    "ItemCompleted": undefined;
+    /**
+     * A single item within a Batch of dispatches has completed with error.
+     */
+    "ItemFailed": Anonymize<Ia1np6dogduog6>;
+    /**
+     * A call was dispatched.
+     */
+    "DispatchedAs": Anonymize<Ibvibj2kt1psjk>;
+    /**
+     * Main call was dispatched.
+     */
+    "IfElseMainSuccess": undefined;
+    /**
+     * The fallback call was dispatched.
+     */
+    "IfElseFallbackCalled": Anonymize<I8mcr63lbd5n74>;
+}>;
+export type I4d12bibdmica8 = {
+    "index": number;
+    "error": Anonymize<I8m5djc03sjan9>;
+};
+export type Ia1np6dogduog6 = {
+    "error": Anonymize<I8m5djc03sjan9>;
+};
+export type Ibvibj2kt1psjk = {
+    "result": Anonymize<Ijdfvg3qovm92>;
+};
+export type I8mcr63lbd5n74 = {
+    "main_error": Anonymize<I8m5djc03sjan9>;
 };
 export type I4srakrmf0fspo = AnonymousEnum<{
     /**
@@ -2255,7 +2311,7 @@ export type I3d0l4kr6qmhba = {
     "listing_id": bigint;
     "buyer": SS58String;
 };
-export type I9dteckdeq1j48 = AnonymousEnum<{
+export type I18t49sbablavb = AnonymousEnum<{
     /**
      * A custom event emitted by the contract.
      */
@@ -2272,7 +2328,7 @@ export type I9dteckdeq1j48 = AnonymousEnum<{
      * To distinguish reverted calls from successful ones, this event is emitted
      * for failed Ethereum transactions.
      */
-    "EthExtrinsicRevert": Anonymize<I2vtb72j3qgf19>;
+    "EthExtrinsicRevert": Anonymize<I38jbk9vrpfv0i>;
 }>;
 export type I7svbvm6hg57aj = {
     /**
@@ -2295,8 +2351,8 @@ export type I8jhsbaiultviu = {
     "deployer": FixedSizeBinary<20>;
     "contract": FixedSizeBinary<20>;
 };
-export type I2vtb72j3qgf19 = {
-    "dispatch_error": Anonymize<I1f347u8t14roe>;
+export type I38jbk9vrpfv0i = {
+    "dispatch_error": Anonymize<I8m5djc03sjan9>;
 };
 export type I95g6i7ilua7lq = Array<FixedSizeArray<2, number>>;
 export type Ieniouoqkq4icf = {
@@ -3154,11 +3210,11 @@ export type I5utcetro501ir = {
     "value": bigint;
     "keep_alive": boolean;
 };
-export type Ib9i19ms0v4atp = AnonymousEnum<{
+export type I3ej58cui7jr9a = AnonymousEnum<{
     /**
      * Authenticates the sudo key and dispatches a function call with `Root` origin.
      */
-    "sudo": Anonymize<Ihrm9d8fau2fu>;
+    "sudo": Anonymize<Ia0dhomeuclld2>;
     /**
      * Authenticates the sudo key and dispatches a function call with `Root` origin.
      * This function does not check the weight of the call, and instead allows the
@@ -3166,7 +3222,7 @@ export type Ib9i19ms0v4atp = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Signed_.
      */
-    "sudo_unchecked_weight": Anonymize<I7nkig54i6uo71>;
+    "sudo_unchecked_weight": Anonymize<I6l9u2trv62g1e>;
     /**
      * Authenticates the current sudo key and sets the given AccountId (`new`) as the new sudo
      * key.
@@ -3178,7 +3234,7 @@ export type Ib9i19ms0v4atp = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Signed_.
      */
-    "sudo_as": Anonymize<Ibg7r88nttloqp>;
+    "sudo_as": Anonymize<Id2gbq03b2hr4h>;
     /**
      * Permanently removes the sudo key.
      *
@@ -3186,19 +3242,178 @@ export type Ib9i19ms0v4atp = AnonymousEnum<{
      */
     "remove_key": undefined;
 }>;
-export type Ihrm9d8fau2fu = {
+export type Ia0dhomeuclld2 = {
     "call": TxCallData;
 };
-export type I7nkig54i6uo71 = {
+export type I6l9u2trv62g1e = {
     "call": TxCallData;
     "weight": Anonymize<I4q39t5hn830vp>;
 };
 export type I8k3rnvpeeh4hv = {
     "new": MultiAddress;
 };
-export type Ibg7r88nttloqp = {
+export type Id2gbq03b2hr4h = {
     "who": MultiAddress;
     "call": TxCallData;
+};
+export type I9t6c8tk7nel3o = AnonymousEnum<{
+    /**
+     * Send a batch of dispatch calls.
+     *
+     * May be called from any origin except `None`.
+     *
+     * - `calls`: The calls to be dispatched from the same origin. The number of call must not
+     * exceed the constant: `batched_calls_limit` (available in constant metadata).
+     *
+     * If origin is root then the calls are dispatched without checking origin filter. (This
+     * includes bypassing `frame_system::Config::BaseCallFilter`).
+     *
+     * ## Complexity
+     * - O(C) where C is the number of calls to be batched.
+     *
+     * This will return `Ok` in all circumstances. To determine the success of the batch, an
+     * event is deposited. If a call failed and the batch was interrupted, then the
+     * `BatchInterrupted` event is deposited, along with the number of successful calls made
+     * and the error of the failed call. If all were successful, then the `BatchCompleted`
+     * event is deposited.
+     */
+    "batch": Anonymize<I6pqh000is1p71>;
+    /**
+     * Send a call through an indexed pseudonym of the sender.
+     *
+     * Filter from origin are passed along. The call will be dispatched with an origin which
+     * use the same filter as the origin of this call.
+     *
+     * NOTE: If you need to ensure that any account-based filtering is not honored (i.e.
+     * because you expect `proxy` to have been used prior in the call stack and you do not want
+     * the call restrictions to apply to any sub-accounts), then use `as_multi_threshold_1`
+     * in the Multisig pallet instead.
+     *
+     * NOTE: Prior to version *12, this was called `as_limited_sub`.
+     *
+     * The dispatch origin for this call must be _Signed_.
+     */
+    "as_derivative": Anonymize<I5oiq94r5m6hn8>;
+    /**
+     * Send a batch of dispatch calls and atomically execute them.
+     * The whole transaction will rollback and fail if any of the calls failed.
+     *
+     * May be called from any origin except `None`.
+     *
+     * - `calls`: The calls to be dispatched from the same origin. The number of call must not
+     * exceed the constant: `batched_calls_limit` (available in constant metadata).
+     *
+     * If origin is root then the calls are dispatched without checking origin filter. (This
+     * includes bypassing `frame_system::Config::BaseCallFilter`).
+     *
+     * ## Complexity
+     * - O(C) where C is the number of calls to be batched.
+     */
+    "batch_all": Anonymize<I6pqh000is1p71>;
+    /**
+     * Dispatches a function call with a provided origin.
+     *
+     * The dispatch origin for this call must be _Root_.
+     *
+     * ## Complexity
+     * - O(1).
+     */
+    "dispatch_as": Anonymize<I8f2lrbv2fds33>;
+    /**
+     * Send a batch of dispatch calls.
+     * Unlike `batch`, it allows errors and won't interrupt.
+     *
+     * May be called from any origin except `None`.
+     *
+     * - `calls`: The calls to be dispatched from the same origin. The number of call must not
+     * exceed the constant: `batched_calls_limit` (available in constant metadata).
+     *
+     * If origin is root then the calls are dispatch without checking origin filter. (This
+     * includes bypassing `frame_system::Config::BaseCallFilter`).
+     *
+     * ## Complexity
+     * - O(C) where C is the number of calls to be batched.
+     */
+    "force_batch": Anonymize<I6pqh000is1p71>;
+    /**
+     * Dispatch a function call with a specified weight.
+     *
+     * This function does not check the weight of the call, and instead allows the
+     * Root origin to specify the weight of the call.
+     *
+     * The dispatch origin for this call must be _Root_.
+     */
+    "with_weight": Anonymize<I6l9u2trv62g1e>;
+    /**
+     * Dispatch a fallback call in the event the main call fails to execute.
+     * May be called from any origin except `None`.
+     *
+     * This function first attempts to dispatch the `main` call.
+     * If the `main` call fails, the `fallback` is attemted.
+     * if the fallback is successfully dispatched, the weights of both calls
+     * are accumulated and an event containing the main call error is deposited.
+     *
+     * In the event of a fallback failure the whole call fails
+     * with the weights returned.
+     *
+     * - `main`: The main call to be dispatched. This is the primary action to execute.
+     * - `fallback`: The fallback call to be dispatched in case the `main` call fails.
+     *
+     * ## Dispatch Logic
+     * - If the origin is `root`, both the main and fallback calls are executed without
+     * applying any origin filters.
+     * - If the origin is not `root`, the origin filter is applied to both the `main` and
+     * `fallback` calls.
+     *
+     * ## Use Case
+     * - Some use cases might involve submitting a `batch` type call in either main, fallback
+     * or both.
+     */
+    "if_else": Anonymize<Iemch1bu6l1qal>;
+    /**
+     * Dispatches a function call with a provided origin.
+     *
+     * Almost the same as [`Pallet::dispatch_as`] but forwards any error of the inner call.
+     *
+     * The dispatch origin for this call must be _Root_.
+     */
+    "dispatch_as_fallible": Anonymize<I8f2lrbv2fds33>;
+}>;
+export type I6pqh000is1p71 = {
+    "calls": Array<TxCallData>;
+};
+export type I5oiq94r5m6hn8 = {
+    "index": number;
+    "call": TxCallData;
+};
+export type I8f2lrbv2fds33 = {
+    "as_origin": Enum<{
+        "system": Anonymize<I9gqitj4t615g3>;
+        "PolkadotXcm": Anonymize<Icvilmd7qu30i4>;
+        "CumulusXcm": Anonymize<I3in0d0lb61qi8>;
+        "Revive": Enum<{
+            "EthTransaction": SS58String;
+        }>;
+    }>;
+    "call": TxCallData;
+};
+export type I9gqitj4t615g3 = AnonymousEnum<{
+    "Root": undefined;
+    "Signed": SS58String;
+    "None": undefined;
+    "Authorized": undefined;
+}>;
+export type Icvilmd7qu30i4 = AnonymousEnum<{
+    "Xcm": Anonymize<If9iqq7i64mur8>;
+    "Response": Anonymize<If9iqq7i64mur8>;
+}>;
+export type I3in0d0lb61qi8 = AnonymousEnum<{
+    "Relay": undefined;
+    "SiblingParachain": number;
+}>;
+export type Iemch1bu6l1qal = {
+    "main": TxCallData;
+    "fallback": TxCallData;
 };
 export type I9dpq5287dur8b = AnonymousEnum<{
     /**
@@ -4056,7 +4271,7 @@ export type I2dpff3lc7r29l = {
     "buyer": SS58String;
     "wrapped_key": FixedSizeBinary<80>;
 };
-export type I8tkid261thqe4 = AnonymousEnum<{
+export type Ibf9d1j9akrkq0 = AnonymousEnum<{
     /**
      * A raw EVM transaction, typically dispatched by an Ethereum JSON-RPC server.
      *
@@ -4184,7 +4399,7 @@ export type I8tkid261thqe4 = AnonymousEnum<{
      * * `call`: The Substrate runtime call to execute.
      * * `transaction_encoded`: The RLP encoding of the Ethereum transaction,
      */
-    "eth_substrate_call": Anonymize<Ibapi7a37bpjjv>;
+    "eth_substrate_call": Anonymize<I4jjitt3odaann>;
     /**
      * Upload new `code` without instantiating a contract from it.
      *
@@ -4243,7 +4458,7 @@ export type I8tkid261thqe4 = AnonymousEnum<{
      * is the `AccountId20` with the last 12 bytes set to `0xEE`. This is essentially a
      * recovery function in case an `AccountId20` was used without creating a mapping first.
      */
-    "dispatch_as_fallback_account": Anonymize<Ihrm9d8fau2fu>;
+    "dispatch_as_fallback_account": Anonymize<Ia0dhomeuclld2>;
 }>;
 export type Ida37oe44osb06 = {
     "payload": Binary;
@@ -4291,7 +4506,7 @@ export type Iav55bcqlrqn51 = {
     "effective_gas_price": Anonymize<I4totqt881mlti>;
     "encoded_len": number;
 };
-export type Ibapi7a37bpjjv = {
+export type I4jjitt3odaann = {
     "call": TxCallData;
     "transaction_encoded": Binary;
 };
@@ -4320,7 +4535,7 @@ export type I7u915mvkdsb08 = ResultPayload<Binary, Enum<{
     "NotFound": Anonymize<I4gil44d08grh>;
     "Codec": undefined;
 }>>;
-export type I8v37tlvqtef7q = ResultPayload<Anonymize<I562ju1earebou>, Anonymize<I5nrjkj9qumobs>>;
+export type I552figkuupl9t = ResultPayload<Anonymize<Ijdfvg3qovm92>, Anonymize<I5nrjkj9qumobs>>;
 export type I5nrjkj9qumobs = AnonymousEnum<{
     "Invalid": Enum<{
         "Call": undefined;
@@ -4378,13 +4593,14 @@ export type Iei2mvq0mjvt81 = {
     }) | undefined;
     "tip": bigint;
 };
-export type Iab0rfeoic4do = AnonymousEnum<{
+export type I2004jg4nchdns = AnonymousEnum<{
     "System": Anonymize<Iekve0i6djpd9f>;
     "ParachainSystem": Anonymize<I3u72uvpuo4qrt>;
     "Timestamp": Anonymize<I7d75gqfg6jh9c>;
     "ParachainInfo": undefined;
     "Balances": Anonymize<I9svldsp29mh87>;
-    "Sudo": Anonymize<Ib9i19ms0v4atp>;
+    "Sudo": Anonymize<I3ej58cui7jr9a>;
+    "Utility": Anonymize<I9t6c8tk7nel3o>;
     "CollatorSelection": Anonymize<I9dpq5287dur8b>;
     "Session": Anonymize<I77dda7hps0u37>;
     "XcmpQueue": Anonymize<Ib7tahn20bvsep>;
@@ -4392,7 +4608,7 @@ export type Iab0rfeoic4do = AnonymousEnum<{
     "CumulusXcm": undefined;
     "MessageQueue": Anonymize<Ic2uoe7jdksosp>;
     "ContentRegistry": Anonymize<I8kfo64qt5c7v4>;
-    "Revive": Anonymize<I8tkid261thqe4>;
+    "Revive": Anonymize<Ibf9d1j9akrkq0>;
 }>;
 export type Ic1d4u2opv3fst = {
     "upward_messages": Anonymize<Itom7fk49o0c9>;
@@ -4418,13 +4634,13 @@ export type I3ju6ot8lfmk90 = ResultPayload<{
 export type Ie9sr1iqcg3cgm = ResultPayload<undefined, string>;
 export type I1mqgk2tmnn9i2 = (string) | undefined;
 export type I6lr8sctk0bi4e = Array<string>;
-export type Id3266bntbqudq = {
+export type I6r08e9psr96la = {
     "weight_consumed": Anonymize<I4q39t5hn830vp>;
     "weight_required": Anonymize<I4q39t5hn830vp>;
     "storage_deposit": Anonymize<If7bmpttbdmqu4>;
     "max_storage_deposit": Anonymize<If7bmpttbdmqu4>;
     "gas_consumed": bigint;
-    "result": ResultPayload<Anonymize<I620n7irgfspm4>, Anonymize<I1f347u8t14roe>>;
+    "result": ResultPayload<Anonymize<I620n7irgfspm4>, Anonymize<I8m5djc03sjan9>>;
 };
 export type If7bmpttbdmqu4 = AnonymousEnum<{
     "Refund": bigint;
@@ -4438,7 +4654,7 @@ export type I9sijb8gfrns29 = AnonymousEnum<{
     "Upload": Binary;
     "Existing": FixedSizeBinary<32>;
 }>;
-export type I79sb1vb3codno = {
+export type I8rh37a5gg0kb7 = {
     "weight_consumed": Anonymize<I4q39t5hn830vp>;
     "weight_required": Anonymize<I4q39t5hn830vp>;
     "storage_deposit": Anonymize<If7bmpttbdmqu4>;
@@ -4447,7 +4663,7 @@ export type I79sb1vb3codno = {
     "result": ResultPayload<{
         "result": Anonymize<I620n7irgfspm4>;
         "addr": FixedSizeBinary<20>;
-    }, Anonymize<I1f347u8t14roe>>;
+    }, Anonymize<I8m5djc03sjan9>>;
 };
 export type I6f9v7emp7t5ba = {
     "access_list"?: (Anonymize<Ieap15h2pjii9u>) | undefined;
@@ -4485,14 +4701,14 @@ export type Idmrtv8jbbitnu = {
     "timestamp_override"?: Anonymize<I35p85j063s0il>;
     "reserved": boolean;
 };
-export type I3q96iudj01bn = ResultPayload<{
+export type Ibq2uamqt4878a = ResultPayload<{
     "code_hash": FixedSizeBinary<32>;
     "deposit": bigint;
-}, Anonymize<I1f347u8t14roe>>;
-export type I5gknsq18lkggf = ResultPayload<Anonymize<Iabpgqcjikia83>, Enum<{
+}, Anonymize<I8m5djc03sjan9>>;
+export type I8dahmmusldq0b = ResultPayload<Anonymize<Iabpgqcjikia83>, Enum<{
     "DoesntExist": undefined;
     "KeyDecodingFailed": undefined;
-    "StorageWriteFailed": Anonymize<I1f347u8t14roe>;
+    "StorageWriteFailed": Anonymize<I8m5djc03sjan9>;
 }>>;
 export type I63nhnkgg114n5 = AnonymousEnum<{
     "CallTracer"?: ({
@@ -4651,12 +4867,6 @@ export type Id3cclc8rha27v = AnonymousEnum<{
     "Unavailable": undefined;
     "RootNotAllowed": undefined;
     "Trie": Anonymize<Idh4cj79bvroj8>;
-}>;
-export type I8dt2g2hcrgh36 = AnonymousEnum<{
-    /**
-     * Too many calls batched.
-     */
-    "TooManyCalls": undefined;
 }>;
 export type I3t32lkif2hg4k = AnonymousEnum<{
     /**
@@ -4927,26 +5137,15 @@ export type Ibi0s841005et5 = {
     "origin": Anonymize<I9cqlcs1cfiqgk>;
 };
 export type I9cqlcs1cfiqgk = AnonymousEnum<{
-    "system": Enum<{
-        "Root": undefined;
-        "Signed": SS58String;
-        "None": undefined;
-        "Authorized": undefined;
-    }>;
+    "system": Anonymize<I9gqitj4t615g3>;
     "TransactionStorage": Enum<{
         "Authorized": {
             "who": SS58String;
             "scope": Anonymize<Icd998p53cb80u>;
         };
     }>;
-    "PolkadotXcm": Enum<{
-        "Xcm": Anonymize<If9iqq7i64mur8>;
-        "Response": Anonymize<If9iqq7i64mur8>;
-    }>;
-    "CumulusXcm": Enum<{
-        "Relay": undefined;
-        "SiblingParachain": number;
-    }>;
+    "PolkadotXcm": Anonymize<Icvilmd7qu30i4>;
+    "CumulusXcm": Anonymize<I3in0d0lb61qi8>;
 }>;
 export type Icd998p53cb80u = AnonymousEnum<{
     "Account": SS58String;
