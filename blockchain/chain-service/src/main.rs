@@ -1,8 +1,12 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
-use ppview_chain_service::{chain, cli, signer_key};
+use futures::StreamExt;
+use ppview_chain_service::chain::{stream_events, Chain};
+use ppview_chain_service::handler::wrap_and_grant;
+use ppview_chain_service::reconcile::backfill;
+use ppview_chain_service::{chain, cli, keys, signer_key};
 use subxt_signer::sr25519::Keypair;
-use tracing::info;
+use tracing::{error, info};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -25,9 +29,62 @@ async fn main() -> Result<()> {
         service_signer_pubkey = %hex::encode(signer.public_key().0),
         "service signer loaded"
     );
-    info!("scaffold only — event loop lands in Task 9");
 
-    Ok(())
+    let svc_priv = keys::load_svc_priv(&args.svc_priv_path).with_context(|| {
+        format!("loading SVC_PRIV from {}", args.svc_priv_path.display())
+    })?;
+
+    let chain = Chain::connect(&args.rpc_url)
+        .await
+        .with_context(|| format!("connecting to {}", args.rpc_url))?;
+
+    backfill(&chain, &signer, &svc_priv)
+        .await
+        .context("startup reconciliation failed")?;
+
+    let mut stream = Box::pin(stream_events(chain.clone()));
+    info!("live stream active — waiting for PurchaseCompleted / ListingCreated events");
+
+    let shutdown = tokio::signal::ctrl_c();
+    tokio::pin!(shutdown);
+
+    loop {
+        tokio::select! {
+            biased;
+            _ = &mut shutdown => {
+                info!("SIGINT received — shutting down");
+                return Ok(());
+            }
+            item = stream.next() => match item {
+                Some(Ok(trigger)) => {
+                    if let Err(e) = wrap_and_grant(
+                        &chain,
+                        &signer,
+                        &svc_priv,
+                        trigger.listing_id,
+                        &trigger.target,
+                        trigger.kind,
+                    ).await {
+                        error!(
+                            listing_id = trigger.listing_id,
+                            target = %trigger.target,
+                            kind = ?trigger.kind,
+                            error = ?e,
+                            "wrap_and_grant failed — event skipped; reconciliation at next startup will retry"
+                        );
+                    }
+                }
+                Some(Err(e)) => {
+                    error!(error = ?e, "event stream error — exiting; supervisor should restart and reconciliation will catch up");
+                    return Err(e);
+                }
+                None => {
+                    error!("event stream ended unexpectedly — exiting");
+                    return Ok(());
+                }
+            }
+        }
+    }
 }
 
 fn load_signer(args: &cli::Args) -> Result<Keypair> {

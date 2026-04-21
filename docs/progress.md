@@ -80,7 +80,7 @@ Plan: [`docs/plans/P2b-chain-service.md`](./plans/P2b-chain-service.md)
 - [x] Task 5: wrap_and_grant handler (idempotent)
 - [x] Task 6: Finalized event stream (PurchaseCompleted + ListingCreated)
 - [x] Task 7: Startup reconciliation over Listings + Purchases
-- [ ] Task 8: Main loop — backfill + live stream + SIGINT
+- [x] Task 8: Main loop — backfill + live stream + SIGINT
 - [ ] Task 9: start-chain-service.sh helper + crate README
 - [ ] Task 10: Zombienet E2E — daemon grants access on purchase
 
