@@ -1,4 +1,4 @@
-import { Binary } from 'polkadot-api';
+import { Binary, FixedSizeBinary, type PolkadotSigner } from 'polkadot-api';
 import { getParachainApi, getUserSigner } from './useParachainProvider';
 import { bulletinCidToGatewayUrl } from '../utils/bulletinCid';
 
@@ -80,6 +80,37 @@ export async function hasPurchased(address: string, listingId: bigint): Promise<
   return result !== undefined;
 }
 
+/** Read the 32-byte SVC_PUB baked into genesis. Panics on misconfigured chains. */
+export async function fetchServicePublicKey(): Promise<Uint8Array> {
+  const api = getParachainApi();
+  const pub = await api.query.ContentRegistry.ServicePublicKey.getValue();
+  return pub.asBytes();
+}
+
+/** Returns the registered x25519 pubkey for `address`, or null if none. */
+export async function fetchEncryptionKey(address: string): Promise<Uint8Array | null> {
+  const api = getParachainApi();
+  const entry = await api.query.ContentRegistry.EncryptionKeys.getValue(address);
+  return entry ? entry.asBytes() : null;
+}
+
+/**
+ * Subscribe to `WrappedKeys[(address, listingId)]`. Emits `null` until
+ * the daemon writes it, then emits the 80-byte sealed payload.
+ */
+export function watchWrappedKey(
+  address: string,
+  listingId: bigint,
+  onChange: (sealed: Uint8Array | null) => void,
+): { unsubscribe: () => void } {
+  const api = getParachainApi();
+  const sub = api.query.ContentRegistry.WrappedKeys.watchValue(address, listingId).subscribe({
+    next: (v) => onChange(v ? v.asBytes() : null),
+    error: (err) => console.error('WrappedKeys subscription error:', err),
+  });
+  return { unsubscribe: () => sub.unsubscribe() };
+}
+
 // ── Writes ────────────────────────────────────────────────────────────────────
 
 export interface CreateListingParams {
@@ -89,40 +120,134 @@ export interface CreateListingParams {
   title: string;
   description: string;
   price: bigint;
+  lockedContentLockKey: Uint8Array; // exactly 80 bytes, sealed to SVC_PUB
 }
 
-export async function submitCreateListing(params: CreateListingParams): Promise<bigint> {
+function createListingCall(params: CreateListingParams) {
   const api = getParachainApi();
-  const signer = getUserSigner();
-
-  const tx = api.tx.ContentRegistry.create_listing({
+  if (params.lockedContentLockKey.length !== 80) {
+    throw new Error(
+      `lockedContentLockKey must be 80 bytes, got ${params.lockedContentLockKey.length}`,
+    );
+  }
+  return api.tx.ContentRegistry.create_listing({
     content_cid: {
       codec: params.contentCid.codec,
-      digest: Binary.fromBytes(params.contentCid.digestBytes),
+      digest: FixedSizeBinary.fromBytes(params.contentCid.digestBytes),
     },
     thumbnail_cid: {
       codec: params.thumbnailCid.codec,
-      digest: Binary.fromBytes(params.thumbnailCid.digestBytes),
+      digest: FixedSizeBinary.fromBytes(params.thumbnailCid.digestBytes),
     },
-    content_hash: Binary.fromBytes(params.contentHash),
+    content_hash: FixedSizeBinary.fromBytes(params.contentHash),
     title: Binary.fromText(params.title),
     description: Binary.fromText(params.description),
     price: params.price,
-    locked_content_lock_key: Binary.fromBytes(new Uint8Array()),
+    locked_content_lock_key: FixedSizeBinary.fromBytes(params.lockedContentLockKey),
   });
+}
 
+function registerEncryptionKeyCall(pubkey: Uint8Array) {
+  const api = getParachainApi();
+  if (pubkey.length !== 32) throw new Error(`pubkey must be 32 bytes, got ${pubkey.length}`);
+  return api.tx.ContentRegistry.register_encryption_key({
+    pubkey: FixedSizeBinary.fromBytes(pubkey),
+  });
+}
+
+function purchaseCall(listingId: bigint) {
+  const api = getParachainApi();
+  return api.tx.ContentRegistry.purchase({ listing_id: listingId });
+}
+
+/** Plain `create_listing`. Caller must have `EncryptionKeys[caller]` already. */
+export async function submitCreateListing(params: CreateListingParams): Promise<bigint> {
+  const api = getParachainApi();
+  const signer = getUserSigner();
+  const tx = createListingCall(params);
   const result = await tx.signAndSubmit(signer);
   if (!result.ok) throw new Error(`create_listing failed: ${JSON.stringify(result)}`);
+  const nextId = await api.query.ContentRegistry.NextListingId.getValue();
+  return nextId - 1n;
+}
+
+/** Plain `register_encryption_key`. Rarely called directly — see batch helpers. */
+export async function submitRegisterEncryptionKey(pubkey: Uint8Array): Promise<void> {
+  const signer = getUserSigner();
+  const result = await registerEncryptionKeyCall(pubkey).signAndSubmit(signer);
+  if (!result.ok) throw new Error(`register_encryption_key failed: ${JSON.stringify(result)}`);
+}
+
+/** Plain `purchase`. Caller must have `EncryptionKeys[caller]` already. */
+export async function submitPurchase(listingId: bigint): Promise<void> {
+  const signer = getUserSigner();
+  const result = await purchaseCall(listingId).signAndSubmit(signer);
+  if (!result.ok) throw new Error(`purchase failed: ${JSON.stringify(result)}`);
+}
+
+// ── Batched helpers ───────────────────────────────────────────────────────────
+
+async function signBatchAll(
+  signer: PolkadotSigner,
+  calls: ReturnType<typeof createListingCall>[] | unknown[],
+): Promise<void> {
+  const api = getParachainApi();
+  // Each call is a typed `Tx`; PAPI exposes its enum shape on `.decodedCall`,
+  // which is exactly what `Utility.batch_all` expects.
+  const inner = calls.map((c) => (c as { decodedCall: unknown }).decodedCall);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tx = (api.tx as any).Utility.batch_all({ calls: inner });
+  const result = await tx.signAndSubmit(signer);
+  if (!result.ok) throw new Error(`batch_all failed: ${JSON.stringify(result)}`);
+}
+
+/**
+ * Create a listing. If `EncryptionKeys[caller]` is missing, batches
+ * `register_encryption_key(pubkey)` before `create_listing`. Returns
+ * the new `listing_id`.
+ */
+export async function submitCreateListingMaybeBatched(
+  params: CreateListingParams,
+  callerAddress: string,
+  pubkeyIfMissing: Uint8Array,
+): Promise<bigint> {
+  const api = getParachainApi();
+  const signer = getUserSigner();
+  const already = await fetchEncryptionKey(callerAddress);
+
+  if (already) {
+    const result = await createListingCall(params).signAndSubmit(signer);
+    if (!result.ok) throw new Error(`create_listing failed: ${JSON.stringify(result)}`);
+  } else {
+    await signBatchAll(signer, [
+      registerEncryptionKeyCall(pubkeyIfMissing),
+      createListingCall(params),
+    ]);
+  }
 
   const nextId = await api.query.ContentRegistry.NextListingId.getValue();
   return nextId - 1n;
 }
 
-export async function submitPurchase(listingId: bigint): Promise<void> {
-  const api = getParachainApi();
+/**
+ * Purchase a listing. If `EncryptionKeys[caller]` is missing, batches
+ * `register_encryption_key(pubkey)` before `purchase`.
+ */
+export async function submitPurchaseMaybeBatched(
+  listingId: bigint,
+  callerAddress: string,
+  pubkeyIfMissing: Uint8Array,
+): Promise<void> {
   const signer = getUserSigner();
+  const already = await fetchEncryptionKey(callerAddress);
 
-  const tx = api.tx.ContentRegistry.purchase({ listing_id: listingId });
-  const result = await tx.signAndSubmit(signer);
-  if (!result.ok) throw new Error(`purchase failed: ${JSON.stringify(result)}`);
+  if (already) {
+    const result = await purchaseCall(listingId).signAndSubmit(signer);
+    if (!result.ok) throw new Error(`purchase failed: ${JSON.stringify(result)}`);
+  } else {
+    await signBatchAll(signer, [
+      registerEncryptionKeyCall(pubkeyIfMissing),
+      purchaseCall(listingId),
+    ]);
+  }
 }
