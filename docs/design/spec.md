@@ -27,7 +27,7 @@ End-to-end data flow:
 
 Each phase is demoable on its own.
 
-### Phase 1 — Core flow (MVP)
+### Phase 1 — Core flow
 - Custom FRAME pallet with content registry, payments, and purchase tracking.
 - Payments in the parachain's native token via `pallet-balances`.
 - Content stored on Bulletin Chain **unencrypted**. Access control is UX-level only — anyone with the CID can fetch the bytes. This is an acknowledged limitation mitigated on phase 2.
@@ -42,15 +42,12 @@ Each phase is demoable on its own.
 - Buyer frontend decrypts in pure JS, using a session private key held in sandbox-local storage.
 - Access control becomes cryptographic.
 
-### Phase 3 — Stablecoin payments via Asset Hub
-**This phase will be designed after phase 1 and 2 are finished if there's available time**. In the meantime content can only be payed in the parachain native token.
-- Accept DOT and USDC (asset id 1337) on Asset Hub.
-- Requires registering the parachain on Paseo (collator, parachain slot, HRMP channel to Asset Hub).
-- XCM-based payment verification.
-- Buyers no longer need to hold DOT.
+### Phase 3 - Storage Optimizations + Proper Wallet Integration
+- **Proper Wallet Integration**. Replace hardcoded wallets with actual wallet integration. Remove Triangle Host (doesn't work with parachains outside of Asset Hub and Paseo)
+- **Feature: My Listings Page**. Create a page where the user can see the listings he bought. Use it as an excercise to review the best possible storage structure to use when iterating over multiple items.
+- **Review & Refactor Storage To ensure Optimal Usage**. Ensure the best possible storage structure is used for iterating over multiple items (my listings vs my purchases)
 
 ### Phase 4 — UX improvements
-**Nice-to-have; will be designed and built only if the earlier phases land with time to spare.** Not a primary deliverable. Until this phase is built, both items below are acknowledged limitations of the PoC.
 - **Content renewal via on-chain hooks.** Bulletin Chain content expires in ~14 days. A pallet hook (`on_initialize` or `on_finalize`) scans listings approaching expiry and triggers renewal (via OCW calling `TransactionStorage.renew` on Bulletin Chain), so creators don't have to re-upload.
 - **Session-key recovery.** Smooth recovery flow for buyers who lose their browser-held x25519 private key. Introduces a `regrant_access(listing_ids)` extrinsic (signed by the buyer) that emits events the content-unlock-service observes to re-wrap each listing's content-lock-key under the caller's newly registered encryption key. Until this exists, a key loss means permanent loss of access to past purchases.
 
@@ -59,6 +56,13 @@ Each phase is demoable on its own.
 - **`ServiceAccountId` rotation.** Straightforward: accept `grant_access` from a new sr25519 signer going forward; past grants are already written.
 - **`ServicePublicKey` rotation.** Non-trivial. Existing `Listings[*].locked_content_lock_key` entries are sealed to the old `SVC_PUB`, so the daemon must hold both old and new `SVC_PRIV`s during a transition window — unseal past listings with the old key, seal new listings with the new one. Clients must re-fetch `ServicePublicKey` between caching and use; a version tag on the storage value lets creators detect mid-upload rotation and retry. Lost `SVC_PRIV` for any retired key makes all listings sealed under it permanently un-grantable.
 - **Governance path.** Depends on what replaces sudo by the time this phase is reached (council motion, democracy referendum, or a bespoke operator-multisig origin).
+
+### Phase 6 — Stablecoin payments via Asset Hub
+**This phase will be designed after phase 1 and 2 are finished if there's available time**. In the meantime content can only be payed in the parachain native token.
+- Accept DOT and USDC (asset id 1337) on Asset Hub.
+- Requires registering the parachain on Paseo (collator, parachain slot, HRMP channel to Asset Hub).
+- XCM-based payment verification.
+- Buyers no longer need to hold DOT.
 
 ## 4. Pallet design
 
@@ -260,7 +264,7 @@ The same flow applies to any account that has a `WrappedKeys[(account, listing_i
 
 - **Local development.** Relay + parachain via Zombienet. This is the supported path for Statement Store RPCs in the current SDK release, and Statement Store is required by Triangle. Single machine; no external registration needed.
 - **Phase 1–2 frontend.** Built as a static bundle, hosted on **Bulletin Chain** and registered on **DotNS** (`.dot` domain resolving to the Bulletin CID). Deployment runs through the `.github/workflows/deploy-frontend.yml` GitHub Action, which invokes the reusable `paritytech/dotns-sdk/.github/workflows/deploy.yml@main` workflow — it handles bundle upload (`dotns bulletin authorize` + `dotns bulletin upload`) and DotNS content-hash registration (`dotns content set`) as a single operation. On Paseo, Alice signs DotNS registration (free for dev accounts); no repo secret needed for the PoC. Bulletin's ~14-day retention is acknowledged: the action is re-run before each demo to refresh the pin. The older IPFS-via-w3.storage path (`scripts/deploy-frontend.sh`) is kept as a manual fallback but is not the supported Phase 1c path. Full trace in `docs/research/frontend-deploy.md`.
-- **Phase 3 infrastructure.** Parachain registers on Paseo (collator, parachain slot, HRMP channel to Asset Hub for XCM). Real ops lift, planned for when Phase 3 is active.
+- **Phase 6 infrastructure.** Parachain registers on Paseo (collator, parachain slot, HRMP channel to Asset Hub for XCM). Real ops lift, planned for when Phase 6 is active.
 - **Operational setup (content-unlock-service keys).**
   - Operator generates the x25519 SVC keypair (`SVC_PRIV` / `SVC_PUB`) on a secure machine. `SVC_PUB` bytes are embedded in the genesis config under `ServicePublicKey`.
   - Operator generates (or reuses) the sr25519 service account keypair. The corresponding AccountId is embedded in the genesis config under `ServiceAccountId` and receives a one-time existential deposit transfer at setup time.
