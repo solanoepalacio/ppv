@@ -226,6 +226,9 @@ mod runtime {
 	#[runtime::pallet_index(15)]
 	pub type Sudo = pallet_sudo;
 
+	#[runtime::pallet_index(16)]
+	pub type Utility = pallet_utility;
+
 	#[runtime::pallet_index(20)]
 	pub type Authorship = pallet_authorship;
 	#[runtime::pallet_index(21)]
@@ -438,7 +441,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("ppview-runtime"),
 	impl_name: alloc::borrow::Cow::Borrowed("ppview-runtime"),
 	authoring_version: 1,
-	spec_version: 3,
+	spec_version: 4,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
