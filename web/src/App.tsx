@@ -1,7 +1,8 @@
 import { Outlet, NavLink } from "react-router-dom";
 import { useChainStore } from "./store/chainStore";
 import { useParachainProvider } from "./hooks/useParachainProvider";
-import { truncateAddress, formatDot } from "./utils/format";
+import { formatDot } from "./utils/format";
+import { WalletPicker } from "./components/WalletPicker";
 
 export default function App() {
 	const account = useChainStore((s) => s.account);
@@ -75,13 +76,10 @@ export default function App() {
 									: "bg-text-muted"
 							}`}
 						/>
-						{account ? (
+						<WalletPicker />
+						{account && (
 							<span className="text-xs text-text-tertiary font-mono">
-								{truncateAddress(account)} · {formatDot(balance)}
-							</span>
-						) : (
-							<span className="text-xs text-text-muted">
-								Pair your Polkadot App to get started
+								{formatDot(balance)}
 							</span>
 						)}
 					</div>
