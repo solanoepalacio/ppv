@@ -86,12 +86,6 @@ export default function ListingDetailPage() {
     setTimeout(() => setCopied(false), 1500);
   }
 
-  function handleCopyId() {
-    navigator.clipboard.writeText(listing!.id.toString());
-    setIdCopied(true);
-    setTimeout(() => setIdCopied(false), 1500);
-  }
-
   const showPlayer = pageState === 'purchased' && account && encryptionKey.ready
     && encryptionKey.publicKey && encryptionKey.privateKey;
 
@@ -132,13 +126,6 @@ export default function ListingDetailPage() {
             </span>
             <button onClick={handleCopyAddress} className="text-xs text-polka-400 hover:text-polka-300">
               {copied ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
-
-          <div data-testid="listing-id" className="flex items-center gap-2">
-            <span className="text-xs text-text-muted font-mono">ID: {listing.id.toString()}</span>
-            <button onClick={handleCopyId} className="text-xs text-polka-400 hover:text-polka-300">
-              {idCopied ? 'Copied!' : 'Copy ID'}
             </button>
           </div>
 
