@@ -4,7 +4,7 @@ export function truncateAddress(addr: string): string {
 }
 
 export function formatDot(planck: bigint): string {
-  const dot = Number(planck) / 1e10;
+  const dot = Number(planck) / 1e12;
   return `${dot.toFixed(2)} DOT`;
 }
 

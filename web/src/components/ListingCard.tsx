@@ -1,19 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import type { Listing } from '../hooks/useContentRegistry';
+import { formatDot, truncateAddress } from '../utils/format';
 
 interface Props {
   listing: Listing;
   isPurchased?: boolean;
   isOwn?: boolean;
-}
-
-function truncateAddress(addr: string): string {
-  if (addr.length <= 12) return addr;
-  return `${addr.slice(0, 6)}…${addr.slice(-6)}`;
-}
-
-function formatDot(planck: bigint): string {
-  return `${(Number(planck) / 1e10).toFixed(2)} DOT`;
 }
 
 export default function ListingCard({ listing, isPurchased, isOwn }: Props) {

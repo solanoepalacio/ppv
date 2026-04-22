@@ -10,15 +10,7 @@ import {
 import { useEncryptionKey } from '../hooks/useEncryptionKey';
 import { getCachedKey } from '../hooks/contentLockKeyCache';
 import VideoPlayer from '../components/VideoPlayer';
-
-function truncateAddress(addr: string): string {
-  if (addr.length <= 12) return addr;
-  return `${addr.slice(0, 6)}…${addr.slice(-6)}`;
-}
-
-function formatDot(planck: bigint): string {
-  return `${(Number(planck) / 1e10).toFixed(2)} DOT`;
-}
+import { formatDot, truncateAddress } from '../utils/format';
 
 type PageState = 'loading' | 'not-found' | 'unpurchased' | 'purchased';
 

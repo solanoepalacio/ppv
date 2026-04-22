@@ -17,8 +17,8 @@ describe('truncateAddress', () => {
 });
 
 describe('formatDot', () => {
-  test('converts 1 DOT (10^10 planck) to "1.00 DOT"', () => {
-    expect(formatDot(10_000_000_000n)).toBe('1.00 DOT');
+  test('converts 1 DOT (10^12 planck) to "1.00 DOT"', () => {
+    expect(formatDot(1_000_000_000_000n)).toBe('1.00 DOT');
   });
 
   test('converts 0 planck to "0.00 DOT"', () => {
@@ -26,10 +26,10 @@ describe('formatDot', () => {
   });
 
   test('converts 2.5 DOT to "2.50 DOT"', () => {
-    expect(formatDot(25_000_000_000n)).toBe('2.50 DOT');
+    expect(formatDot(2_500_000_000_000n)).toBe('2.50 DOT');
   });
 
   test('rounds sub-cent planck amounts', () => {
-    expect(formatDot(10_000_000_001n)).toBe('1.00 DOT');
+    expect(formatDot(1_000_000_000_001n)).toBe('1.00 DOT');
   });
 });
