@@ -8,7 +8,7 @@ use crate::crypto::{seal_to, unseal_from};
 
 /// Why did we receive this target? Drives log labeling only; the wrap-and-grant
 /// path is identical for both.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TargetKind {
     Buyer,
     Creator,

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::{anyhow, Context, Result};
 use crypto_box::SecretKey;
 use subxt::dynamic::{At, Value};
@@ -9,34 +11,77 @@ use crate::handler::{wrap_and_grant, TargetKind};
 
 const PALLET: &str = "ContentRegistry";
 
+/// One unit of backfill work: re-seal a listing's content key to a specific
+/// target account. `Creator` and `Buyer` run the same wrap-and-grant code
+/// path; the distinction only drives log labeling.
+#[derive(Debug, Clone)]
+pub enum BackfillJob {
+    Creator { listing_id: u64, creator: AccountId32 },
+    Buyer { listing_id: u64, buyer: AccountId32 },
+}
+
+impl BackfillJob {
+    pub fn target(&self) -> (&AccountId32, u64, TargetKind) {
+        match self {
+            Self::Creator { listing_id, creator } => (creator, *listing_id, TargetKind::Creator),
+            Self::Buyer { listing_id, buyer } => (buyer, *listing_id, TargetKind::Buyer),
+        }
+    }
+}
+
+/// Returns `(creators, buyers)` in `jobs`.
+pub fn summarize(jobs: &[BackfillJob]) -> (usize, usize) {
+    jobs.iter().fold((0, 0), |(c, b), j| match j {
+        BackfillJob::Creator { .. } => (c + 1, b),
+        BackfillJob::Buyer { .. } => (c, b + 1),
+    })
+}
+
+/// Drop candidates whose `WrappedKeys[(target, listing_id)]` entry is already
+/// present. Preserves the input order of the surviving jobs.
+pub fn filter_pending(
+    candidates: Vec<BackfillJob>,
+    already_wrapped: &HashSet<([u8; 32], u64)>,
+) -> Vec<BackfillJob> {
+    candidates
+        .into_iter()
+        .filter(|job| {
+            let (target, listing_id, _) = job.target();
+            !already_wrapped.contains(&(target.0, listing_id))
+        })
+        .collect()
+}
+
 /// Iterate every `Listings` entry and every `Purchases` entry on the latest
-/// finalized head. For each pair `(creator, listing_id)` and `(buyer,
-/// listing_id)`, if `WrappedKeys[(target, listing_id)]` is empty, run the
-/// wrap-and-grant flow. Called once at startup before the live stream.
+/// finalized head, build the list of `(target, listing_id)` pairs that still
+/// need a `WrappedKeys` entry, log the plan, then execute them sequentially.
+/// Called once at startup before the live stream.
 pub async fn backfill(chain: &Chain, signer: &Keypair, svc_priv: &SecretKey) -> Result<()> {
     info!("starting backfill scan");
     let head = chain.inner().storage().at_latest().await?;
 
+    let mut candidates: Vec<BackfillJob> = Vec::new();
+
     // --- Listings (creator targets) ---
-    // Empty `Vec<Value>` key ⇒ prefix-only address ⇒ iterate all entries.
-    let listings_query =
-        subxt::dynamic::storage(PALLET, "Listings", Vec::<Value>::new());
+    let listings_query = subxt::dynamic::storage(PALLET, "Listings", Vec::<Value>::new());
     let mut stream = head
         .iter(listings_query)
         .await
         .context("starting Listings iteration")?;
-    let mut creator_count = 0usize;
     while let Some(kv) = stream.next().await {
         let kv = kv.context("iterating Listings")?;
-        let listing_id = listing_id_from_key(&kv.key_bytes)
-            .context("decoding Listings key suffix")?;
+        let listing_id =
+            listing_id_from_key(&kv.key_bytes).context("decoding Listings key suffix")?;
         let value = kv.value.to_value().context("decoding Listing value")?;
         let Some(creator_val) = value.at("creator") else {
             warn!(listing_id, "Listings entry missing `creator` field — skipping");
             continue;
         };
         let Some(creator_bytes) = crate::chain::value_to_bytes(creator_val) else {
-            warn!(listing_id, "Listings[{listing_id}].creator is not a byte array — skipping");
+            warn!(
+                listing_id,
+                "Listings[{listing_id}].creator is not a byte array — skipping"
+            );
             continue;
         };
         let Some(creator) = account_from_bytes(&creator_bytes) else {
@@ -47,63 +92,56 @@ pub async fn backfill(chain: &Chain, signer: &Keypair, svc_priv: &SecretKey) -> 
             );
             continue;
         };
-        if let Err(e) = wrap_and_grant(
-            chain,
-            signer,
-            svc_priv,
-            listing_id,
-            &creator,
-            TargetKind::Creator,
-        )
-        .await
-        {
-            warn!(
-                listing_id,
-                %creator,
-                error = ?e,
-                "creator backfill failed — will be retried next startup"
-            );
-        }
-        creator_count += 1;
+        candidates.push(BackfillJob::Creator { listing_id, creator });
     }
 
     // --- Purchases (buyer targets) ---
-    let purchases_query =
-        subxt::dynamic::storage(PALLET, "Purchases", Vec::<Value>::new());
+    let purchases_query = subxt::dynamic::storage(PALLET, "Purchases", Vec::<Value>::new());
     let mut stream = head
         .iter(purchases_query)
         .await
         .context("starting Purchases iteration")?;
-    let mut buyer_count = 0usize;
     while let Some(kv) = stream.next().await {
         let kv = kv.context("iterating Purchases")?;
         let (buyer, listing_id) =
             purchases_key(&kv.key_bytes).context("decoding Purchases key suffix")?;
-        if let Err(e) = wrap_and_grant(
-            chain,
-            signer,
-            svc_priv,
-            listing_id,
-            &buyer,
-            TargetKind::Buyer,
-        )
-        .await
+        candidates.push(BackfillJob::Buyer { listing_id, buyer });
+    }
+
+    // Build the already-wrapped set with one `WrappedKeys` read per candidate,
+    // so the planned total reflects actual work. wrap_and_grant still
+    // re-checks idempotently at execution time.
+    let mut already_wrapped: HashSet<([u8; 32], u64)> = HashSet::new();
+    for job in &candidates {
+        let (target, listing_id, _) = job.target();
+        if chain.wrapped_key(target, listing_id).await?.is_some() {
+            already_wrapped.insert((target.0, listing_id));
+        }
+    }
+
+    let scanned = candidates.len();
+    let jobs = filter_pending(candidates, &already_wrapped);
+    let (creators, buyers) = summarize(&jobs);
+    let total = jobs.len();
+    info!(scanned, total, creators, buyers, "backfill plan");
+
+    for (i, job) in jobs.iter().enumerate() {
+        let (target, listing_id, kind) = job.target();
+        info!(step = i + 1, total, listing_id, %target, ?kind, "backfill step");
+        if let Err(e) =
+            wrap_and_grant(chain, signer, svc_priv, listing_id, target, kind).await
         {
             warn!(
                 listing_id,
-                %buyer,
+                %target,
+                ?kind,
                 error = ?e,
-                "buyer backfill failed — will be retried next startup"
+                "backfill step failed — will be retried next startup"
             );
         }
-        buyer_count += 1;
     }
 
-    info!(
-        creators = creator_count,
-        buyers = buyer_count,
-        "backfill scan complete"
-    );
+    info!(total, "backfill scan complete");
     Ok(())
 }
 
@@ -155,6 +193,80 @@ fn account_from_bytes(bytes: &[u8]) -> Option<AccountId32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
+
+    fn acc(tag: u8) -> AccountId32 {
+        subxt::utils::AccountId32([tag; 32])
+    }
+
+    #[test]
+    fn backfill_job_target_creator() {
+        let job = BackfillJob::Creator { listing_id: 7, creator: acc(1) };
+        let (target, id, kind) = job.target();
+        assert_eq!(*target, acc(1));
+        assert_eq!(id, 7);
+        assert_eq!(kind, TargetKind::Creator);
+    }
+
+    #[test]
+    fn backfill_job_target_buyer() {
+        let job = BackfillJob::Buyer { listing_id: 9, buyer: acc(2) };
+        let (target, id, kind) = job.target();
+        assert_eq!(*target, acc(2));
+        assert_eq!(id, 9);
+        assert_eq!(kind, TargetKind::Buyer);
+    }
+
+    #[test]
+    fn summarize_counts_creators_and_buyers() {
+        let jobs = vec![
+            BackfillJob::Creator { listing_id: 1, creator: acc(1) },
+            BackfillJob::Buyer { listing_id: 1, buyer: acc(2) },
+            BackfillJob::Buyer { listing_id: 2, buyer: acc(3) },
+        ];
+        assert_eq!(summarize(&jobs), (1, 2));
+    }
+
+    #[test]
+    fn summarize_empty_is_zero_zero() {
+        assert_eq!(summarize(&[]), (0, 0));
+    }
+
+    #[test]
+    fn filter_pending_drops_already_wrapped_and_preserves_order() {
+        let candidates = vec![
+            BackfillJob::Creator { listing_id: 1, creator: acc(1) },
+            BackfillJob::Buyer { listing_id: 1, buyer: acc(2) },
+            BackfillJob::Creator { listing_id: 2, creator: acc(1) },
+            BackfillJob::Buyer { listing_id: 2, buyer: acc(3) },
+        ];
+        let mut wrapped = HashSet::new();
+        wrapped.insert((acc(1).0, 1u64)); // creator of listing 1 already done
+        wrapped.insert((acc(3).0, 2u64)); // buyer 3 of listing 2 already done
+
+        let pending = filter_pending(candidates, &wrapped);
+
+        // Order preserved, only the two un-wrapped entries remain.
+        assert_eq!(pending.len(), 2);
+        match &pending[0] {
+            BackfillJob::Buyer { listing_id: 1, buyer } => assert_eq!(*buyer, acc(2)),
+            other => panic!("expected Buyer(1, acc(2)), got {other:?}"),
+        }
+        match &pending[1] {
+            BackfillJob::Creator { listing_id: 2, creator } => assert_eq!(*creator, acc(1)),
+            other => panic!("expected Creator(2, acc(1)), got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn filter_pending_empty_wrapped_set_returns_all() {
+        let candidates = vec![
+            BackfillJob::Creator { listing_id: 1, creator: acc(1) },
+            BackfillJob::Buyer { listing_id: 1, buyer: acc(2) },
+        ];
+        let pending = filter_pending(candidates.clone(), &HashSet::new());
+        assert_eq!(pending.len(), 2);
+    }
 
     fn fake_listings_key(listing_id: u64) -> Vec<u8> {
         // Prefix bytes are opaque to the decoder — use distinctive filler so a
