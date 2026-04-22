@@ -55,6 +55,48 @@ export async function fetchAllListings(): Promise<Listing[]> {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
+export interface ListingWithStats extends Listing {
+  purchaseCount: number;
+}
+
+/**
+ * Fetch every listing whose creator is `account`, each joined with its
+ * on-chain `PurchaseCount`. Uses the `ListingsByCreator` reverse index to
+ * avoid a full `Listings` scan.
+ *
+ * Missing `PurchaseCount` entries are treated as `0` (pallet storage uses
+ * `ValueQuery` with `u32` default). Listings whose value happens to be
+ * absent are filtered out — shouldn't happen, but defensive.
+ */
+export async function fetchListingsByCreator(account: string): Promise<ListingWithStats[]> {
+  const api = getParachainApi();
+  // New storage items aren't in the type-generated descriptors yet; cast until
+  // `npm run update-types` regenerates them against the rebuilt runtime.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reg = (api.query as any).ContentRegistry;
+  const entries: Array<{ keyArgs: [string, bigint] }> = await reg.ListingsByCreator.getEntries(
+    account,
+  );
+  const ids = entries.map((e) => e.keyArgs[1] as bigint);
+
+  const pairs = await Promise.all(
+    ids.map(async (id) => {
+      const [raw, count] = await Promise.all([
+        reg.Listings.getValue(id),
+        reg.PurchaseCount.getValue(id),
+      ]);
+      if (!raw) return undefined;
+      const listing = mapListing(id, raw);
+      const purchaseCount = typeof count === 'number' ? count : Number(count ?? 0);
+      return { ...listing, purchaseCount };
+    }),
+  );
+
+  return pairs
+    .filter((x): x is ListingWithStats => x !== undefined)
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
 export async function fetchListing(id: bigint): Promise<Listing | undefined> {
   const api = getParachainApi();
   const l = await api.query.ContentRegistry.Listings.getValue(id);

@@ -44,7 +44,7 @@ Each phase is demoable on its own.
 
 ### Phase 3 - Storage Optimizations + Proper Wallet Integration
 - **Proper Wallet Integration**. Replace hardcoded wallets with actual wallet integration. Remove Triangle Host (doesn't work with parachains outside of Asset Hub and Paseo)
-- **Feature: My Listings Page**. Create a page where the user can see the listings he bought. Use it as an excercise to review the best possible storage structure to use when iterating over multiple items.
+- **Creator dashboard ("My Listings")**. A page where creators see each of their published listings with price, per-listing purchase count, and derived earnings. Implementation materializes aggregates on write: `ListingsByCreator` (reverse index, enables prefix iteration by creator) and `PurchaseCount` (per-listing counter, incremented in `purchase`). `Listings` is a `CountedStorageMap`, giving a free global total for a future popularity ranking. Earnings are derived client-side as `count × listing.price` under the flat-pricing guarantee (§4 Fee model) — not stored on-chain.
 - **Review & Refactor Storage To ensure Optimal Usage**. Ensure the best possible storage structure is used for iterating over multiple items (my listings vs my purchases)
 
 ### Phase 4 — UX improvements
@@ -72,9 +72,11 @@ Each phase is demoable on its own.
 
 ```rust
 // Phase 1
-NextListingId: StorageValue<u64>
-Listings:      StorageMap<ListingId, Listing<T>, OptionQuery>
-Purchases:     StorageDoubleMap<AccountId, ListingId, BlockNumberFor<T>, OptionQuery>  // value = block number of purchase; used by frontend to sort "My Purchases" by time
+NextListingId:     StorageValue<u64>
+Listings:          CountedStorageMap<ListingId, Listing<T>, OptionQuery>           // counted so `Listings::count()` is O(1) for the global-ranking page footer
+ListingsByCreator: StorageDoubleMap<AccountId, ListingId, (), ValueQuery>          // reverse index — enables `iter_prefix(creator)` for the "My Listings" dashboard without scanning every entry
+PurchaseCount:     StorageMap<ListingId, u32, ValueQuery>                          // per-listing sale counter; incremented in `purchase`. Earnings are not stored — frontend derives them as `count * listing.price` under flat pricing (§4 Fee model).
+Purchases:         StorageDoubleMap<AccountId, ListingId, BlockNumberFor<T>, OptionQuery>  // value = block number of purchase; used by frontend to sort "My Purchases" by time
 
 // Phase 2
 ServicePublicKey:  StorageValue<[u8; 32], ValueQuery>     // SVC_PUB (x25519); set at genesis, immutable. `integrity_test` rejects [0; 32].

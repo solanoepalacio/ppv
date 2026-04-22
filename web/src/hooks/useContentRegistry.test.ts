@@ -1,5 +1,9 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { mapListing, submitPurchaseMaybeBatched } from './useContentRegistry';
+import {
+  fetchListingsByCreator,
+  mapListing,
+  submitPurchaseMaybeBatched,
+} from './useContentRegistry';
 
 vi.mock('./useParachainProvider', () => ({
   getParachainApi: vi.fn(),
@@ -169,6 +173,92 @@ describe('submitPurchaseMaybeBatched — phase tracking', () => {
     await expect(pending).rejects.toThrow(/purchase failed/);
   });
 
+});
+
+// ── fetchListingsByCreator ────────────────────────────────────────────────────
+
+describe('fetchListingsByCreator', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  test('returns empty array when the creator has no listings', async () => {
+    const byCreator = { getEntries: vi.fn().mockResolvedValue([]) };
+    const listings = { getValue: vi.fn() };
+    const purchaseCount = { getValue: vi.fn() };
+    mockGetApi.mockReturnValue({
+      query: {
+        ContentRegistry: {
+          ListingsByCreator: byCreator,
+          Listings: listings,
+          PurchaseCount: purchaseCount,
+        },
+      },
+    });
+
+    const result = await fetchListingsByCreator('addr');
+    expect(byCreator.getEntries).toHaveBeenCalledWith('addr');
+    expect(listings.getValue).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
+  });
+
+  test('resolves each id to a listing + purchase count via parallel point lookups', async () => {
+    const entries = [
+      { keyArgs: ['addr', 5n] },
+      { keyArgs: ['addr', 9n] },
+    ];
+    const listings = {
+      getValue: vi.fn(async (id: bigint) =>
+        rawListing({ price: id === 5n ? 100n : 200n, title: { asText: () => `t${id}` } }),
+      ),
+    };
+    const purchaseCount = {
+      getValue: vi.fn(async (id: bigint) => (id === 5n ? 3 : 0)),
+    };
+    mockGetApi.mockReturnValue({
+      query: {
+        ContentRegistry: {
+          ListingsByCreator: { getEntries: vi.fn().mockResolvedValue(entries) },
+          Listings: listings,
+          PurchaseCount: purchaseCount,
+        },
+      },
+    });
+
+    const result = await fetchListingsByCreator('addr');
+    expect(result).toHaveLength(2);
+    const byId = new Map(result.map((r) => [r.id, r]));
+    expect(byId.get(5n)?.purchaseCount).toBe(3);
+    expect(byId.get(5n)?.price).toBe(100n);
+    expect(byId.get(5n)?.title).toBe('t5');
+    expect(byId.get(9n)?.purchaseCount).toBe(0);
+    expect(byId.get(9n)?.price).toBe(200n);
+  });
+
+  test('treats missing listing values as filtered out (defensive)', async () => {
+    const entries = [
+      { keyArgs: ['addr', 5n] },
+      { keyArgs: ['addr', 9n] },
+    ];
+    const listings = {
+      getValue: vi.fn(async (id: bigint) => (id === 5n ? rawListing() : undefined)),
+    };
+    const purchaseCount = { getValue: vi.fn(async () => 0) };
+    mockGetApi.mockReturnValue({
+      query: {
+        ContentRegistry: {
+          ListingsByCreator: { getEntries: vi.fn().mockResolvedValue(entries) },
+          Listings: listings,
+          PurchaseCount: purchaseCount,
+        },
+      },
+    });
+
+    const result = await fetchListingsByCreator('addr');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(5n);
+  });
+});
+
+describe('submitPurchaseMaybeBatched — error handling tail', () => {
   test('rejects when the observable errors', async () => {
     const { tx, observers } = makeFakeTx();
     mockGetApi.mockReturnValue(makeApi({

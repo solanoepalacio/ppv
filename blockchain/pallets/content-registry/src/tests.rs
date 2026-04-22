@@ -353,3 +353,80 @@ fn grant_access_is_pays_no() {
 		assert_eq!(info.pays_fee, Pays::No);
 	});
 }
+
+// ── Creator index + per-listing sale counters ─────────────────────────────────
+
+use crate::pallet::{ListingsByCreator, PurchaseCount};
+
+#[test]
+fn create_listing_writes_to_listings_by_creator() {
+	new_test_ext().execute_with(|| {
+		let id = seed_listing(ALICE, 100);
+		assert!(ListingsByCreator::<Test>::contains_key(ALICE, id));
+		assert!(!ListingsByCreator::<Test>::contains_key(BOB, id));
+	});
+}
+
+#[test]
+fn multiple_listings_by_same_creator_iter_under_one_prefix() {
+	new_test_ext().execute_with(|| {
+		let a = seed_listing(ALICE, 100);
+		let b = seed_listing(ALICE, 200);
+		let c = seed_listing(BOB, 300);
+
+		let alice_ids: Vec<u64> = ListingsByCreator::<Test>::iter_key_prefix(ALICE).collect();
+		assert_eq!(alice_ids.len(), 2);
+		assert!(alice_ids.contains(&a));
+		assert!(alice_ids.contains(&b));
+
+		let bob_ids: Vec<u64> = ListingsByCreator::<Test>::iter_key_prefix(BOB).collect();
+		assert_eq!(bob_ids, vec![c]);
+	});
+}
+
+#[test]
+fn listings_counted_storage_map_reports_global_total() {
+	new_test_ext().execute_with(|| {
+		assert_eq!(Listings::<Test>::count(), 0);
+		seed_listing(ALICE, 100);
+		seed_listing(BOB, 200);
+		seed_listing(ALICE, 300);
+		assert_eq!(Listings::<Test>::count(), 3);
+	});
+}
+
+#[test]
+fn purchase_increments_purchase_count_for_that_listing_only() {
+	new_test_ext().execute_with(|| {
+		let a = seed_listing(ALICE, 50);
+		let b = seed_listing(ALICE, 60);
+		assert_eq!(PurchaseCount::<Test>::get(a), 0);
+		assert_eq!(PurchaseCount::<Test>::get(b), 0);
+
+		assert_ok!(ContentRegistry::purchase(RuntimeOrigin::signed(BOB), a));
+		assert_eq!(PurchaseCount::<Test>::get(a), 1);
+		assert_eq!(PurchaseCount::<Test>::get(b), 0);
+
+		assert_ok!(ContentRegistry::purchase(RuntimeOrigin::signed(CHARLIE), a));
+		assert_eq!(PurchaseCount::<Test>::get(a), 2);
+		assert_eq!(PurchaseCount::<Test>::get(b), 0);
+	});
+}
+
+#[test]
+fn purchase_count_defaults_to_zero_for_never_purchased_listing() {
+	new_test_ext().execute_with(|| {
+		let id = seed_listing(ALICE, 100);
+		// ValueQuery: reading a never-written key returns Default (0u32).
+		assert_eq!(PurchaseCount::<Test>::get(id), 0);
+	});
+}
+
+#[test]
+fn failed_purchase_does_not_increment_count() {
+	new_test_ext().execute_with(|| {
+		let id = seed_listing(ALICE, 1_000); // more than CHARLIE can afford
+		let _ = ContentRegistry::purchase(RuntimeOrigin::signed(CHARLIE), id);
+		assert_eq!(PurchaseCount::<Test>::get(id), 0);
+	});
+}

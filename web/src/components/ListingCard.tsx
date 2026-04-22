@@ -2,13 +2,18 @@ import { useNavigate } from 'react-router-dom';
 import type { Listing } from '../hooks/useContentRegistry';
 import { formatDot, truncateAddress } from '../utils/format';
 
+interface Stats {
+  purchaseCount: number;
+}
+
 interface Props {
   listing: Listing;
   isPurchased?: boolean;
   isOwn?: boolean;
+  stats?: Stats;
 }
 
-export default function ListingCard({ listing, isPurchased, isOwn }: Props) {
+export default function ListingCard({ listing, isPurchased, isOwn, stats }: Props) {
   const navigate = useNavigate();
 
   return (
@@ -37,6 +42,16 @@ export default function ListingCard({ listing, isPurchased, isOwn }: Props) {
         >
           {isOwn ? 'By you' : isPurchased ? 'Purchased' : formatDot(listing.price)}
         </p>
+        {stats && (
+          <div className="mt-2 pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs">
+            <span className="text-text-secondary">
+              {stats.purchaseCount} {stats.purchaseCount === 1 ? 'sale' : 'sales'}
+            </span>
+            <span className="text-accent-green font-mono">
+              {`${formatDot(listing.price * BigInt(stats.purchaseCount))} earned`}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

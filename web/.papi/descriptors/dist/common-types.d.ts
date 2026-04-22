@@ -41,15 +41,15 @@ export type DigestItem = Enum<{
 }>;
 export declare const DigestItem: GetEnum<DigestItem>;
 export type I82jm9g7pufuel = [FixedSizeBinary<4>, Binary];
-export type I7d6up4tucbvvq = Array<{
+export type I8rdunk9m32qkd = Array<{
     "phase": Phase;
     "event": Enum<{
-        "System": Anonymize<Id1k4lnmvp52ih>;
+        "System": Anonymize<I6asoei3qj1bt8>;
         "ParachainSystem": Anonymize<Icbsekf57miplo>;
-        "Balances": Anonymize<I6pikrrn79qkf8>;
+        "Balances": Anonymize<If2fif5uai98oi>;
         "TransactionPayment": TransactionPaymentEvent;
-        "Sudo": Anonymize<Id3rsvioq9ddv5>;
-        "Utility": Anonymize<I9elk54jtngea6>;
+        "Sudo": Anonymize<I2dh8ie0e1dorc>;
+        "Utility": Anonymize<I4k39sb11omunm>;
         "CollatorSelection": Anonymize<I4srakrmf0fspo>;
         "Session": Anonymize<I6ue0ck5fc3u44>;
         "XcmpQueue": Anonymize<Idsqc7mhp6nnle>;
@@ -58,7 +58,6 @@ export type I7d6up4tucbvvq = Array<{
         "MessageQueue": Anonymize<I2kosejppk3jon>;
         "Statement": Anonymize<Ic1vdi0e9te2la>;
         "ContentRegistry": Anonymize<I57h5d4h79u6lm>;
-        "Revive": Anonymize<I18t49sbablavb>;
     }>;
     "topics": Anonymize<Ic5m5lp1oioo8r>;
 }>;
@@ -68,7 +67,7 @@ export type Phase = Enum<{
     "Initialization": undefined;
 }>;
 export declare const Phase: GetEnum<Phase>;
-export type Id1k4lnmvp52ih = AnonymousEnum<{
+export type I6asoei3qj1bt8 = AnonymousEnum<{
     /**
      * An extrinsic completed successfully.
      */
@@ -76,7 +75,7 @@ export type Id1k4lnmvp52ih = AnonymousEnum<{
     /**
      * An extrinsic failed.
      */
-    "ExtrinsicFailed": Anonymize<I697l2qoi5c2g5>;
+    "ExtrinsicFailed": Anonymize<I6oufd9k6b7unj>;
     /**
      * `:code` was updated.
      */
@@ -100,7 +99,7 @@ export type Id1k4lnmvp52ih = AnonymousEnum<{
     /**
      * An invalid authorized upgrade was rejected while trying to apply it.
      */
-    "RejectedInvalidAuthorizedUpgrade": Anonymize<Idmtl9171u4vbr>;
+    "RejectedInvalidAuthorizedUpgrade": Anonymize<Id02er4jr66mfq>;
 }>;
 export type Ia82mnkmeo2rhc = {
     "dispatch_info": Anonymize<Ic9s8f85vjtncc>;
@@ -120,11 +119,11 @@ export type Iehg04bj71rkd = AnonymousEnum<{
     "Yes": undefined;
     "No": undefined;
 }>;
-export type I697l2qoi5c2g5 = {
-    "dispatch_error": Anonymize<I8m5djc03sjan9>;
+export type I6oufd9k6b7unj = {
+    "dispatch_error": Anonymize<I93jbab420630>;
     "dispatch_info": Anonymize<Ic9s8f85vjtncc>;
 };
-export type I8m5djc03sjan9 = AnonymousEnum<{
+export type I93jbab420630 = AnonymousEnum<{
     "Other": undefined;
     "CannotLookup": undefined;
     "BadOrigin": undefined;
@@ -149,7 +148,6 @@ export type I8m5djc03sjan9 = AnonymousEnum<{
         "MessageQueue": Anonymize<I5iupade5ag2dp>;
         "Statement": undefined;
         "ContentRegistry": Anonymize<Idifji6fjd2nma>;
-        "Revive": Anonymize<I54rjnlnsa98ib>;
     }>;
     "ConsumerRemaining": undefined;
     "NoProviders": undefined;
@@ -638,261 +636,6 @@ export type Idifji6fjd2nma = AnonymousEnum<{
      */
     "AlreadyPurchased": undefined;
 }>;
-export type I54rjnlnsa98ib = AnonymousEnum<{
-    /**
-     * Invalid schedule supplied, e.g. with zero weight of a basic operation.
-     */
-    "InvalidSchedule": undefined;
-    /**
-     * Invalid combination of flags supplied to `seal_call` or `seal_delegate_call`.
-     */
-    "InvalidCallFlags": undefined;
-    /**
-     * The executed contract exhausted its gas limit.
-     */
-    "OutOfGas": undefined;
-    /**
-     * Performing the requested transfer failed. Probably because there isn't enough
-     * free balance in the sender's account.
-     */
-    "TransferFailed": undefined;
-    /**
-     * Performing a call was denied because the calling depth reached the limit
-     * of what is specified in the schedule.
-     */
-    "MaxCallDepthReached": undefined;
-    /**
-     * No contract was found at the specified address.
-     */
-    "ContractNotFound": undefined;
-    /**
-     * No code could be found at the supplied code hash.
-     */
-    "CodeNotFound": undefined;
-    /**
-     * No code info could be found at the supplied code hash.
-     */
-    "CodeInfoNotFound": undefined;
-    /**
-     * A buffer outside of sandbox memory was passed to a contract API function.
-     */
-    "OutOfBounds": undefined;
-    /**
-     * Input passed to a contract API function failed to decode as expected type.
-     */
-    "DecodingFailed": undefined;
-    /**
-     * Contract trapped during execution.
-     */
-    "ContractTrapped": undefined;
-    /**
-     * Event body or storage item exceeds [`limits::STORAGE_BYTES`].
-     */
-    "ValueTooLarge": undefined;
-    /**
-     * Termination of a contract is not allowed while the contract is already
-     * on the call stack. Can be triggered by `seal_terminate`.
-     */
-    "TerminatedWhileReentrant": undefined;
-    /**
-     * `seal_call` forwarded this contracts input. It therefore is no longer available.
-     */
-    "InputForwarded": undefined;
-    /**
-     * The amount of topics passed to `seal_deposit_events` exceeds the limit.
-     */
-    "TooManyTopics": undefined;
-    /**
-     * A contract with the same AccountId already exists.
-     */
-    "DuplicateContract": undefined;
-    /**
-     * A contract self destructed in its constructor.
-     *
-     * This can be triggered by a call to `seal_terminate`.
-     */
-    "TerminatedInConstructor": undefined;
-    /**
-     * A call tried to invoke a contract that is flagged as non-reentrant.
-     */
-    "ReentranceDenied": undefined;
-    /**
-     * A contract called into the runtime which then called back into this pallet.
-     */
-    "ReenteredPallet": undefined;
-    /**
-     * A contract attempted to invoke a state modifying API while being in read-only mode.
-     */
-    "StateChangeDenied": undefined;
-    /**
-     * Origin doesn't have enough balance to pay the required storage deposits.
-     */
-    "StorageDepositNotEnoughFunds": undefined;
-    /**
-     * More storage was created than allowed by the storage deposit limit.
-     */
-    "StorageDepositLimitExhausted": undefined;
-    /**
-     * Code removal was denied because the code is still in use by at least one contract.
-     */
-    "CodeInUse": undefined;
-    /**
-     * The contract ran to completion but decided to revert its storage changes.
-     * Please note that this error is only returned from extrinsics. When called directly
-     * or via RPC an `Ok` will be returned. In this case the caller needs to inspect the flags
-     * to determine whether a reversion has taken place.
-     */
-    "ContractReverted": undefined;
-    /**
-     * The contract failed to compile or is missing the correct entry points.
-     *
-     * A more detailed error can be found on the node console if debug messages are enabled
-     * by supplying `-lruntime::revive=debug`.
-     */
-    "CodeRejected": undefined;
-    /**
-     * The code blob supplied is larger than [`limits::code::BLOB_BYTES`].
-     */
-    "BlobTooLarge": undefined;
-    /**
-     * The contract declares too much memory (ro + rw + stack).
-     */
-    "StaticMemoryTooLarge": undefined;
-    /**
-     * The program contains a basic block that is larger than allowed.
-     */
-    "BasicBlockTooLarge": undefined;
-    /**
-     * The program contains an invalid instruction.
-     */
-    "InvalidInstruction": undefined;
-    /**
-     * The contract has reached its maximum number of delegate dependencies.
-     */
-    "MaxDelegateDependenciesReached": undefined;
-    /**
-     * The dependency was not found in the contract's delegate dependencies.
-     */
-    "DelegateDependencyNotFound": undefined;
-    /**
-     * The contract already depends on the given delegate dependency.
-     */
-    "DelegateDependencyAlreadyExists": undefined;
-    /**
-     * Can not add a delegate dependency to the code hash of the contract itself.
-     */
-    "CannotAddSelfAsDelegateDependency": undefined;
-    /**
-     * Can not add more data to transient storage.
-     */
-    "OutOfTransientStorage": undefined;
-    /**
-     * The contract tried to call a syscall which does not exist (at its current api level).
-     */
-    "InvalidSyscall": undefined;
-    /**
-     * Invalid storage flags were passed to one of the storage syscalls.
-     */
-    "InvalidStorageFlags": undefined;
-    /**
-     * PolkaVM failed during code execution. Probably due to a malformed program.
-     */
-    "ExecutionFailed": undefined;
-    /**
-     * Failed to convert a U256 to a Balance.
-     */
-    "BalanceConversionFailed": undefined;
-    /**
-     * Immutable data can only be set during deploys and only be read during calls.
-     * Additionally, it is only valid to set the data once and it must not be empty.
-     */
-    "InvalidImmutableAccess": undefined;
-    /**
-     * An `AccountID32` account tried to interact with the pallet without having a mapping.
-     *
-     * Call [`Pallet::map_account`] in order to create a mapping for the account.
-     */
-    "AccountUnmapped": undefined;
-    /**
-     * Tried to map an account that is already mapped.
-     */
-    "AccountAlreadyMapped": undefined;
-    /**
-     * The transaction used to dry-run a contract is invalid.
-     */
-    "InvalidGenericTransaction": undefined;
-    /**
-     * The refcount of a code either over or underflowed.
-     */
-    "RefcountOverOrUnderflow": undefined;
-    /**
-     * Unsupported precompile address.
-     */
-    "UnsupportedPrecompileAddress": undefined;
-    /**
-     * The calldata exceeds [`limits::CALLDATA_BYTES`].
-     */
-    "CallDataTooLarge": undefined;
-    /**
-     * The return data exceeds [`limits::CALLDATA_BYTES`].
-     */
-    "ReturnDataTooLarge": undefined;
-    /**
-     * Invalid jump destination. Dynamic jumps points to invalid not jumpdest opcode.
-     */
-    "InvalidJump": undefined;
-    /**
-     * Attempting to pop a value from an empty stack.
-     */
-    "StackUnderflow": undefined;
-    /**
-     * Attempting to push a value onto a full stack.
-     */
-    "StackOverflow": undefined;
-    /**
-     * Too much deposit was drawn from the shared txfee and deposit credit.
-     *
-     * This happens if the passed `gas` inside the ethereum transaction is too low.
-     */
-    "TxFeeOverdraw": undefined;
-    /**
-     * When calling an EVM constructor `data` has to be empty.
-     *
-     * EVM constructors do not accept data. Their input data is part of the code blob itself.
-     */
-    "EvmConstructorNonEmptyData": undefined;
-    /**
-     * Tried to construct an EVM contract via code hash.
-     *
-     * EVM contracts can only be instantiated via code upload as no initcode is
-     * stored on-chain.
-     */
-    "EvmConstructedFromHash": undefined;
-    /**
-     * The contract does not have enough balance to refund the storage deposit.
-     *
-     * This is a bug and should never happen. It means the accounting got out of sync.
-     */
-    "StorageRefundNotEnoughFunds": undefined;
-    /**
-     * This means there are locks on the contracts storage deposit that prevents refunding it.
-     *
-     * This would be the case if the contract used its storage deposits for governance
-     * or other pallets that allow creating locks over held balance.
-     */
-    "StorageRefundLocked": undefined;
-    /**
-     * Called a pre-compile that is not allowed to be delegate called.
-     *
-     * Some pre-compile functions will trap the caller context if being delegate
-     * called or if their caller was being delegate called.
-     */
-    "PrecompileDelegateDenied": undefined;
-    /**
-     * ECDSA public key recovery failed. Most probably wrong recovery id or signature.
-     */
-    "EcdsaRecoveryFailed": undefined;
-}>;
 export type TokenError = Enum<{
     "FundsUnavailable": undefined;
     "OnlyProvider": undefined;
@@ -944,9 +687,9 @@ export type Ibgl04rn6nbfm6 = {
     "code_hash": FixedSizeBinary<32>;
     "check_version": boolean;
 };
-export type Idmtl9171u4vbr = {
+export type Id02er4jr66mfq = {
     "code_hash": FixedSizeBinary<32>;
-    "error": Anonymize<I8m5djc03sjan9>;
+    "error": Anonymize<I93jbab420630>;
 };
 export type Icbsekf57miplo = AnonymousEnum<{
     /**
@@ -988,7 +731,7 @@ export type I6gnbnvip5vvdi = {
     "message_hash"?: Anonymize<I4s6vifaf8k998>;
 };
 export type I4s6vifaf8k998 = (FixedSizeBinary<32>) | undefined;
-export type I6pikrrn79qkf8 = AnonymousEnum<{
+export type If2fif5uai98oi = AnonymousEnum<{
     /**
      * An account was created with some free balance.
      */
@@ -1090,23 +833,23 @@ export type I6pikrrn79qkf8 = AnonymousEnum<{
     /**
      * Some balance was placed on hold.
      */
-    "Held": Anonymize<I2sjgp7v0b4kr7>;
+    "Held": Anonymize<Ipc96b675vau1>;
     /**
      * Held balance was burned from an account.
      */
-    "BurnedHeld": Anonymize<I2sjgp7v0b4kr7>;
+    "BurnedHeld": Anonymize<Ipc96b675vau1>;
     /**
      * A transfer of `amount` on hold from `source` to `dest` was initiated.
      */
-    "TransferOnHold": Anonymize<Iq8n5b8q00vqa>;
+    "TransferOnHold": Anonymize<Ifqi1snmg1eqha>;
     /**
      * The `transferred` balance is placed on hold at the `dest` account.
      */
-    "TransferAndHold": Anonymize<Iaa6lo6ksjs4p7>;
+    "TransferAndHold": Anonymize<I2r55jl5mh3adj>;
     /**
      * Some balance was released from hold.
      */
-    "Released": Anonymize<I2sjgp7v0b4kr7>;
+    "Released": Anonymize<Ipc96b675vau1>;
     /**
      * An unexpected/defensive event was triggered.
      */
@@ -1154,19 +897,14 @@ export type I4fooe9dun9o0t = {
     "old": bigint;
     "new": bigint;
 };
-export type I2sjgp7v0b4kr7 = {
-    "reason": Anonymize<I82378hoipeq81>;
+export type Ipc96b675vau1 = {
+    "reason": Anonymize<I4jtencd36vm02>;
     "who": SS58String;
     "amount": bigint;
 };
-export type I82378hoipeq81 = AnonymousEnum<{
+export type I4jtencd36vm02 = AnonymousEnum<{
     "Session": Anonymize<I6bkr3dqv753nc>;
     "PolkadotXcm": Anonymize<Ideiof6273rsoe>;
-    "Revive": Enum<{
-        "CodeUploadDepositReserve": undefined;
-        "StorageDepositReserve": undefined;
-        "AddressMapping": undefined;
-    }>;
 }>;
 export type I6bkr3dqv753nc = AnonymousEnum<{
     "Keys": undefined;
@@ -1174,14 +912,14 @@ export type I6bkr3dqv753nc = AnonymousEnum<{
 export type Ideiof6273rsoe = AnonymousEnum<{
     "AuthorizeAlias": undefined;
 }>;
-export type Iq8n5b8q00vqa = {
-    "reason": Anonymize<I82378hoipeq81>;
+export type Ifqi1snmg1eqha = {
+    "reason": Anonymize<I4jtencd36vm02>;
     "source": SS58String;
     "dest": SS58String;
     "amount": bigint;
 };
-export type Iaa6lo6ksjs4p7 = {
-    "reason": Anonymize<I82378hoipeq81>;
+export type I2r55jl5mh3adj = {
+    "reason": Anonymize<I4jtencd36vm02>;
     "source": SS58String;
     "dest": SS58String;
     "transferred": bigint;
@@ -1203,11 +941,11 @@ export type Ier2cke86dqbr2 = {
     "actual_fee": bigint;
     "tip": bigint;
 };
-export type Id3rsvioq9ddv5 = AnonymousEnum<{
+export type I2dh8ie0e1dorc = AnonymousEnum<{
     /**
      * A sudo call just took place.
      */
-    "Sudid": Anonymize<Iajbf0qf8df9gt>;
+    "Sudid": Anonymize<Ig1kspkhu6ivl>;
     /**
      * The sudo key has been updated.
      */
@@ -1219,15 +957,15 @@ export type Id3rsvioq9ddv5 = AnonymousEnum<{
     /**
      * A [sudo_as](Pallet::sudo_as) call just took place.
      */
-    "SudoAsDone": Anonymize<Iajbf0qf8df9gt>;
+    "SudoAsDone": Anonymize<Ig1kspkhu6ivl>;
 }>;
-export type Iajbf0qf8df9gt = {
+export type Ig1kspkhu6ivl = {
     /**
      * The result of the call made by the sudo user.
      */
-    "sudo_result": Anonymize<Ijdfvg3qovm92>;
+    "sudo_result": Anonymize<Itsin8nck9a8m>;
 };
-export type Ijdfvg3qovm92 = ResultPayload<undefined, Anonymize<I8m5djc03sjan9>>;
+export type Itsin8nck9a8m = ResultPayload<undefined, Anonymize<I93jbab420630>>;
 export type I5rtkmhm2dng4u = {
     /**
      * The old sudo key (if one was previously set).
@@ -1238,12 +976,12 @@ export type I5rtkmhm2dng4u = {
      */
     "new": SS58String;
 };
-export type I9elk54jtngea6 = AnonymousEnum<{
+export type I4k39sb11omunm = AnonymousEnum<{
     /**
      * Batch of dispatches did not complete fully. Index of first failing dispatch given, as
      * well as the error.
      */
-    "BatchInterrupted": Anonymize<I4d12bibdmica8>;
+    "BatchInterrupted": Anonymize<Idialm21e31q5t>;
     /**
      * Batch of dispatches completed fully with no error.
      */
@@ -1259,11 +997,11 @@ export type I9elk54jtngea6 = AnonymousEnum<{
     /**
      * A single item within a Batch of dispatches has completed with error.
      */
-    "ItemFailed": Anonymize<Ia1np6dogduog6>;
+    "ItemFailed": Anonymize<Iajlpgsrdecf7b>;
     /**
      * A call was dispatched.
      */
-    "DispatchedAs": Anonymize<Ibvibj2kt1psjk>;
+    "DispatchedAs": Anonymize<I1nu5iqt9kifgm>;
     /**
      * Main call was dispatched.
      */
@@ -1271,20 +1009,20 @@ export type I9elk54jtngea6 = AnonymousEnum<{
     /**
      * The fallback call was dispatched.
      */
-    "IfElseFallbackCalled": Anonymize<I8mcr63lbd5n74>;
+    "IfElseFallbackCalled": Anonymize<Ifhbrgnuf9pu>;
 }>;
-export type I4d12bibdmica8 = {
+export type Idialm21e31q5t = {
     "index": number;
-    "error": Anonymize<I8m5djc03sjan9>;
+    "error": Anonymize<I93jbab420630>;
 };
-export type Ia1np6dogduog6 = {
-    "error": Anonymize<I8m5djc03sjan9>;
+export type Iajlpgsrdecf7b = {
+    "error": Anonymize<I93jbab420630>;
 };
-export type Ibvibj2kt1psjk = {
-    "result": Anonymize<Ijdfvg3qovm92>;
+export type I1nu5iqt9kifgm = {
+    "result": Anonymize<Itsin8nck9a8m>;
 };
-export type I8mcr63lbd5n74 = {
-    "main_error": Anonymize<I8m5djc03sjan9>;
+export type Ifhbrgnuf9pu = {
+    "main_error": Anonymize<I93jbab420630>;
 };
 export type I4srakrmf0fspo = AnonymousEnum<{
     /**
@@ -2311,49 +2049,7 @@ export type I3d0l4kr6qmhba = {
     "listing_id": bigint;
     "buyer": SS58String;
 };
-export type I18t49sbablavb = AnonymousEnum<{
-    /**
-     * A custom event emitted by the contract.
-     */
-    "ContractEmitted": Anonymize<I7svbvm6hg57aj>;
-    /**
-     * Contract deployed by deployer at the specified address.
-     */
-    "Instantiated": Anonymize<I8jhsbaiultviu>;
-    /**
-     * Emitted when an Ethereum transaction reverts.
-     *
-     * Ethereum transactions always complete successfully at the extrinsic level,
-     * as even reverted calls must store their `ReceiptInfo`.
-     * To distinguish reverted calls from successful ones, this event is emitted
-     * for failed Ethereum transactions.
-     */
-    "EthExtrinsicRevert": Anonymize<I38jbk9vrpfv0i>;
-}>;
-export type I7svbvm6hg57aj = {
-    /**
-     * The contract that emitted the event.
-     */
-    "contract": FixedSizeBinary<20>;
-    /**
-     * Data supplied by the contract. Metadata generated during contract compilation
-     * is needed to decode it.
-     */
-    "data": Binary;
-    /**
-     * A list of topics used to index the event.
-     * Number of topics is capped by [`limits::NUM_EVENT_TOPICS`].
-     */
-    "topics": Anonymize<Ic5m5lp1oioo8r>;
-};
 export type Ic5m5lp1oioo8r = Array<FixedSizeBinary<32>>;
-export type I8jhsbaiultviu = {
-    "deployer": FixedSizeBinary<20>;
-    "contract": FixedSizeBinary<20>;
-};
-export type I38jbk9vrpfv0i = {
-    "dispatch_error": Anonymize<I8m5djc03sjan9>;
-};
 export type I95g6i7ilua7lq = Array<FixedSizeArray<2, number>>;
 export type Ieniouoqkq4icf = {
     "spec_version": number;
@@ -2457,8 +2153,8 @@ export type Ia7pdug7cdsg8g = Array<{
     "id": FixedSizeBinary<8>;
     "amount": bigint;
 }>;
-export type I63lqt6dl3kn9k = Array<{
-    "id": Anonymize<I82378hoipeq81>;
+export type I7bhsbas6oufr6 = Array<{
+    "id": Anonymize<I4jtencd36vm02>;
     "amount": bigint;
 }>;
 export type I9bin2jc70qt6q = Array<Anonymize<I3qt1hgg4djhgb>>;
@@ -2639,230 +2335,6 @@ export type I41h8d5k5ams0b = {
     "digest": FixedSizeBinary<32>;
 };
 export type I95l2k9b1re95f = [SS58String, bigint];
-export type I834nfrf667ag1 = {
-    "owner": SS58String;
-    "deposit": bigint;
-    "refcount": bigint;
-    "code_len": number;
-    "code_type": Enum<{
-        "Pvm": undefined;
-        "Evm": undefined;
-    }>;
-    "behaviour_version": number;
-};
-export type I14i9pui8lc778 = {
-    "account_type": Enum<{
-        "Contract": {
-            "trie_id": Binary;
-            "code_hash": FixedSizeBinary<32>;
-            "storage_bytes": number;
-            "storage_items": number;
-            "storage_byte_deposit": bigint;
-            "storage_item_deposit": bigint;
-            "storage_base_deposit": bigint;
-            "immutable_data_len": number;
-        };
-        "EOA": undefined;
-    }>;
-    "dust": number;
-};
-export type I8t4pajubp34g3 = {
-    "insert_counter": number;
-    "delete_counter": number;
-};
-export type I10nrsmn0hji4l = {
-    "base_fee_per_gas": Anonymize<I4totqt881mlti>;
-    "blob_gas_used": Anonymize<I4totqt881mlti>;
-    "difficulty": Anonymize<I4totqt881mlti>;
-    "excess_blob_gas": Anonymize<I4totqt881mlti>;
-    "extra_data": Binary;
-    "gas_limit": Anonymize<I4totqt881mlti>;
-    "gas_used": Anonymize<I4totqt881mlti>;
-    "hash": FixedSizeBinary<32>;
-    "logs_bloom": FixedSizeBinary<256>;
-    "miner": FixedSizeBinary<20>;
-    "mix_hash": FixedSizeBinary<32>;
-    "nonce": FixedSizeBinary<8>;
-    "number": Anonymize<I4totqt881mlti>;
-    "parent_beacon_block_root"?: Anonymize<I4s6vifaf8k998>;
-    "parent_hash": FixedSizeBinary<32>;
-    "receipts_root": FixedSizeBinary<32>;
-    "requests_hash"?: Anonymize<I4s6vifaf8k998>;
-    "sha_3_uncles": FixedSizeBinary<32>;
-    "size": Anonymize<I4totqt881mlti>;
-    "state_root": FixedSizeBinary<32>;
-    "timestamp": Anonymize<I4totqt881mlti>;
-    "total_difficulty"?: Anonymize<Ic4rgfgksgmm3e>;
-    "transactions": Enum<{
-        "Hashes": Anonymize<Ic5m5lp1oioo8r>;
-        "TransactionInfos": Array<{
-            "block_hash": FixedSizeBinary<32>;
-            "block_number": Anonymize<I4totqt881mlti>;
-            "from": FixedSizeBinary<20>;
-            "hash": FixedSizeBinary<32>;
-            "transaction_index": Anonymize<I4totqt881mlti>;
-            "transaction_signed": Enum<{
-                "Transaction7702Signed": {
-                    "transaction_7702_unsigned": {
-                        "access_list": Anonymize<Ieap15h2pjii9u>;
-                        "authorization_list": Anonymize<Ie0had75u5b8qk>;
-                        "chain_id": Anonymize<I4totqt881mlti>;
-                        "gas": Anonymize<I4totqt881mlti>;
-                        "gas_price": Anonymize<I4totqt881mlti>;
-                        "input": Binary;
-                        "max_fee_per_gas": Anonymize<I4totqt881mlti>;
-                        "max_priority_fee_per_gas": Anonymize<I4totqt881mlti>;
-                        "nonce": Anonymize<I4totqt881mlti>;
-                        "to": FixedSizeBinary<20>;
-                        "r#type": number;
-                        "value": Anonymize<I4totqt881mlti>;
-                    };
-                    "r": Anonymize<I4totqt881mlti>;
-                    "s": Anonymize<I4totqt881mlti>;
-                    "v"?: Anonymize<Ic4rgfgksgmm3e>;
-                    "y_parity": Anonymize<I4totqt881mlti>;
-                };
-                "Transaction4844Signed": {
-                    "transaction_4844_unsigned": {
-                        "access_list": Anonymize<Ieap15h2pjii9u>;
-                        "blob_versioned_hashes": Anonymize<Ic5m5lp1oioo8r>;
-                        "chain_id": Anonymize<I4totqt881mlti>;
-                        "gas": Anonymize<I4totqt881mlti>;
-                        "input": Binary;
-                        "max_fee_per_blob_gas": Anonymize<I4totqt881mlti>;
-                        "max_fee_per_gas": Anonymize<I4totqt881mlti>;
-                        "max_priority_fee_per_gas": Anonymize<I4totqt881mlti>;
-                        "nonce": Anonymize<I4totqt881mlti>;
-                        "to": FixedSizeBinary<20>;
-                        "r#type": number;
-                        "value": Anonymize<I4totqt881mlti>;
-                    };
-                    "r": Anonymize<I4totqt881mlti>;
-                    "s": Anonymize<I4totqt881mlti>;
-                    "y_parity": Anonymize<I4totqt881mlti>;
-                };
-                "Transaction1559Signed": {
-                    "transaction_1559_unsigned": {
-                        "access_list": Anonymize<Ieap15h2pjii9u>;
-                        "chain_id": Anonymize<I4totqt881mlti>;
-                        "gas": Anonymize<I4totqt881mlti>;
-                        "gas_price": Anonymize<I4totqt881mlti>;
-                        "input": Binary;
-                        "max_fee_per_gas": Anonymize<I4totqt881mlti>;
-                        "max_priority_fee_per_gas": Anonymize<I4totqt881mlti>;
-                        "nonce": Anonymize<I4totqt881mlti>;
-                        "to"?: Anonymize<If7b8240vgt2q5>;
-                        "r#type": number;
-                        "value": Anonymize<I4totqt881mlti>;
-                    };
-                    "r": Anonymize<I4totqt881mlti>;
-                    "s": Anonymize<I4totqt881mlti>;
-                    "v"?: Anonymize<Ic4rgfgksgmm3e>;
-                    "y_parity": Anonymize<I4totqt881mlti>;
-                };
-                "Transaction2930Signed": {
-                    "transaction_2930_unsigned": {
-                        "access_list": Anonymize<Ieap15h2pjii9u>;
-                        "chain_id": Anonymize<I4totqt881mlti>;
-                        "gas": Anonymize<I4totqt881mlti>;
-                        "gas_price": Anonymize<I4totqt881mlti>;
-                        "input": Binary;
-                        "nonce": Anonymize<I4totqt881mlti>;
-                        "to"?: Anonymize<If7b8240vgt2q5>;
-                        "r#type": number;
-                        "value": Anonymize<I4totqt881mlti>;
-                    };
-                    "r": Anonymize<I4totqt881mlti>;
-                    "s": Anonymize<I4totqt881mlti>;
-                    "v"?: Anonymize<Ic4rgfgksgmm3e>;
-                    "y_parity": Anonymize<I4totqt881mlti>;
-                };
-                "TransactionLegacySigned": {
-                    "transaction_legacy_unsigned": {
-                        "chain_id"?: Anonymize<Ic4rgfgksgmm3e>;
-                        "gas": Anonymize<I4totqt881mlti>;
-                        "gas_price": Anonymize<I4totqt881mlti>;
-                        "input": Binary;
-                        "nonce": Anonymize<I4totqt881mlti>;
-                        "to"?: Anonymize<If7b8240vgt2q5>;
-                        "r#type": number;
-                        "value": Anonymize<I4totqt881mlti>;
-                    };
-                    "r": Anonymize<I4totqt881mlti>;
-                    "s": Anonymize<I4totqt881mlti>;
-                    "v": Anonymize<I4totqt881mlti>;
-                };
-            }>;
-        }>;
-    }>;
-    "transactions_root": FixedSizeBinary<32>;
-    "uncles": Anonymize<Ic5m5lp1oioo8r>;
-    "withdrawals": Array<{
-        "address": FixedSizeBinary<20>;
-        "amount": Anonymize<I4totqt881mlti>;
-        "index": Anonymize<I4totqt881mlti>;
-        "validator_index": Anonymize<I4totqt881mlti>;
-    }>;
-    "withdrawals_root": FixedSizeBinary<32>;
-};
-export type I4totqt881mlti = FixedSizeArray<4, bigint>;
-export type Ic4rgfgksgmm3e = (Anonymize<I4totqt881mlti>) | undefined;
-export type Ieap15h2pjii9u = Array<{
-    "address": FixedSizeBinary<20>;
-    "storage_keys": Anonymize<Ic5m5lp1oioo8r>;
-}>;
-export type Ie0had75u5b8qk = Array<{
-    "chain_id": Anonymize<I4totqt881mlti>;
-    "address": FixedSizeBinary<20>;
-    "nonce": Anonymize<I4totqt881mlti>;
-    "y_parity": Anonymize<I4totqt881mlti>;
-    "r": Anonymize<I4totqt881mlti>;
-    "s": Anonymize<I4totqt881mlti>;
-}>;
-export type If7b8240vgt2q5 = (FixedSizeBinary<20>) | undefined;
-export type I3oiqcurom3m43 = Array<{
-    "gas_used": Anonymize<I4totqt881mlti>;
-    "effective_gas_price": Anonymize<I4totqt881mlti>;
-}>;
-export type I20ichc5j0l1u7 = {
-    "transaction_root_builder": {
-        "key": Binary;
-        "value_type": number;
-        "builder_value": Binary;
-        "stack": Anonymize<Itom7fk49o0c9>;
-        "state_masks": Anonymize<Icgljjb6j82uhn>;
-        "tree_masks": Anonymize<Icgljjb6j82uhn>;
-        "hash_masks": Anonymize<Icgljjb6j82uhn>;
-        "stored_in_database": boolean;
-        "rlp_buf": Binary;
-        "index": bigint;
-    };
-    "receipts_root_builder": {
-        "key": Binary;
-        "value_type": number;
-        "builder_value": Binary;
-        "stack": Anonymize<Itom7fk49o0c9>;
-        "state_masks": Anonymize<Icgljjb6j82uhn>;
-        "tree_masks": Anonymize<Icgljjb6j82uhn>;
-        "hash_masks": Anonymize<Icgljjb6j82uhn>;
-        "stored_in_database": boolean;
-        "rlp_buf": Binary;
-        "index": bigint;
-    };
-    "base_fee_per_gas": Anonymize<I4totqt881mlti>;
-    "block_gas_limit": Anonymize<I4totqt881mlti>;
-    "gas_used": Anonymize<I4totqt881mlti>;
-    "logs_bloom": FixedSizeBinary<256>;
-    "tx_hashes": Anonymize<Ic5m5lp1oioo8r>;
-    "gas_info": Anonymize<I3oiqcurom3m43>;
-};
-export type I1p16diuhde12h = (Anonymize<Idkbvh6dahk1v7>) | undefined;
-export type Idkbvh6dahk1v7 = FixedSizeArray<2, Binary>;
-export type Id4f5q01qh34o3 = {
-    "allow_unlimited_contract_size": boolean;
-    "bypass_eip_3607": boolean;
-    "pvm_logs": boolean;
-};
 export type In7a38730s6qs = {
     "base_block": Anonymize<I4q39t5hn830vp>;
     "max_block": Anonymize<I4q39t5hn830vp>;
@@ -2988,7 +2460,7 @@ export type I6pjjpfvhvcfru = {
     "code": Binary;
 };
 export type I9pj91mj79qekl = {
-    "items": Array<Anonymize<Idkbvh6dahk1v7>>;
+    "items": Array<FixedSizeArray<2, Binary>>;
 };
 export type I39uah9nss64h9 = {
     "keys": Anonymize<Itom7fk49o0c9>;
@@ -3210,11 +2682,11 @@ export type I5utcetro501ir = {
     "value": bigint;
     "keep_alive": boolean;
 };
-export type I3ej58cui7jr9a = AnonymousEnum<{
+export type I335odvecl9u1r = AnonymousEnum<{
     /**
      * Authenticates the sudo key and dispatches a function call with `Root` origin.
      */
-    "sudo": Anonymize<Ia0dhomeuclld2>;
+    "sudo": Anonymize<Iblqilspe81nem>;
     /**
      * Authenticates the sudo key and dispatches a function call with `Root` origin.
      * This function does not check the weight of the call, and instead allows the
@@ -3222,7 +2694,7 @@ export type I3ej58cui7jr9a = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Signed_.
      */
-    "sudo_unchecked_weight": Anonymize<I6l9u2trv62g1e>;
+    "sudo_unchecked_weight": Anonymize<I8na09tamgm500>;
     /**
      * Authenticates the current sudo key and sets the given AccountId (`new`) as the new sudo
      * key.
@@ -3234,7 +2706,7 @@ export type I3ej58cui7jr9a = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Signed_.
      */
-    "sudo_as": Anonymize<Id2gbq03b2hr4h>;
+    "sudo_as": Anonymize<I1mqcr2m778pul>;
     /**
      * Permanently removes the sudo key.
      *
@@ -3242,21 +2714,21 @@ export type I3ej58cui7jr9a = AnonymousEnum<{
      */
     "remove_key": undefined;
 }>;
-export type Ia0dhomeuclld2 = {
+export type Iblqilspe81nem = {
     "call": TxCallData;
 };
-export type I6l9u2trv62g1e = {
+export type I8na09tamgm500 = {
     "call": TxCallData;
     "weight": Anonymize<I4q39t5hn830vp>;
 };
 export type I8k3rnvpeeh4hv = {
     "new": MultiAddress;
 };
-export type Id2gbq03b2hr4h = {
+export type I1mqcr2m778pul = {
     "who": MultiAddress;
     "call": TxCallData;
 };
-export type I9t6c8tk7nel3o = AnonymousEnum<{
+export type I29ppam9fq0u82 = AnonymousEnum<{
     /**
      * Send a batch of dispatch calls.
      *
@@ -3277,7 +2749,7 @@ export type I9t6c8tk7nel3o = AnonymousEnum<{
      * and the error of the failed call. If all were successful, then the `BatchCompleted`
      * event is deposited.
      */
-    "batch": Anonymize<I6pqh000is1p71>;
+    "batch": Anonymize<Ifdj373tahkacb>;
     /**
      * Send a call through an indexed pseudonym of the sender.
      *
@@ -3293,7 +2765,7 @@ export type I9t6c8tk7nel3o = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Signed_.
      */
-    "as_derivative": Anonymize<I5oiq94r5m6hn8>;
+    "as_derivative": Anonymize<Ivr2jqit7np5o>;
     /**
      * Send a batch of dispatch calls and atomically execute them.
      * The whole transaction will rollback and fail if any of the calls failed.
@@ -3309,7 +2781,7 @@ export type I9t6c8tk7nel3o = AnonymousEnum<{
      * ## Complexity
      * - O(C) where C is the number of calls to be batched.
      */
-    "batch_all": Anonymize<I6pqh000is1p71>;
+    "batch_all": Anonymize<Ifdj373tahkacb>;
     /**
      * Dispatches a function call with a provided origin.
      *
@@ -3318,7 +2790,7 @@ export type I9t6c8tk7nel3o = AnonymousEnum<{
      * ## Complexity
      * - O(1).
      */
-    "dispatch_as": Anonymize<I8f2lrbv2fds33>;
+    "dispatch_as": Anonymize<Iepead4j1bsq3e>;
     /**
      * Send a batch of dispatch calls.
      * Unlike `batch`, it allows errors and won't interrupt.
@@ -3334,7 +2806,7 @@ export type I9t6c8tk7nel3o = AnonymousEnum<{
      * ## Complexity
      * - O(C) where C is the number of calls to be batched.
      */
-    "force_batch": Anonymize<I6pqh000is1p71>;
+    "force_batch": Anonymize<Ifdj373tahkacb>;
     /**
      * Dispatch a function call with a specified weight.
      *
@@ -3343,7 +2815,7 @@ export type I9t6c8tk7nel3o = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Root_.
      */
-    "with_weight": Anonymize<I6l9u2trv62g1e>;
+    "with_weight": Anonymize<I8na09tamgm500>;
     /**
      * Dispatch a fallback call in the event the main call fails to execute.
      * May be called from any origin except `None`.
@@ -3369,7 +2841,7 @@ export type I9t6c8tk7nel3o = AnonymousEnum<{
      * - Some use cases might involve submitting a `batch` type call in either main, fallback
      * or both.
      */
-    "if_else": Anonymize<Iemch1bu6l1qal>;
+    "if_else": Anonymize<I5pc9rnj3he16d>;
     /**
      * Dispatches a function call with a provided origin.
      *
@@ -3377,23 +2849,20 @@ export type I9t6c8tk7nel3o = AnonymousEnum<{
      *
      * The dispatch origin for this call must be _Root_.
      */
-    "dispatch_as_fallible": Anonymize<I8f2lrbv2fds33>;
+    "dispatch_as_fallible": Anonymize<Iepead4j1bsq3e>;
 }>;
-export type I6pqh000is1p71 = {
+export type Ifdj373tahkacb = {
     "calls": Array<TxCallData>;
 };
-export type I5oiq94r5m6hn8 = {
+export type Ivr2jqit7np5o = {
     "index": number;
     "call": TxCallData;
 };
-export type I8f2lrbv2fds33 = {
+export type Iepead4j1bsq3e = {
     "as_origin": Enum<{
         "system": Anonymize<I9gqitj4t615g3>;
         "PolkadotXcm": Anonymize<Icvilmd7qu30i4>;
         "CumulusXcm": Anonymize<I3in0d0lb61qi8>;
-        "Revive": Enum<{
-            "EthTransaction": SS58String;
-        }>;
     }>;
     "call": TxCallData;
 };
@@ -3411,7 +2880,7 @@ export type I3in0d0lb61qi8 = AnonymousEnum<{
     "Relay": undefined;
     "SiblingParachain": number;
 }>;
-export type Iemch1bu6l1qal = {
+export type I5pc9rnj3he16d = {
     "main": TxCallData;
     "fallback": TxCallData;
 };
@@ -4271,253 +3740,6 @@ export type I2dpff3lc7r29l = {
     "buyer": SS58String;
     "wrapped_key": FixedSizeBinary<80>;
 };
-export type Ibf9d1j9akrkq0 = AnonymousEnum<{
-    /**
-     * A raw EVM transaction, typically dispatched by an Ethereum JSON-RPC server.
-     *
-     * # Parameters
-     *
-     * * `payload`: The encoded [`crate::evm::TransactionSigned`].
-     *
-     * # Note
-     *
-     * This call cannot be dispatched directly; attempting to do so will result in a failed
-     * transaction. It serves as a wrapper for an Ethereum transaction. When submitted, the
-     * runtime converts it into a [`sp_runtime::generic::CheckedExtrinsic`] by recovering the
-     * signer and validating the transaction.
-     */
-    "eth_transact": Anonymize<Ida37oe44osb06>;
-    /**
-     * Makes a call to an account, optionally transferring some balance.
-     *
-     * # Parameters
-     *
-     * * `dest`: Address of the contract to call.
-     * * `value`: The balance to transfer from the `origin` to `dest`.
-     * * `weight_limit`: The weight limit enforced when executing the constructor.
-     * * `storage_deposit_limit`: The maximum amount of balance that can be charged from the
-     * caller to pay for the storage consumed.
-     * * `data`: The input data to pass to the contract.
-     *
-     * * If the account is a smart-contract account, the associated code will be
-     * executed and any value will be transferred.
-     * * If the account is a regular account, any value will be transferred.
-     * * If no account exists and the call value is not less than `existential_deposit`,
-     * a regular account will be created and any value will be transferred.
-     */
-    "call": Anonymize<I6v02o6j4snahe>;
-    /**
-     * Instantiates a contract from a previously deployed vm binary.
-     *
-     * This function is identical to [`Self::instantiate_with_code`] but without the
-     * code deployment step. Instead, the `code_hash` of an on-chain deployed vm binary
-     * must be supplied.
-     */
-    "instantiate": Anonymize<I27569neuh5t1o>;
-    /**
-     * Instantiates a new contract from the supplied `code` optionally transferring
-     * some balance.
-     *
-     * This dispatchable has the same effect as calling [`Self::upload_code`] +
-     * [`Self::instantiate`]. Bundling them together provides efficiency gains. Please
-     * also check the documentation of [`Self::upload_code`].
-     *
-     * # Parameters
-     *
-     * * `value`: The balance to transfer from the `origin` to the newly created contract.
-     * * `weight_limit`: The weight limit enforced when executing the constructor.
-     * * `storage_deposit_limit`: The maximum amount of balance that can be charged/reserved
-     * from the caller to pay for the storage consumed.
-     * * `code`: The contract code to deploy in raw bytes.
-     * * `data`: The input data to pass to the contract constructor.
-     * * `salt`: Used for the address derivation. If `Some` is supplied then `CREATE2`
-     * semantics are used. If `None` then `CRATE1` is used.
-     *
-     *
-     * Instantiation is executed as follows:
-     *
-     * - The supplied `code` is deployed, and a `code_hash` is created for that code.
-     * - If the `code_hash` already exists on the chain the underlying `code` will be shared.
-     * - The destination address is computed based on the sender, code_hash and the salt.
-     * - The smart-contract account is created at the computed address.
-     * - The `value` is transferred to the new account.
-     * - The `deploy` function is executed in the context of the newly-created account.
-     */
-    "instantiate_with_code": Anonymize<Id92o6smntb9m5>;
-    /**
-     * Same as [`Self::instantiate_with_code`], but intended to be dispatched **only**
-     * by an EVM transaction through the EVM compatibility layer.
-     *
-     * # Parameters
-     *
-     * * `value`: The balance to transfer from the `origin` to the newly created contract.
-     * * `weight_limit`: The gas limit used to derive the transaction weight for transaction
-     * payment
-     * * `eth_gas_limit`: The Ethereum gas limit governing the resource usage of the execution
-     * * `code`: The contract code to deploy in raw bytes.
-     * * `data`: The input data to pass to the contract constructor.
-     * * `transaction_encoded`: The RLP encoding of the signed Ethereum transaction,
-     * represented as [crate::evm::TransactionSigned], provided by the Ethereum wallet. This
-     * is used for building the Ethereum transaction root.
-     * * effective_gas_price: the price of a unit of gas
-     * * encoded len: the byte code size of the `eth_transact` extrinsic
-     *
-     * Calling this dispatchable ensures that the origin's nonce is bumped only once,
-     * via the `CheckNonce` transaction extension. In contrast, [`Self::instantiate_with_code`]
-     * also bumps the nonce after contract instantiation, since it may be invoked multiple
-     * times within a batch call transaction.
-     */
-    "eth_instantiate_with_code": Anonymize<I5nmb2hfkgk9ol>;
-    /**
-     * Same as [`Self::call`], but intended to be dispatched **only**
-     * by an EVM transaction through the EVM compatibility layer.
-     *
-     * # Parameters
-     *
-     * * `dest`: The Ethereum address of the account to be called
-     * * `value`: The balance to transfer from the `origin` to the newly created contract.
-     * * `weight_limit`: The gas limit used to derive the transaction weight for transaction
-     * payment
-     * * `eth_gas_limit`: The Ethereum gas limit governing the resource usage of the execution
-     * * `data`: The input data to pass to the contract constructor.
-     * * `transaction_encoded`: The RLP encoding of the signed Ethereum transaction,
-     * represented as [crate::evm::TransactionSigned], provided by the Ethereum wallet. This
-     * is used for building the Ethereum transaction root.
-     * * effective_gas_price: the price of a unit of gas
-     * * encoded len: the byte code size of the `eth_transact` extrinsic
-     */
-    "eth_call": Anonymize<Iav55bcqlrqn51>;
-    /**
-     * Executes a Substrate runtime call from an Ethereum transaction.
-     *
-     * This dispatchable is intended to be called **only** through the EVM compatibility
-     * layer. The provided call will be dispatched using `RawOrigin::Signed`.
-     *
-     * # Parameters
-     *
-     * * `origin`: Must be an [`Origin::EthTransaction`] origin.
-     * * `call`: The Substrate runtime call to execute.
-     * * `transaction_encoded`: The RLP encoding of the Ethereum transaction,
-     */
-    "eth_substrate_call": Anonymize<I4jjitt3odaann>;
-    /**
-     * Upload new `code` without instantiating a contract from it.
-     *
-     * If the code does not already exist a deposit is reserved from the caller
-     * The size of the reserve depends on the size of the supplied `code`.
-     *
-     * # Note
-     *
-     * Anyone can instantiate a contract from any uploaded code and thus prevent its removal.
-     * To avoid this situation a constructor could employ access control so that it can
-     * only be instantiated by permissioned entities. The same is true when uploading
-     * through [`Self::instantiate_with_code`].
-     *
-     * If the refcount of the code reaches zero after terminating the last contract that
-     * references this code, the code will be removed automatically.
-     */
-    "upload_code": Anonymize<I10ra4g1rl6k2f>;
-    /**
-     * Remove the code stored under `code_hash` and refund the deposit to its owner.
-     *
-     * A code can only be removed by its original uploader (its owner) and only if it is
-     * not used by any contract.
-     */
-    "remove_code": Anonymize<Ib51vk42m1po4n>;
-    /**
-     * Privileged function that changes the code of an existing contract.
-     *
-     * This takes care of updating refcounts and all other necessary operations. Returns
-     * an error if either the `code_hash` or `dest` do not exist.
-     *
-     * # Note
-     *
-     * This does **not** change the address of the contract in question. This means
-     * that the contract address is no longer derived from its code hash after calling
-     * this dispatchable.
-     */
-    "set_code": Anonymize<I1uihehkdsggvp>;
-    /**
-     * Register the callers account id so that it can be used in contract interactions.
-     *
-     * This will error if the origin is already mapped or is a eth native `Address20`. It will
-     * take a deposit that can be released by calling [`Self::unmap_account`].
-     */
-    "map_account": undefined;
-    /**
-     * Unregister the callers account id in order to free the deposit.
-     *
-     * There is no reason to ever call this function other than freeing up the deposit.
-     * This is only useful when the account should no longer be used.
-     */
-    "unmap_account": undefined;
-    /**
-     * Dispatch an `call` with the origin set to the callers fallback address.
-     *
-     * Every `AccountId32` can control its corresponding fallback account. The fallback account
-     * is the `AccountId20` with the last 12 bytes set to `0xEE`. This is essentially a
-     * recovery function in case an `AccountId20` was used without creating a mapping first.
-     */
-    "dispatch_as_fallback_account": Anonymize<Ia0dhomeuclld2>;
-}>;
-export type Ida37oe44osb06 = {
-    "payload": Binary;
-};
-export type I6v02o6j4snahe = {
-    "dest": FixedSizeBinary<20>;
-    "value": bigint;
-    "weight_limit": Anonymize<I4q39t5hn830vp>;
-    "storage_deposit_limit": bigint;
-    "data": Binary;
-};
-export type I27569neuh5t1o = {
-    "value": bigint;
-    "weight_limit": Anonymize<I4q39t5hn830vp>;
-    "storage_deposit_limit": bigint;
-    "code_hash": FixedSizeBinary<32>;
-    "data": Binary;
-    "salt"?: Anonymize<I4s6vifaf8k998>;
-};
-export type Id92o6smntb9m5 = {
-    "value": bigint;
-    "weight_limit": Anonymize<I4q39t5hn830vp>;
-    "storage_deposit_limit": bigint;
-    "code": Binary;
-    "data": Binary;
-    "salt"?: Anonymize<I4s6vifaf8k998>;
-};
-export type I5nmb2hfkgk9ol = {
-    "value": Anonymize<I4totqt881mlti>;
-    "weight_limit": Anonymize<I4q39t5hn830vp>;
-    "eth_gas_limit": Anonymize<I4totqt881mlti>;
-    "code": Binary;
-    "data": Binary;
-    "transaction_encoded": Binary;
-    "effective_gas_price": Anonymize<I4totqt881mlti>;
-    "encoded_len": number;
-};
-export type Iav55bcqlrqn51 = {
-    "dest": FixedSizeBinary<20>;
-    "value": Anonymize<I4totqt881mlti>;
-    "weight_limit": Anonymize<I4q39t5hn830vp>;
-    "eth_gas_limit": Anonymize<I4totqt881mlti>;
-    "data": Binary;
-    "transaction_encoded": Binary;
-    "effective_gas_price": Anonymize<I4totqt881mlti>;
-    "encoded_len": number;
-};
-export type I4jjitt3odaann = {
-    "call": TxCallData;
-    "transaction_encoded": Binary;
-};
-export type I10ra4g1rl6k2f = {
-    "code": Binary;
-    "storage_deposit_limit": bigint;
-};
-export type I1uihehkdsggvp = {
-    "dest": FixedSizeBinary<20>;
-    "code_hash": FixedSizeBinary<32>;
-};
 export type Iaqet9jc3ihboe = {
     "header": Anonymize<Ic952bubvq4k7d>;
     "extrinsics": Anonymize<Itom7fk49o0c9>;
@@ -4535,7 +3757,7 @@ export type I7u915mvkdsb08 = ResultPayload<Binary, Enum<{
     "NotFound": Anonymize<I4gil44d08grh>;
     "Codec": undefined;
 }>>;
-export type I552figkuupl9t = ResultPayload<Anonymize<Ijdfvg3qovm92>, Anonymize<I5nrjkj9qumobs>>;
+export type Ifahgv71odg7ft = ResultPayload<Anonymize<Itsin8nck9a8m>, Anonymize<I5nrjkj9qumobs>>;
 export type I5nrjkj9qumobs = AnonymousEnum<{
     "Invalid": Enum<{
         "Call": undefined;
@@ -4593,14 +3815,14 @@ export type Iei2mvq0mjvt81 = {
     }) | undefined;
     "tip": bigint;
 };
-export type I2004jg4nchdns = AnonymousEnum<{
+export type I5598l441sqp8u = AnonymousEnum<{
     "System": Anonymize<Iekve0i6djpd9f>;
     "ParachainSystem": Anonymize<I3u72uvpuo4qrt>;
     "Timestamp": Anonymize<I7d75gqfg6jh9c>;
     "ParachainInfo": undefined;
     "Balances": Anonymize<I9svldsp29mh87>;
-    "Sudo": Anonymize<I3ej58cui7jr9a>;
-    "Utility": Anonymize<I9t6c8tk7nel3o>;
+    "Sudo": Anonymize<I335odvecl9u1r>;
+    "Utility": Anonymize<I29ppam9fq0u82>;
     "CollatorSelection": Anonymize<I9dpq5287dur8b>;
     "Session": Anonymize<I77dda7hps0u37>;
     "XcmpQueue": Anonymize<Ib7tahn20bvsep>;
@@ -4608,7 +3830,6 @@ export type I2004jg4nchdns = AnonymousEnum<{
     "CumulusXcm": undefined;
     "MessageQueue": Anonymize<Ic2uoe7jdksosp>;
     "ContentRegistry": Anonymize<I8kfo64qt5c7v4>;
-    "Revive": Anonymize<Ibf9d1j9akrkq0>;
 }>;
 export type Ic1d4u2opv3fst = {
     "upward_messages": Anonymize<Itom7fk49o0c9>;
@@ -4634,143 +3855,6 @@ export type I3ju6ot8lfmk90 = ResultPayload<{
 export type Ie9sr1iqcg3cgm = ResultPayload<undefined, string>;
 export type I1mqgk2tmnn9i2 = (string) | undefined;
 export type I6lr8sctk0bi4e = Array<string>;
-export type I6r08e9psr96la = {
-    "weight_consumed": Anonymize<I4q39t5hn830vp>;
-    "weight_required": Anonymize<I4q39t5hn830vp>;
-    "storage_deposit": Anonymize<If7bmpttbdmqu4>;
-    "max_storage_deposit": Anonymize<If7bmpttbdmqu4>;
-    "gas_consumed": bigint;
-    "result": ResultPayload<Anonymize<I620n7irgfspm4>, Anonymize<I8m5djc03sjan9>>;
-};
-export type If7bmpttbdmqu4 = AnonymousEnum<{
-    "Refund": bigint;
-    "Charge": bigint;
-}>;
-export type I620n7irgfspm4 = {
-    "flags": number;
-    "data": Binary;
-};
-export type I9sijb8gfrns29 = AnonymousEnum<{
-    "Upload": Binary;
-    "Existing": FixedSizeBinary<32>;
-}>;
-export type I8rh37a5gg0kb7 = {
-    "weight_consumed": Anonymize<I4q39t5hn830vp>;
-    "weight_required": Anonymize<I4q39t5hn830vp>;
-    "storage_deposit": Anonymize<If7bmpttbdmqu4>;
-    "max_storage_deposit": Anonymize<If7bmpttbdmqu4>;
-    "gas_consumed": bigint;
-    "result": ResultPayload<{
-        "result": Anonymize<I620n7irgfspm4>;
-        "addr": FixedSizeBinary<20>;
-    }, Anonymize<I8m5djc03sjan9>>;
-};
-export type I6f9v7emp7t5ba = {
-    "access_list"?: (Anonymize<Ieap15h2pjii9u>) | undefined;
-    "authorization_list": Anonymize<Ie0had75u5b8qk>;
-    "blob_versioned_hashes": Anonymize<Ic5m5lp1oioo8r>;
-    "blobs": Anonymize<Itom7fk49o0c9>;
-    "chain_id"?: Anonymize<Ic4rgfgksgmm3e>;
-    "from"?: Anonymize<If7b8240vgt2q5>;
-    "gas"?: Anonymize<Ic4rgfgksgmm3e>;
-    "gas_price"?: Anonymize<Ic4rgfgksgmm3e>;
-    "input": {
-        "input"?: Anonymize<Iabpgqcjikia83>;
-        "data"?: Anonymize<Iabpgqcjikia83>;
-    };
-    "max_fee_per_blob_gas"?: Anonymize<Ic4rgfgksgmm3e>;
-    "max_fee_per_gas"?: Anonymize<Ic4rgfgksgmm3e>;
-    "max_priority_fee_per_gas"?: Anonymize<Ic4rgfgksgmm3e>;
-    "nonce"?: Anonymize<Ic4rgfgksgmm3e>;
-    "to"?: Anonymize<If7b8240vgt2q5>;
-    "r#type"?: Anonymize<I4arjljr6dpflb>;
-    "value"?: Anonymize<Ic4rgfgksgmm3e>;
-};
-export type Ida7d8eqrkav55 = ResultPayload<{
-    "weight_required": Anonymize<I4q39t5hn830vp>;
-    "storage_deposit": bigint;
-    "max_storage_deposit": bigint;
-    "eth_gas": Anonymize<I4totqt881mlti>;
-    "data": Binary;
-}, Anonymize<I8mb9f26m2cgi5>>;
-export type I8mb9f26m2cgi5 = AnonymousEnum<{
-    "Data": Binary;
-    "Message": string;
-}>;
-export type Idmrtv8jbbitnu = {
-    "timestamp_override"?: Anonymize<I35p85j063s0il>;
-    "reserved": boolean;
-};
-export type Ibq2uamqt4878a = ResultPayload<{
-    "code_hash": FixedSizeBinary<32>;
-    "deposit": bigint;
-}, Anonymize<I8m5djc03sjan9>>;
-export type I8dahmmusldq0b = ResultPayload<Anonymize<Iabpgqcjikia83>, Enum<{
-    "DoesntExist": undefined;
-    "KeyDecodingFailed": undefined;
-    "StorageWriteFailed": Anonymize<I8m5djc03sjan9>;
-}>>;
-export type I63nhnkgg114n5 = AnonymousEnum<{
-    "CallTracer"?: ({
-        "with_logs": boolean;
-        "only_top_call": boolean;
-    }) | undefined;
-    "PrestateTracer"?: ({
-        "diff_mode": boolean;
-        "disable_storage": boolean;
-        "disable_code": boolean;
-    }) | undefined;
-}>;
-export type I1l7ajs6s9ur3a = Array<[number, Anonymize<Id2kt2aov2rlb2>]>;
-export type Id2kt2aov2rlb2 = AnonymousEnum<{
-    "Call": Anonymize<I186drocjaqecc>;
-    "Prestate": Enum<{
-        "Prestate": Anonymize<I4ra24jtob05ku>;
-        "DiffMode": {
-            "pre": Anonymize<I4ra24jtob05ku>;
-            "post": Anonymize<I4ra24jtob05ku>;
-        };
-    }>;
-}>;
-export type I186drocjaqecc = {
-    "from": FixedSizeBinary<20>;
-    "gas": Anonymize<I4totqt881mlti>;
-    "gas_used": Anonymize<I4totqt881mlti>;
-    "to": FixedSizeBinary<20>;
-    "input": Binary;
-    "output": Binary;
-    "error"?: Anonymize<I1mqgk2tmnn9i2>;
-    "revert_reason"?: Anonymize<I1mqgk2tmnn9i2>;
-    "calls": Array<Anonymize<I186drocjaqecc>>;
-    "logs": Array<{
-        "address": FixedSizeBinary<20>;
-        "topics": Anonymize<Ic5m5lp1oioo8r>;
-        "data": Binary;
-        "position": number;
-    }>;
-    "value"?: Anonymize<Ic4rgfgksgmm3e>;
-    "call_type": Enum<{
-        "Call": undefined;
-        "StaticCall": undefined;
-        "DelegateCall": undefined;
-        "Create": undefined;
-        "Create2": undefined;
-        "Selfdestruct": undefined;
-    }>;
-    "child_call_count": number;
-};
-export type I4ra24jtob05ku = Array<[FixedSizeBinary<20>, {
-    "balance"?: Anonymize<Ic4rgfgksgmm3e>;
-    "nonce"?: Anonymize<I4arjljr6dpflb>;
-    "code"?: Anonymize<Iabpgqcjikia83>;
-    "storage": Array<[Binary, Anonymize<Iabpgqcjikia83>]>;
-}]>;
-export type Ice9mpbhevl5b7 = (Anonymize<Id2kt2aov2rlb2>) | undefined;
-export type Idt5popft6i714 = ResultPayload<Anonymize<Id2kt2aov2rlb2>, Anonymize<I8mb9f26m2cgi5>>;
-export type I512dtcl0pn07c = ResultPayload<Anonymize<I6cs1itejju2vv>, Enum<{
-    "Value": undefined;
-    "Dust": undefined;
-}>>;
 export type Ibn2t84v0qbqml = Array<{
     "phase": Phase;
     "event": Anonymize<Itrj5j3atrcpn>;

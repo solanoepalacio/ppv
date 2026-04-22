@@ -52,6 +52,15 @@ Plan: [`docs/plans/P1b-frontend.md`](./plans/P1b-frontend.md)
 - [x] Task 18: E2E verification on Zombienet — user signs parachain + store, Alice signs only authorization
 - [x] Task 19: TypeScript check + dev-server smoke test against Zombienet
 
+### P1c — Creator dashboard ("My Listings")
+
+- [x] Task 1: Pallet storage — `Listings` → `CountedStorageMap`, add `ListingsByCreator` reverse index + `PurchaseCount` counter; wire writes in `create_listing`/`purchase` (TDD)
+- [x] Task 2: `fetchListingsByCreator` hook — prefix-scan index + parallel listing/count lookups (TDD)
+- [x] Task 3: `ListingCard` — optional `stats` prop rendering sales count + derived earnings (TDD)
+- [x] Task 4: `MyListingsPage` + `/my-listings` route + nav link (TDD)
+- [x] Task 5: Spec update — storage items + Phase 3 dashboard description
+- [x] Task 6: End-to-end verification on Zombienet (regenerate PAPI descriptors, multi-account purchase flow)
+
 ## Phase 2 — Content encryption
 
 ### P2a — Pallet + Runtime

@@ -119,9 +119,39 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type NextListingId<T: Config> = StorageValue<_, ListingId, ValueQuery>;
 
+	/// Wrapped in a `CountedStorageMap` so the runtime maintains a free global
+	/// count of active listings (exposed as `Listings::<T>::count()`). Used by
+	/// the frontend's future global-ranking page; costs one extra write per
+	/// create/remove, none per read. Key/value shape is identical to a plain
+	/// `StorageMap<ListingId, Listing<T>>`.
 	#[pallet::storage]
 	pub type Listings<T: Config> =
-		StorageMap<_, Blake2_128Concat, ListingId, Listing<T>, OptionQuery>;
+		CountedStorageMap<_, Blake2_128Concat, ListingId, Listing<T>, OptionQuery>;
+
+	/// Reverse index over `Listings` keyed by creator. Written on `create_listing`;
+	/// enables `iter_key_prefix(creator)` for "list all listings by creator X"
+	/// without scanning every entry. Unit value — the listing itself lives in
+	/// `Listings`. This is the standard FRAME pattern for prefix iteration by a
+	/// non-primary field (see pallet-nfts, pallet-assets).
+	#[pallet::storage]
+	pub type ListingsByCreator<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		Blake2_128Concat,
+		ListingId,
+		(),
+		ValueQuery,
+	>;
+
+	/// Per-listing sale counter. Incremented by `purchase`; never decremented.
+	/// Materialized on write so the creator dashboard and future popularity
+	/// rankings are O(1) reads. Earnings are *not* stored — frontend derives
+	/// them as `purchase_count * listing.price` under the flat-pricing
+	/// guarantee from the spec (§4 Fee model).
+	#[pallet::storage]
+	pub type PurchaseCount<T: Config> =
+		StorageMap<_, Blake2_128Concat, ListingId, u32, ValueQuery>;
 
 	/// Records each buyer's purchases, keyed (buyer, listing_id). Value is
 	/// the block number the purchase was completed at — used by the frontend's
@@ -247,6 +277,7 @@ pub mod pallet {
 			};
 
 			Listings::<T>::insert(listing_id, listing);
+			ListingsByCreator::<T>::insert(&creator, listing_id, ());
 			NextListingId::<T>::put(next);
 
 			Self::deposit_event(Event::ListingCreated { listing_id, creator, price });
@@ -274,6 +305,7 @@ pub mod pallet {
 
 			let now = frame_system::Pallet::<T>::block_number();
 			Purchases::<T>::insert(&buyer, listing_id, now);
+			PurchaseCount::<T>::mutate(listing_id, |c| *c = c.saturating_add(1));
 
 			Self::deposit_event(Event::PurchaseCompleted {
 				listing_id,

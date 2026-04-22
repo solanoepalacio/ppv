@@ -79,4 +79,41 @@ describe('ListingCard', () => {
     const img = screen.getByAltText('My Test Video') as HTMLImageElement;
     expect(img.src).toBe('https://example.com/thumb.jpg');
   });
+
+  test('does not render the stats strip by default', () => {
+    render(<MemoryRouter><ListingCard listing={makeListing()} /></MemoryRouter>);
+    expect(screen.queryByText(/sales?/i)).toBeNull();
+    expect(screen.queryByText(/earned/i)).toBeNull();
+  });
+
+  test('renders the stats strip when stats prop is provided', () => {
+    // price 1 DOT × 3 sales → 3.00 DOT earned
+    const oneDot = 1_000_000_000_000n;
+    render(
+      <MemoryRouter>
+        <ListingCard listing={makeListing({ price: oneDot })} stats={{ purchaseCount: 3 }} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/3 sales/i)).toBeInTheDocument();
+    expect(screen.getByText(/3\.00 DOT earned/i)).toBeInTheDocument();
+  });
+
+  test('pluralizes sales label to "sale" for exactly one purchase', () => {
+    render(
+      <MemoryRouter>
+        <ListingCard listing={makeListing()} stats={{ purchaseCount: 1 }} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/^1 sale$/i)).toBeInTheDocument();
+  });
+
+  test('renders zero-sales state without NaN earnings', () => {
+    render(
+      <MemoryRouter>
+        <ListingCard listing={makeListing()} stats={{ purchaseCount: 0 }} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/0 sales/i)).toBeInTheDocument();
+    expect(screen.getByText(/0\.00 DOT earned/i)).toBeInTheDocument();
+  });
 });

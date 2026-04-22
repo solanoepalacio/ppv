@@ -46,6 +46,16 @@ export default function App() {
 								</>
 							)}
 						</NavLink>
+						<NavLink to="/my-listings" className={navLinkClass}>
+							{({ isActive }) => (
+								<>
+									{isActive && (
+										<span className="absolute inset-0 rounded-lg bg-polka-500/15 border border-polka-500/25" />
+									)}
+									<span className="relative">My Listings</span>
+								</>
+							)}
+						</NavLink>
 						<NavLink to="/purchases" className={navLinkClass}>
 							{({ isActive }) => (
 								<>
