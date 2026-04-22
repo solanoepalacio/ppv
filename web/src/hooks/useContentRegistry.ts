@@ -96,6 +96,19 @@ export async function fetchEncryptionKey(address: string): Promise<Uint8Array | 
 }
 
 /**
+ * One-shot read of `WrappedKeys[(address, listingId)]`. Returns the 80-byte
+ * sealed payload if already stored, or null if the daemon hasn't written yet.
+ */
+export async function fetchWrappedKey(
+  address: string,
+  listingId: bigint,
+): Promise<Uint8Array | null> {
+  const api = getParachainApi();
+  const v = await api.query.ContentRegistry.WrappedKeys.getValue(address, listingId);
+  return v ? v.asBytes() : null;
+}
+
+/**
  * Subscribe to `WrappedKeys[(address, listingId)]`. Emits `null` until
  * the daemon writes it, then emits the 80-byte sealed payload.
  */

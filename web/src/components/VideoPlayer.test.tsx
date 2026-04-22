@@ -12,11 +12,12 @@ vi.mock('../hooks/useContentRegistry', async (orig) => {
   return {
     ...actual,
     watchWrappedKey: vi.fn(),
+    fetchWrappedKey: vi.fn(),
   };
 });
 
 import { fetchFromIpfs } from '../hooks/useBulletinUpload';
-import { watchWrappedKey } from '../hooks/useContentRegistry';
+import { watchWrappedKey, fetchWrappedKey } from '../hooks/useContentRegistry';
 import { encryptContent, generateContentLockKey } from '../utils/contentCipher';
 import { sealTo } from '../utils/sealedBox';
 import { generateKeypair } from '../utils/encryptionKey';
@@ -27,6 +28,8 @@ const cid: BulletinCidFields = { codec: 0x55, digestBytes: new Uint8Array(32) };
 beforeEach(() => {
   vi.mocked(fetchFromIpfs).mockReset();
   vi.mocked(watchWrappedKey).mockReset();
+  vi.mocked(fetchWrappedKey).mockReset();
+  vi.mocked(fetchWrappedKey).mockResolvedValue(null);
   // URL.createObjectURL isn't available in jsdom
   (global as any).URL.createObjectURL = vi.fn(() => 'blob:fake');
   (global as any).URL.revokeObjectURL = vi.fn();
@@ -51,7 +54,7 @@ describe('VideoPlayer (Phase 2)', () => {
     expect(await screen.findByText(/preparing/i)).toBeInTheDocument();
   });
 
-  it('decrypts from WrappedKeys and renders a video blob', async () => {
+  it('decrypts from an already-stored WrappedKey (past purchase) and renders a video blob', async () => {
     const viewer = await generateKeypair();
     const clk = generateContentLockKey();
 
@@ -61,8 +64,37 @@ describe('VideoPlayer (Phase 2)', () => {
     const sealed = await sealTo(viewer.publicKey, clk);
 
     vi.mocked(fetchFromIpfs).mockResolvedValue(ciphertext);
+    vi.mocked(fetchWrappedKey).mockResolvedValue(sealed);
+    vi.mocked(watchWrappedKey).mockImplementation(() => ({ unsubscribe: () => {} }));
+
+    render(
+      <VideoPlayer
+        contentCid={cid}
+        contentHash={hash}
+        listingId={1n}
+        currentAccount="5Grw"
+        viewerPublicKey={viewer.publicKey}
+        viewerPrivateKey={viewer.privateKey}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText(/content verified/i)).toBeInTheDocument());
+  });
+
+  it('falls back to the WrappedKeys subscription when no key is yet stored (fresh purchase)', async () => {
+    const viewer = await generateKeypair();
+    const clk = generateContentLockKey();
+
+    const plaintext = new Uint8Array([4, 2]);
+    const ciphertext = await encryptContent(plaintext, clk);
+    const hash = blake2b(plaintext, undefined, 32);
+    const sealed = await sealTo(viewer.publicKey, clk);
+
+    vi.mocked(fetchFromIpfs).mockResolvedValue(ciphertext);
+    vi.mocked(fetchWrappedKey).mockResolvedValue(null);
     vi.mocked(watchWrappedKey).mockImplementation((_a, _id, cb) => {
-      cb(sealed);
+      // Simulate the daemon writing the key after subscription.
+      setTimeout(() => cb(sealed), 0);
       return { unsubscribe: () => {} };
     });
 
@@ -70,7 +102,7 @@ describe('VideoPlayer (Phase 2)', () => {
       <VideoPlayer
         contentCid={cid}
         contentHash={hash}
-        listingId={1n}
+        listingId={4n}
         currentAccount="5Grw"
         viewerPublicKey={viewer.publicKey}
         viewerPrivateKey={viewer.privateKey}
@@ -101,8 +133,9 @@ describe('VideoPlayer (Phase 2)', () => {
     );
 
     await waitFor(() => expect(screen.getByText(/content verified/i)).toBeInTheDocument());
-    // We never subscribed because the cached key was sufficient.
+    // We never hit chain because the cached key was sufficient.
     expect(watchWrappedKey).not.toHaveBeenCalled();
+    expect(fetchWrappedKey).not.toHaveBeenCalled();
   });
 
   it('flags integrity failure when plaintext hash mismatches', async () => {

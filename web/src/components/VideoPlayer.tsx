@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchFromIpfs } from '../hooks/useBulletinUpload';
 import { verifyContentHash } from '../utils/contentHash';
-import { watchWrappedKey, type BulletinCidFields } from '../hooks/useContentRegistry';
+import { fetchWrappedKey, watchWrappedKey, type BulletinCidFields } from '../hooks/useContentRegistry';
 import { decryptContent } from '../utils/contentCipher';
 import { openSealed } from '../utils/sealedBox';
 
@@ -81,14 +81,33 @@ export default function VideoPlayer({
     }
 
     setState('awaiting-key');
-    const sub = watchWrappedKey(currentAccount, listingId, (sealed) => {
-      if (!sealed) return; // stay awaiting until the daemon writes it
+
+    let unwrapped = false;
+    const handleSealed = (sealed: Uint8Array) => {
+      if (unwrapped || cancelled) return;
+      unwrapped = true;
       openSealed(viewerPublicKey, viewerPrivateKey, sealed)
         .then((clk) => runDecryption(clk))
         .catch(() => {
           if (!cancelled) setState('decrypt-failed');
         });
+    };
+
+    // Past purchases: the sealed key is already in storage. Fetch once.
+    // Fresh purchases: fetch returns null; the subscription picks it up when
+    // the content-unlock-service writes it.
+    const sub = watchWrappedKey(currentAccount, listingId, (sealed) => {
+      if (!sealed) return;
+      handleSealed(sealed);
     });
+
+    fetchWrappedKey(currentAccount, listingId)
+      .then((sealed) => {
+        if (sealed) handleSealed(sealed);
+      })
+      .catch(() => {
+        // Non-fatal: the subscription may still deliver the key.
+      });
 
     return () => {
       cancelled = true;

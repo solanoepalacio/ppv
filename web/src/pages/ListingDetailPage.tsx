@@ -25,7 +25,6 @@ export default function ListingDetailPage() {
   const [buyStatus, setBuyStatus] = useState<string | null>(null);
   const [buyError, setBuyError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [idCopied, setIdCopied] = useState(false);
 
   useEffect(() => {
     if (!id) { setPageState('not-found'); return; }
