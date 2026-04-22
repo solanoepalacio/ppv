@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import type { SignerState } from '@polkadot-apps/signer';
+import type { SignerState } from '../hooks/signerManager';
 
 const connectMock = vi.fn();
 const selectAccountMock = vi.fn();
@@ -8,7 +8,7 @@ let mockState: SignerState = {
   status: 'disconnected',
   accounts: [],
   selectedAccount: null,
-  activeProvider: null,
+  extension: null,
   error: null,
 };
 
@@ -27,7 +27,7 @@ function resetState(next: Partial<SignerState> = {}): void {
     status: 'disconnected',
     accounts: [],
     selectedAccount: null,
-    activeProvider: null,
+    extension: null,
     error: null,
     ...next,
   };
@@ -60,25 +60,18 @@ describe('WalletPicker', () => {
   });
 
   test('shows genesis-hash hint when connected with zero accounts', () => {
-    resetState({ status: 'connected', accounts: [], activeProvider: 'extension' });
+    resetState({ status: 'connected', accounts: [], extension: 'talisman' });
     render(<WalletPicker />);
     expect(screen.getByText(/allow use on any network/i)).toBeTruthy();
   });
 
   test('renders account select when connected with accounts', () => {
-    const acct = {
-      address: '5Grw...',
-      name: 'Demo',
-      h160Address: '0x0' as const,
-      publicKey: new Uint8Array(),
-      source: 'extension' as const,
-      getSigner: () => ({} as never),
-    };
+    const acct = { address: '5Grw...', name: 'Demo' };
     resetState({
       status: 'connected',
       accounts: [acct],
       selectedAccount: acct,
-      activeProvider: 'extension',
+      extension: 'talisman',
     });
     render(<WalletPicker />);
     const select = screen.getByRole('combobox');
@@ -87,9 +80,14 @@ describe('WalletPicker', () => {
   });
 
   test('changing select calls manager.selectAccount', () => {
-    const a = { address: '5Grw...', name: 'A', h160Address: '0x0' as const, publicKey: new Uint8Array(), source: 'extension' as const, getSigner: () => ({} as never) };
-    const b = { address: '5HBu...', name: 'B', h160Address: '0x0' as const, publicKey: new Uint8Array(), source: 'extension' as const, getSigner: () => ({} as never) };
-    resetState({ status: 'connected', accounts: [a, b], selectedAccount: a, activeProvider: 'extension' });
+    const a = { address: '5Grw...', name: 'A' };
+    const b = { address: '5HBu...', name: 'B' };
+    resetState({
+      status: 'connected',
+      accounts: [a, b],
+      selectedAccount: a,
+      extension: 'talisman',
+    });
     render(<WalletPicker />);
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '5HBu...' } });
     expect(selectAccountMock).toHaveBeenCalledWith('5HBu...');

@@ -2,53 +2,60 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { PolkadotSigner } from 'polkadot-api';
-import type { SignerAccount } from '@polkadot-apps/signer';
+import type { InjectedPolkadotAccount } from '@polkadot-api/pjs-signer';
 
-// Shared mutable state that the stub provider reads on `connect()`.
-// `vi.hoisted` pushes the initializer above the `vi.mock` factory so the
-// factory can close over it without referencing hoisted imports.
-const stubState = vi.hoisted(() => ({
-  accounts: [] as unknown[],
+// Shared mutable state that the pjs-signer mock reads on each call.
+// `vi.hoisted` pushes the initializer above `vi.mock` so the factory
+// can close over it without referencing hoisted imports.
+const pjs = vi.hoisted(() => ({
+  extensions: [] as string[],
+  accounts: [] as InjectedPolkadotAccount[],
+  connectError: null as Error | null,
+  subscribers: [] as Array<(a: InjectedPolkadotAccount[]) => void>,
 }));
 
-vi.mock('./signerManagerFactory', async () => {
-  const { SignerManager } = await import('@polkadot-apps/signer');
-  return {
-    createSignerManager: () => new SignerManager({
-      dappName: 'ppview-test',
-      ss58Prefix: 42,
-      persistence: null, // disable localStorage in tests
-      createProvider: () => ({
-        type: 'extension' as const,
-        connect: async () => ({ ok: true, value: stubState.accounts as SignerAccount[] }),
-        disconnect: () => {},
-        onStatusChange: () => () => {},
-        onAccountsChange: () => () => {},
-      }),
-    }),
-  };
-});
+vi.mock('@polkadot-api/pjs-signer', () => ({
+  getInjectedExtensions: () => [...pjs.extensions],
+  connectInjectedExtension: vi.fn(async (name: string) => {
+    if (pjs.connectError) throw pjs.connectError;
+    if (!pjs.extensions.includes(name)) {
+      throw new Error(`extension "${name}" not installed`);
+    }
+    return {
+      name,
+      getAccounts: () => [...pjs.accounts],
+      subscribe: (cb: (a: InjectedPolkadotAccount[]) => void) => {
+        pjs.subscribers.push(cb);
+        return () => {
+          pjs.subscribers = pjs.subscribers.filter(s => s !== cb);
+        };
+      },
+      disconnect: () => {},
+    };
+  }),
+}));
 
-function makeStubAccount(address: string, name: string): SignerAccount {
-  const pk = new Uint8Array(32);
+function makeAccount(address: string, name: string): InjectedPolkadotAccount {
   const signer = {
-    publicKey: pk,
+    publicKey: new Uint8Array(32),
     signTx: vi.fn(),
     signBytes: vi.fn(),
   } as unknown as PolkadotSigner;
   return {
     address,
-    h160Address: '0x0000000000000000000000000000000000000000',
-    publicKey: pk,
     name,
-    source: 'extension',
-    getSigner: () => signer,
-  };
+    polkadotSigner: signer,
+  } as InjectedPolkadotAccount;
 }
 
 describe('signerManager', () => {
   beforeEach(() => {
-    stubState.accounts = [];
+    pjs.extensions = [];
+    pjs.accounts = [];
+    pjs.connectError = null;
+    pjs.subscribers = [];
+    localStorage.clear();
+    vi.clearAllMocks();
     vi.resetModules();
   });
 
@@ -62,74 +69,120 @@ describe('signerManager', () => {
     expect(getUserAddress()).toBeNull();
   });
 
-  test('selecting an account exposes its PolkadotSigner via getUserSigner', async () => {
-    const acct = makeStubAccount('5Grw...', 'Demo');
-    stubState.accounts = [acct];
-    const { manager, getUserSigner, getUserAddress } = await import('./signerManager');
-    const result = await manager.connect('extension');
+  test('connect() discovers talisman and populates accounts', async () => {
+    pjs.extensions = ['talisman'];
+    pjs.accounts = [makeAccount('5Grw...', 'Demo')];
+    const { manager } = await import('./signerManager');
+    const result = await manager.connect();
     expect(result.ok).toBe(true);
-    manager.selectAccount(acct.address);
-    expect(getUserAddress()).toBe(acct.address);
-    expect(getUserSigner()).toBe(acct.getSigner());
+    expect(manager.getState().status).toBe('connected');
+    expect(manager.getState().accounts).toHaveLength(1);
+    expect(manager.getState().accounts[0].address).toBe('5Grw...');
+    expect(manager.getState().extension).toBe('talisman');
   });
 
-  test('bridge pushes selectedAccount address into chainStore', async () => {
-    const acct = makeStubAccount('5Grw...', 'Demo');
-    stubState.accounts = [acct];
+  test('selectAccount exposes polkadotSigner via getUserSigner', async () => {
+    pjs.extensions = ['talisman'];
+    const acct = makeAccount('5Grw...', 'Demo');
+    pjs.accounts = [acct];
+    const { manager, getUserSigner, getUserAddress } = await import('./signerManager');
+    await manager.connect();
+    manager.selectAccount('5Grw...');
+    expect(getUserAddress()).toBe('5Grw...');
+    expect(getUserSigner()).toBe(acct.polkadotSigner);
+  });
+
+  test('bridge pushes selected address into chainStore', async () => {
+    pjs.extensions = ['talisman'];
+    pjs.accounts = [makeAccount('5Grw...', 'Demo')];
     const { manager } = await import('./signerManager');
     const { useChainStore } = await import('../store/chainStore');
-    await manager.connect('extension');
-    manager.selectAccount(acct.address);
-    expect(useChainStore.getState().account).toBe(acct.address);
+    await manager.connect();
+    manager.selectAccount('5Grw...');
+    expect(useChainStore.getState().account).toBe('5Grw...');
   });
 
   test('useSignerState re-renders on selection change', async () => {
-    const acct = makeStubAccount('5Grw...', 'Demo');
-    stubState.accounts = [acct];
+    pjs.extensions = ['talisman'];
+    const acct = makeAccount('5Grw...', 'Demo');
+    pjs.accounts = [acct];
     const { manager, useSignerState } = await import('./signerManager');
-    // Allow the module-level silent connect to settle before rendering.
+    // Let the module-level silent connect settle (no-op: no persisted state).
     await new Promise(r => setTimeout(r, 0));
     const { result } = renderHook(() => useSignerState());
-    // Re-connect explicitly and verify the hook reflects the new selection.
     await act(async () => {
-      await manager.connect('extension');
-      manager.selectAccount(acct.address);
+      await manager.connect();
+      manager.selectAccount('5Grw...');
     });
-    expect(result.current.selectedAccount?.address).toBe(acct.address);
+    expect(result.current.selectedAccount?.address).toBe('5Grw...');
   });
 
-  test('auto-connects on module load when connect() succeeds', async () => {
-    const acct = makeStubAccount('5Grw...', 'Demo');
-    stubState.accounts = [acct];
-    // Fresh import triggers the silent connect.
+  test('no silent-reconnect when nothing persisted (avoids unprompted popup)', async () => {
+    pjs.extensions = ['talisman'];
+    pjs.accounts = [makeAccount('5Grw...', 'Demo')];
+    const pjsModule = await import('@polkadot-api/pjs-signer');
     const { manager } = await import('./signerManager');
-    // Yield to the event loop so the silent connect can settle.
+    await new Promise(r => setTimeout(r, 0));
+    expect(pjsModule.connectInjectedExtension).not.toHaveBeenCalled();
+    expect(manager.getState().status).toBe('disconnected');
+  });
+
+  test('silent-reconnect restores persisted extension + selection', async () => {
+    pjs.extensions = ['talisman'];
+    pjs.accounts = [makeAccount('5Grw...', 'Demo')];
+    localStorage.setItem(
+      'ppview.signer',
+      JSON.stringify({ extension: 'talisman', address: '5Grw...' }),
+    );
+    const { manager } = await import('./signerManager');
+    // Wait for the silent-connect microtask chain to settle.
+    await new Promise(r => setTimeout(r, 0));
     await new Promise(r => setTimeout(r, 0));
     expect(manager.getState().status).toBe('connected');
+    expect(manager.getState().selectedAccount?.address).toBe('5Grw...');
   });
 
-  test('remains disconnected when silent connect fails', async () => {
-    vi.resetModules();
-    vi.doMock('./signerManagerFactory', async () => {
-      const { SignerManager } = await import('@polkadot-apps/signer');
-      return {
-        createSignerManager: () => new SignerManager({
-          dappName: 'ppview-test',
-          ss58Prefix: 42,
-          persistence: null,
-          createProvider: () => ({
-            type: 'extension' as const,
-            connect: async () => ({ ok: false, error: new Error('no extension') }),
-            disconnect: () => {},
-            onStatusChange: () => () => {},
-            onAccountsChange: () => () => {},
-          }),
-        }),
-      };
-    });
+  test('connect fails cleanly when extension not installed', async () => {
+    pjs.extensions = []; // nothing installed
     const { manager } = await import('./signerManager');
-    await new Promise(r => setTimeout(r, 0));
+    const result = await manager.connect('talisman');
+    expect(result.ok).toBe(false);
     expect(manager.getState().status).toBe('disconnected');
-    vi.doUnmock('./signerManagerFactory');
+    expect(manager.getState().error).toBeInstanceOf(Error);
+  });
+
+  test('connect() with no installed extensions returns ok:false', async () => {
+    pjs.extensions = [];
+    const { manager } = await import('./signerManager');
+    const result = await manager.connect();
+    expect(result.ok).toBe(false);
+    expect(manager.getState().status).toBe('disconnected');
+  });
+
+  test('disconnect clears state and localStorage', async () => {
+    pjs.extensions = ['talisman'];
+    pjs.accounts = [makeAccount('5Grw...', 'Demo')];
+    const { manager } = await import('./signerManager');
+    await manager.connect();
+    manager.selectAccount('5Grw...');
+    expect(localStorage.getItem('ppview.signer')).not.toBeNull();
+    manager.disconnect();
+    expect(manager.getState().status).toBe('disconnected');
+    expect(manager.getState().accounts).toEqual([]);
+    expect(manager.getState().selectedAccount).toBeNull();
+    expect(localStorage.getItem('ppview.signer')).toBeNull();
+  });
+
+  test('subscribe fires on account list changes from the extension', async () => {
+    pjs.extensions = ['talisman'];
+    pjs.accounts = [makeAccount('5Grw...', 'A')];
+    const { manager } = await import('./signerManager');
+    await manager.connect();
+    expect(manager.getState().accounts).toHaveLength(1);
+    // Simulate extension pushing a new account list.
+    const b = makeAccount('5HBu...', 'B');
+    pjs.subscribers.forEach(cb => cb([b]));
+    expect(manager.getState().accounts).toHaveLength(1);
+    expect(manager.getState().accounts[0].address).toBe('5HBu...');
   });
 });
