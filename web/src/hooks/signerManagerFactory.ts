@@ -11,6 +11,7 @@ import {
   type InjectedPolkadotAccount,
 } from '@polkadot-api/pjs-signer';
 import type { PolkadotSigner } from 'polkadot-api';
+import { patchInjectedWeb3ForPapi } from './pjsPatch';
 
 export type SignerStatus = 'disconnected' | 'connecting' | 'connected';
 
@@ -149,6 +150,7 @@ export function createSignerManager(): SignerManager {
     setState({ status: 'connecting', error: null });
     try {
       detachExtension();
+      patchInjectedWeb3ForPapi(name);
       const ext = await connectInjectedExtension(name, DAPP_NAME);
       activeExtension = ext;
       unsubscribeAccounts = ext.subscribe(accts => refreshAccounts(accts));
