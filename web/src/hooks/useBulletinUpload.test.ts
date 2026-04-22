@@ -47,14 +47,13 @@ describe('fetchFromIpfs', () => {
   });
 });
 
-// ── uploadToBulletin — single-signer (Alice) flow ─────────────────────────────
+// ── uploadToBulletin — split-signer flow ──────────────────────────────────────
 //
-// Bulletin is content storage, not a user-identity surface. The user wallet
-// (Talisman) is intentionally not used against Bulletin — its
-// `withSignedTransaction` path rebuilds extrinsics from its own chain
-// metadata and yields BadProof against non-mainstream chains like Paseo
-// Bulletin. Alice signs every Bulletin extrinsic. The `address` field
-// identifies whose authorization quota is checked/refreshed (Alice's).
+// Alice signs `authorize_account(who=userAddress, …)` so quota is booked
+// against the user's address. The user then signs `store(bytes)` themselves,
+// which means purchases, manifests and linkage all trace back to the user's
+// on-chain identity. Tests can inject a single `client` to stand in for both
+// roles, or separate `authClient` / `storeClient` to verify the split.
 
 type QuotaFn = (address: string) => Promise<{ transactions: number; bytes: bigint } | null>;
 
@@ -65,7 +64,7 @@ function makeCtx(partial: {
 }) {
   return {
     client: partial.client ?? new MockBulletinClient(),
-    address: partial.address ?? '5Alice',
+    address: partial.address ?? '5User',
     getRemainingAuthorization: partial.getRemainingAuthorization ?? (async () => null),
   };
 }
@@ -82,15 +81,58 @@ describe('uploadToBulletin', () => {
     expect(cid.digestBytes.length).toBeGreaterThan(0);
   });
 
-  test('Alice signs both authorize_account and store when quota is missing', async () => {
+  test('authorize_account targets the user address and store runs, when quota is missing', async () => {
     const ctx = makeCtx({ getRemainingAuthorization: async () => null });
     const bytes = new Uint8Array(64).fill(0xaa);
 
     await uploadToBulletin(bytes, undefined, ctx);
 
     const ops = ctx.client.getOperations();
-    expect(ops.some((op) => op.type === 'authorize_account' && op.who === '5Alice')).toBe(true);
+    expect(ops.some((op) => op.type === 'authorize_account' && op.who === '5User')).toBe(true);
     expect(ops.some((op) => op.type === 'store')).toBe(true);
+  });
+
+  test('split-signer: authorize runs on authClient, store runs on storeClient', async () => {
+    const authClient = new MockBulletinClient();
+    const storeClient = new MockBulletinClient();
+    const ctx = {
+      authClient,
+      storeClient,
+      address: '5User',
+      getRemainingAuthorization: async () => null,
+    };
+    const bytes = new Uint8Array(64).fill(0x55);
+
+    await uploadToBulletin(bytes, undefined, ctx);
+
+    const authOps = authClient.getOperations();
+    const storeOps = storeClient.getOperations();
+
+    expect(authOps.some((op) => op.type === 'authorize_account' && op.who === '5User')).toBe(true);
+    expect(authOps.every((op) => op.type !== 'store')).toBe(true);
+
+    expect(storeOps.some((op) => op.type === 'store')).toBe(true);
+    expect(storeOps.every((op) => op.type !== 'authorize_account')).toBe(true);
+  });
+
+  test('split-signer: authorize is skipped when quota is sufficient; only storeClient is used', async () => {
+    const authClient = new MockBulletinClient();
+    const storeClient = new MockBulletinClient();
+    const ctx = {
+      authClient,
+      storeClient,
+      address: '5User',
+      getRemainingAuthorization: async () => ({
+        transactions: 5,
+        bytes: 50n * 1024n * 1024n,
+      }),
+    };
+    const bytes = new Uint8Array(64).fill(0x66);
+
+    await uploadToBulletin(bytes, undefined, ctx);
+
+    expect(authClient.getOperations()).toEqual([]);
+    expect(storeClient.getOperations().some((op) => op.type === 'store')).toBe(true);
   });
 
   test('when quota is sufficient, skip authorize_account and only call store', async () => {

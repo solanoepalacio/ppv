@@ -8,7 +8,8 @@ import {
 	type ProgressCallback,
 } from "@parity/bulletin-sdk";
 import { bulletin } from "@polkadot-api/descriptors";
-import { getAliceSigner, getAliceAddress } from "./useAccount";
+import { getAliceSigner } from "./useAccount";
+import { getUserSigner, getUserAddress } from "./signerManager";
 import { bulletinCidToGatewayUrl } from "../utils/bulletinCid";
 import type { BulletinCidFields } from "./useContentRegistry";
 
@@ -42,6 +43,10 @@ function getAliceClient(): AsyncBulletinClient {
 	return _aliceClient;
 }
 
+function buildUserClient(): AsyncBulletinClient {
+	return buildClient(getUserSigner());
+}
+
 export interface RemainingAuthorization {
 	transactions: number;
 	bytes: bigint;
@@ -67,7 +72,13 @@ export async function getRemainingAuthorization(
 }
 
 export interface UploadContext {
+	// Test-only: when provided, stands in for both authClient and storeClient.
 	client?: BulletinClientInterface;
+	// Alice-signed client used for `authorize_account(who=address, …)`.
+	authClient?: BulletinClientInterface;
+	// User-signed client used for `store(bytes)`.
+	storeClient?: BulletinClientInterface;
+	// Target of authorization and owner of the store tx — user's address.
 	address?: string;
 	getRemainingAuthorization?: (address: string) => Promise<RemainingAuthorization | null>;
 }
@@ -86,12 +97,9 @@ async function ensureAuthorization(
 /**
  * Upload bytes to Bulletin Chain.
  *
- * Single-signer flow: Alice signs both `authorize_account` and `store`.
- * Bulletin is content-storage infrastructure; the user identity on-chain
- * lives on the parachain (`publish_content`), not Bulletin. Signing
- * Bulletin extrinsics with the user's extension wallet (Talisman) against
- * a non-mainstream chain triggers BadProof via the PJS `withSignedTransaction`
- * path, so we route Bulletin through the dev-chain Alice key.
+ * Split-signer flow: Alice signs `authorize_account(who=userAddress, …)` so
+ * quota is booked against the user's address. The user then signs `store(bytes)`
+ * themselves, which puts the on-chain record under the user's identity.
  *
  * Idempotency comes from the on-chain check — there is no in-memory cache,
  * so browser refreshes, multiple tabs, and new sessions all behave correctly
@@ -108,11 +116,13 @@ export async function uploadToBulletin(
 		);
 	}
 
-	const client = ctx?.client ?? getAliceClient();
-	const address = ctx?.address ?? getAliceAddress();
+	const authClient = ctx?.authClient ?? ctx?.client ?? getAliceClient();
+	const storeClient = ctx?.storeClient ?? ctx?.client ?? buildUserClient();
+	const address = ctx?.address ?? getUserAddress();
+	if (!address) throw new Error("No user account selected — connect a wallet first");
 	const getQuota = ctx?.getRemainingAuthorization ?? getRemainingAuthorization;
 
-	await ensureAuthorization(client, address, bytes.length, getQuota);
+	await ensureAuthorization(authClient, address, bytes.length, getQuota);
 
 	const progressCb: ProgressCallback = (event) => {
 		if (event.type === ChunkStatus.ChunkCompleted) {
@@ -120,7 +130,7 @@ export async function uploadToBulletin(
 		}
 	};
 
-	const result = await client.store(bytes).withCallback(progressCb).send();
+	const result = await storeClient.store(bytes).withCallback(progressCb).send();
 
 	onProgress?.(100);
 
