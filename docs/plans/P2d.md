@@ -562,7 +562,7 @@ import { ppview } from '@polkadot-api/descriptors';
 import { useEffect } from 'react';
 import { useChainStore } from '../store/chainStore';
 
-const PPVIEW_GENESIS = '0x4545454545454545454545454545454545454545454545454545454545454545';
+const PPVIEW_GENESIS = '0xf0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb';
 const DEV_WS = 'ws://127.0.0.1:9944';
 
 type ParachainApi = TypedApi<typeof ppview>;

@@ -1,44 +1,66 @@
 // .papi/descriptors/src/common.ts
 var table = new Uint8Array(128);
-for (let i = 0; i < 64; i++) table[i < 26 ? i + 65 : i < 52 ? i + 71 : i < 62 ? i - 4 : i * 4 - 205] = i;
+for (let i = 0; i < 64; i++)
+	table[i < 26 ? i + 65 : i < 52 ? i + 71 : i < 62 ? i - 4 : i * 4 - 205] = i;
 var toBinary = (base64) => {
-  const n = base64.length, bytes = new Uint8Array((n - Number(base64[n - 1] === "=") - Number(base64[n - 2] === "=")) * 3 / 4 | 0);
-  for (let i2 = 0, j = 0; i2 < n; ) {
-    const c0 = table[base64.charCodeAt(i2++)], c1 = table[base64.charCodeAt(i2++)];
-    const c2 = table[base64.charCodeAt(i2++)], c3 = table[base64.charCodeAt(i2++)];
-    bytes[j++] = c0 << 2 | c1 >> 4;
-    bytes[j++] = c1 << 4 | c2 >> 2;
-    bytes[j++] = c2 << 6 | c3;
-  }
-  return bytes;
+	const n = base64.length,
+		bytes = new Uint8Array(
+			(((n - Number(base64[n - 1] === "=") - Number(base64[n - 2] === "=")) * 3) / 4) | 0,
+		);
+	for (let i2 = 0, j = 0; i2 < n; ) {
+		const c0 = table[base64.charCodeAt(i2++)],
+			c1 = table[base64.charCodeAt(i2++)];
+		const c2 = table[base64.charCodeAt(i2++)],
+			c3 = table[base64.charCodeAt(i2++)];
+		bytes[j++] = (c0 << 2) | (c1 >> 4);
+		bytes[j++] = (c1 << 4) | (c2 >> 2);
+		bytes[j++] = (c2 << 6) | c3;
+	}
+	return bytes;
 };
 
 // .papi/descriptors/src/ppview.ts
 var descriptorValues = import("./descriptors-PY46V3KI.mjs").then((module) => module["Ppview"]);
-var metadataTypes = import("./metadataTypes-HNBE3VED.mjs").then(
-  (module) => toBinary("default" in module ? module.default : module)
+var metadataTypes = import("./metadataTypes-HNBE3VED.mjs").then((module) =>
+	toBinary("default" in module ? module.default : module),
 );
 var asset = {};
 var extensions = {};
-var getMetadata = () => import("./ppview_metadata-YNX3IYTI.mjs").then(
-  (module) => toBinary("default" in module ? module.default : module)
-);
-var genesis = "0x4545454545454545454545454545454545454545454545454545454545454545";
-var _allDescriptors = { descriptors: descriptorValues, metadataTypes, asset, extensions, getMetadata, genesis };
+var getMetadata = () =>
+	import("./ppview_metadata-YNX3IYTI.mjs").then((module) =>
+		toBinary("default" in module ? module.default : module),
+	);
+var genesis = "0xf0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb";
+var _allDescriptors = {
+	descriptors: descriptorValues,
+	metadataTypes,
+	asset,
+	extensions,
+	getMetadata,
+	genesis,
+};
 var ppview_default = _allDescriptors;
 
 // .papi/descriptors/src/bulletin.ts
 var descriptorValues2 = import("./descriptors-PY46V3KI.mjs").then((module) => module["Bulletin"]);
-var metadataTypes2 = import("./metadataTypes-HNBE3VED.mjs").then(
-  (module) => toBinary("default" in module ? module.default : module)
+var metadataTypes2 = import("./metadataTypes-HNBE3VED.mjs").then((module) =>
+	toBinary("default" in module ? module.default : module),
 );
 var asset2 = {};
 var extensions2 = {};
-var getMetadata2 = () => import("./bulletin_metadata-6D4OUQ3Y.mjs").then(
-  (module) => toBinary("default" in module ? module.default : module)
-);
+var getMetadata2 = () =>
+	import("./bulletin_metadata-6D4OUQ3Y.mjs").then((module) =>
+		toBinary("default" in module ? module.default : module),
+	);
 var genesis2 = "0x744960c32e3a3df5440e1ecd4d34096f1ce2230d7016a5ada8a765d5a622b4ea";
-var _allDescriptors2 = { descriptors: descriptorValues2, metadataTypes: metadataTypes2, asset: asset2, extensions: extensions2, getMetadata: getMetadata2, genesis: genesis2 };
+var _allDescriptors2 = {
+	descriptors: descriptorValues2,
+	metadataTypes: metadataTypes2,
+	asset: asset2,
+	extensions: extensions2,
+	getMetadata: getMetadata2,
+	genesis: genesis2,
+};
 var bulletin_default = _allDescriptors2;
 
 // .papi/descriptors/src/common-types.ts
@@ -95,67 +117,66 @@ var XcmVersionedAsset = _Enum;
 
 // .papi/descriptors/src/index.ts
 var metadatas = {
-  ["0x86961a8bc8a7c7e28247a5088594ee59518f7985960bfd6610c3ae3ec4338bda"]: ppview_default,
-  ["0x1a82e5143be3211ded412b0368b486ce83bd41a80ec95eb267f6c204adda8365"]: bulletin_default
+	["0x86961a8bc8a7c7e28247a5088594ee59518f7985960bfd6610c3ae3ec4338bda"]: ppview_default,
+	["0x1a82e5143be3211ded412b0368b486ce83bd41a80ec95eb267f6c204adda8365"]: bulletin_default,
 };
 var getMetadata3 = async (codeHash) => {
-  try {
-    return await metadatas[codeHash].getMetadata();
-  } catch {
-  }
-  return null;
+	try {
+		return await metadatas[codeHash].getMetadata();
+	} catch {}
+	return null;
 };
 export {
-  ArithmeticError,
-  BalanceStatus,
-  BalancesAdjustmentDirection,
-  BalancesTypesReasons,
-  DigestItem,
-  DispatchClass,
-  MultiAddress,
-  Phase,
-  TokenError,
-  TransactionPaymentEvent,
-  TransactionPaymentReleases,
-  TransactionValidityTransactionSource,
-  TransactionValidityUnknownTransaction,
-  TransactionalError,
-  UpgradeGoAhead,
-  UpgradeRestriction,
-  XcmPalletVersionMigrationStage,
-  XcmV2JunctionBodyPart,
-  XcmV2MultiassetWildFungibility,
-  XcmV2OriginKind,
-  XcmV3Instruction,
-  XcmV3Junction,
-  XcmV3JunctionBodyId,
-  XcmV3JunctionNetworkId,
-  XcmV3Junctions,
-  XcmV3MaybeErrorCode,
-  XcmV3MultiassetAssetId,
-  XcmV3MultiassetAssetInstance,
-  XcmV3MultiassetFungibility,
-  XcmV3MultiassetMultiAssetFilter,
-  XcmV3MultiassetWildMultiAsset,
-  XcmV3Response,
-  XcmV3TraitsError,
-  XcmV3WeightLimit,
-  XcmV4AssetAssetFilter,
-  XcmV4AssetWildAsset,
-  XcmV4Instruction,
-  XcmV4Response,
-  XcmV5AssetFilter,
-  XcmV5Instruction,
-  XcmV5Junction,
-  XcmV5Junctions,
-  XcmV5NetworkId,
-  XcmV5WildAsset,
-  XcmVersionedAsset,
-  XcmVersionedAssetId,
-  XcmVersionedAssets,
-  XcmVersionedLocation,
-  XcmVersionedXcm,
-  bulletin_default as bulletin,
-  getMetadata3 as getMetadata,
-  ppview_default as ppview
+	ArithmeticError,
+	BalanceStatus,
+	BalancesAdjustmentDirection,
+	BalancesTypesReasons,
+	DigestItem,
+	DispatchClass,
+	MultiAddress,
+	Phase,
+	TokenError,
+	TransactionPaymentEvent,
+	TransactionPaymentReleases,
+	TransactionValidityTransactionSource,
+	TransactionValidityUnknownTransaction,
+	TransactionalError,
+	UpgradeGoAhead,
+	UpgradeRestriction,
+	XcmPalletVersionMigrationStage,
+	XcmV2JunctionBodyPart,
+	XcmV2MultiassetWildFungibility,
+	XcmV2OriginKind,
+	XcmV3Instruction,
+	XcmV3Junction,
+	XcmV3JunctionBodyId,
+	XcmV3JunctionNetworkId,
+	XcmV3Junctions,
+	XcmV3MaybeErrorCode,
+	XcmV3MultiassetAssetId,
+	XcmV3MultiassetAssetInstance,
+	XcmV3MultiassetFungibility,
+	XcmV3MultiassetMultiAssetFilter,
+	XcmV3MultiassetWildMultiAsset,
+	XcmV3Response,
+	XcmV3TraitsError,
+	XcmV3WeightLimit,
+	XcmV4AssetAssetFilter,
+	XcmV4AssetWildAsset,
+	XcmV4Instruction,
+	XcmV4Response,
+	XcmV5AssetFilter,
+	XcmV5Instruction,
+	XcmV5Junction,
+	XcmV5Junctions,
+	XcmV5NetworkId,
+	XcmV5WildAsset,
+	XcmVersionedAsset,
+	XcmVersionedAssetId,
+	XcmVersionedAssets,
+	XcmVersionedLocation,
+	XcmVersionedXcm,
+	bulletin_default as bulletin,
+	getMetadata3 as getMetadata,
+	ppview_default as ppview,
 };
