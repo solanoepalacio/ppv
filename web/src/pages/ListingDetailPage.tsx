@@ -133,13 +133,13 @@ export default function ListingDetailPage() {
             </button>
           </div>
 
-          <p className="text-lg font-semibold text-polka-300">{formatDot(listing.price)}</p>
+          {!(pageState === 'purchased' && !isCreator) && (
+            <p className="text-lg font-semibold text-polka-300">{formatDot(listing.price)}</p>
+          )}
 
-          {pageState === 'purchased' && (
+          {pageState === 'purchased' && isCreator && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-accent-green font-medium">
-                {isCreator ? 'Your listing' : '✓ Purchased'}
-              </span>
+              <span className="text-sm text-accent-green font-medium">Your listing</span>
             </div>
           )}
 

@@ -139,12 +139,13 @@ describe('ListingDetailPage', () => {
     expect(screen.queryByText(/purchased/i)).toBeNull();
   });
 
-  test('shows "Purchased" for a buyer (non-creator) with a purchase', async () => {
-    mockFetchListing.mockResolvedValue(makeListing());
+  test('hides price and "Purchased" text for a buyer (non-creator) with a purchase', async () => {
+    mockFetchListing.mockResolvedValue(makeListing({ price: 100_000_000_000n }));
     mockHasPurchased.mockResolvedValue(true);
     renderAtId('3');
     await waitFor(() => expect(screen.getByTestId('video-player')).toBeInTheDocument());
-    expect(screen.getByText(/purchased/i)).toBeInTheDocument();
+    expect(screen.queryByText(/purchased/i)).toBeNull();
+    expect(screen.queryByText(/10\.0000 DOT/)).toBeNull();
     expect(screen.queryByText(/uploaded by you/i)).toBeNull();
   });
 
