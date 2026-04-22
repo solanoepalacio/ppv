@@ -16,7 +16,7 @@ use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	EnsureRoot, EnsureSigned,
+	EnsureRoot,
 };
 use pallet_xcm::{EnsureXcm, IsVoiceOfBody};
 use parachains_common::message_queue::{NarrowOriginToSibling, ParaIdToSibling};
@@ -33,8 +33,8 @@ use super::{
 	AccountId, Aura, Balance, Balances, Block, BlockNumber, CollatorSelection, ConsensusHook, Hash,
 	MessageQueue, Nonce, OriginCaller, PalletInfo, ParachainSystem, Runtime, RuntimeCall,
 	RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, RuntimeOrigin, RuntimeTask, Session,
-	SessionKeys, System, Timestamp, XcmpQueue, AVERAGE_ON_INITIALIZE_RATIO, EXISTENTIAL_DEPOSIT,
-	HOURS, MAXIMUM_BLOCK_WEIGHT, MICRO_UNIT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
+	SessionKeys, System, XcmpQueue, AVERAGE_ON_INITIALIZE_RATIO, EXISTENTIAL_DEPOSIT, HOURS,
+	MAXIMUM_BLOCK_WEIGHT, MICRO_UNIT, NORMAL_DISPATCH_RATIO, SLOT_DURATION, VERSION,
 };
 use xcm_config::{RelayLocation, XcmOriginToTransactDispatchOrigin};
 
@@ -122,12 +122,7 @@ parameter_types! {
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction = pallet_transaction_payment::FungibleAdapter<Balances, ()>;
-	type WeightToFee = pallet_revive::evm::fees::BlockRatioFee<
-		{ super::MILLI_UNIT / 10 },
-		{ (100 * ExtrinsicBaseWeight::get().ref_time()) as u128 },
-		Runtime,
-		Balance,
-	>;
+	type WeightToFee = super::WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = ConstU8<5>;
@@ -332,47 +327,4 @@ impl pallet_content_registry::Config for Runtime {
 	type Currency = Balances;
 	type ServiceOrigin = EnsureServiceAccount<Runtime>;
 	type WeightInfo = pallet_content_registry::weights::SubstrateWeight<Runtime>;
-}
-
-// ── pallet-revive (EVM + PVM smart contracts) ──────────────────────────
-
-parameter_types! {
-	pub const DepositPerItem: Balance = EXISTENTIAL_DEPOSIT;
-	pub const DepositPerChildTrieItem: Balance = EXISTENTIAL_DEPOSIT / 10;
-	pub const DepositPerByte: Balance = EXISTENTIAL_DEPOSIT / 100;
-	pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
-	pub const MaxEthExtrinsicWeight: sp_runtime::FixedU128 = sp_runtime::FixedU128::from_rational(5, 10);
-}
-
-impl pallet_revive::Config for Runtime {
-	type Time = Timestamp;
-	type Balance = Balance;
-	type Currency = Balances;
-	type RuntimeEvent = RuntimeEvent;
-	type RuntimeCall = RuntimeCall;
-	type RuntimeOrigin = RuntimeOrigin;
-	type DepositPerItem = DepositPerItem;
-	type DepositPerChildTrieItem = DepositPerChildTrieItem;
-	type DepositPerByte = DepositPerByte;
-	type WeightInfo = pallet_revive::weights::SubstrateWeight<Self>;
-	type Precompiles = ();
-	type AddressMapper = pallet_revive::AccountId32Mapper<Self>;
-	type RuntimeMemory = ConstU32<{ 128 * 1024 * 1024 }>;
-	type PVFMemory = ConstU32<{ 512 * 1024 * 1024 }>;
-	type UnsafeUnstableInterface = ConstBool<false>;
-	type UploadOrigin = EnsureSigned<Self::AccountId>;
-	type InstantiateOrigin = EnsureSigned<Self::AccountId>;
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
-	/// EVM chain ID for local dev. The Polkadot Hub TestNet uses 420420417; this local
-	/// value avoids collisions. Must match the chain ID expected by eth-rpc and wallets.
-	type ChainId = ConstU64<420_420_421>;
-	type NativeToEthRatio = ConstU32<1_000_000>;
-	type FindAuthor = <Runtime as pallet_authorship::Config>::FindAuthor;
-	type AllowEVMBytecode = ConstBool<true>;
-	type FeeInfo =
-		pallet_revive::evm::fees::Info<super::Address, super::Signature, super::EthExtraImpl>;
-	type MaxEthExtrinsicWeight = MaxEthExtrinsicWeight;
-	type DebugEnabled = ConstBool<true>;
-	type GasScale = ConstU32<50_000>;
 }

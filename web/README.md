@@ -8,7 +8,6 @@ The app uses:
 
 - React + Vite + TypeScript + Tailwind CSS
 - [Polkadot API (PAPI)](https://papi.how/) for pallet interaction
-- [viem](https://viem.sh/) for EVM and PVM contract interaction through `eth-rpc`
 - Zustand for state management
 
 Key pages include:
@@ -38,7 +37,7 @@ Or, from the repo root, if the chain is already running and you want the scripte
 
 ## Endpoint Configuration
 
-The app uses configurable Substrate WebSocket and Ethereum JSON-RPC endpoints.
+The app uses a configurable Substrate WebSocket endpoint.
 
 For hosted builds:
 
@@ -49,12 +48,10 @@ cp web/.env.example web/.env.local
 Set:
 
 - `VITE_WS_URL`
-- `VITE_ETH_RPC_URL`
 
 For local scripted development, [`../scripts/start-all.sh`](../scripts/start-all.sh) and [`../scripts/start-frontend.sh`](../scripts/start-frontend.sh) export:
 
 - `VITE_LOCAL_WS_URL`
-- `VITE_LOCAL_ETH_RPC_URL`
 
 That keeps the browser aligned with the active local stack ports.
 

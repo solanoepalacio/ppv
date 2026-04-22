@@ -11,7 +11,6 @@ CHAIN_SPEC="$ROOT_DIR/blockchain/chain_spec.json"
 RUNTIME_WASM="$ROOT_DIR/target/release/wbuild/ppview-runtime/ppview_runtime.compact.compressed.wasm"
 STACK_PORT_OFFSET="${STACK_PORT_OFFSET:-0}"
 STACK_SUBSTRATE_RPC_PORT="${STACK_SUBSTRATE_RPC_PORT:-$((9944 + STACK_PORT_OFFSET))}"
-STACK_ETH_RPC_PORT="${STACK_ETH_RPC_PORT:-$((8545 + STACK_PORT_OFFSET))}"
 STACK_FRONTEND_PORT="${STACK_FRONTEND_PORT:-$((5173 + STACK_PORT_OFFSET))}"
 STACK_COLLATOR_P2P_PORT="$((30333 + STACK_PORT_OFFSET))"
 STACK_COLLATOR_PROMETHEUS_PORT="$((9615 + STACK_PORT_OFFSET))"
@@ -23,7 +22,6 @@ STACK_RELAY_BOB_P2P_PORT="$((30336 + STACK_PORT_OFFSET))"
 STACK_RELAY_BOB_PROMETHEUS_PORT="$((9618 + STACK_PORT_OFFSET))"
 SUBSTRATE_RPC_HTTP="${SUBSTRATE_RPC_HTTP:-http://127.0.0.1:${STACK_SUBSTRATE_RPC_PORT}}"
 SUBSTRATE_RPC_WS="${SUBSTRATE_RPC_WS:-ws://127.0.0.1:${STACK_SUBSTRATE_RPC_PORT}}"
-ETH_RPC_HTTP="${ETH_RPC_HTTP:-http://127.0.0.1:${STACK_ETH_RPC_PORT}}"
 FRONTEND_URL="${FRONTEND_URL:-http://127.0.0.1:${STACK_FRONTEND_PORT}}"
 
 ZOMBIE_DIR="${ZOMBIE_DIR:-}"
@@ -33,15 +31,12 @@ ZOMBIE_CONFIG="${ZOMBIE_CONFIG:-}"
 NODE_DIR="${NODE_DIR:-}"
 NODE_LOG="${NODE_LOG:-}"
 NODE_PID="${NODE_PID:-}"
-ETH_RPC_PID="${ETH_RPC_PID:-}"
 
 export STACK_PORT_OFFSET
 export STACK_SUBSTRATE_RPC_PORT
-export STACK_ETH_RPC_PORT
 export STACK_FRONTEND_PORT
 export SUBSTRATE_RPC_HTTP
 export SUBSTRATE_RPC_WS
-export ETH_RPC_HTTP
 export FRONTEND_URL
 
 log_info() {
@@ -67,7 +62,7 @@ install_hint() {
         zombienet)
             echo "Install with: npm install -g @zombienet/cli"
             ;;
-        polkadot|polkadot-omni-node|eth-rpc)
+        polkadot|polkadot-omni-node)
             echo "See docs/INSTALL.md for the matching stable2512-3 binary install steps."
             ;;
         curl)
@@ -151,7 +146,6 @@ validate_zombienet_ports() {
 validate_full_stack_ports() {
     require_distinct_ports \
         "Substrate RPC" "$STACK_SUBSTRATE_RPC_PORT" \
-        "Ethereum RPC" "$STACK_ETH_RPC_PORT" \
         "Frontend" "$STACK_FRONTEND_PORT" \
         "Relay Alice RPC" "$STACK_RELAY_ALICE_RPC_PORT" \
         "Relay Alice P2P" "$STACK_RELAY_ALICE_P2P_PORT" \
@@ -164,7 +158,6 @@ validate_full_stack_ports() {
 
     require_ports_free \
         "$STACK_SUBSTRATE_RPC_PORT" \
-        "$STACK_ETH_RPC_PORT" \
         "$STACK_FRONTEND_PORT" \
         "$STACK_RELAY_ALICE_RPC_PORT" \
         "$STACK_RELAY_ALICE_P2P_PORT" \
@@ -266,53 +259,6 @@ wait_for_substrate_rpc() {
     return 1
 }
 
-eth_rpc_ready() {
-    curl -s \
-        -H "Content-Type: application/json" \
-        -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' \
-        "$ETH_RPC_HTTP" >/dev/null 2>&1
-}
-
-eth_rpc_block_producing() {
-    curl -s \
-        -H "Content-Type: application/json" \
-        -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' \
-        "$ETH_RPC_HTTP" | grep -Eq '"result":"0x[1-9a-fA-F][0-9a-fA-F]*"'
-}
-
-wait_for_eth_rpc() {
-    local eth_rpc_log
-    if [ -n "$NODE_DIR" ]; then
-        eth_rpc_log="$NODE_DIR/eth-rpc.log"
-    else
-        eth_rpc_log="$ZOMBIE_DIR/eth-rpc.log"
-    fi
-
-    log_info "Waiting for Ethereum RPC..."
-    for _ in $(seq 1 120); do
-        if eth_rpc_ready && { [ -n "$NODE_PID" ] || eth_rpc_block_producing; }; then
-            log_info "Ethereum RPC ready at $ETH_RPC_HTTP"
-            return 0
-        fi
-        if [ -n "$ETH_RPC_PID" ] && ! kill -0 "$ETH_RPC_PID" 2>/dev/null; then
-            log_error "eth-rpc stopped during startup."
-            if [ -f "$eth_rpc_log" ]; then
-                log_info "Recent log output:"
-                tail -n 100 "$eth_rpc_log" || true
-            fi
-            return 1
-        fi
-        sleep 1
-    done
-
-    log_error "Ethereum RPC did not become ready in time."
-    if [ -f "$eth_rpc_log" ]; then
-        log_info "Recent log output:"
-        tail -n 100 "$eth_rpc_log" || true
-    fi
-    return 1
-}
-
 write_zombienet_config() {
     local config_path="$1"
 
@@ -381,7 +327,6 @@ update_papi_descriptors() {
 
 export_frontend_runtime_env() {
     export VITE_LOCAL_WS_URL="$SUBSTRATE_RPC_WS"
-    export VITE_LOCAL_ETH_RPC_URL="$ETH_RPC_HTTP"
 }
 
 start_zombienet_background() {
@@ -469,31 +414,6 @@ run_zombienet_foreground() {
     zombienet -p native -f -l text -d "$ZOMBIE_DIR" spawn zombienet.toml &
     ZOMBIE_PID=$!
     wait "$ZOMBIE_PID"
-}
-
-start_eth_rpc_background() {
-    require_command eth-rpc
-    require_port_free "$STACK_ETH_RPC_PORT"
-
-    local eth_rpc_log
-    local eth_rpc_dir
-    if [ -n "$NODE_DIR" ]; then
-        eth_rpc_dir="$NODE_DIR/eth-rpc"
-        eth_rpc_log="$NODE_DIR/eth-rpc.log"
-    else
-        eth_rpc_dir="$ZOMBIE_DIR/eth-rpc"
-        eth_rpc_log="$ZOMBIE_DIR/eth-rpc.log"
-    fi
-
-    eth-rpc \
-        --node-rpc-url "$SUBSTRATE_RPC_WS" \
-        --rpc-port "$STACK_ETH_RPC_PORT" \
-        --no-prometheus \
-        --rpc-cors all \
-        -d "$eth_rpc_dir" >"$eth_rpc_log" 2>&1 &
-    ETH_RPC_PID=$!
-
-    log_info "eth-rpc log: $eth_rpc_log"
 }
 
 cleanup_local_node() {

@@ -9864,8 +9864,9 @@ dependencies = [
 
 [[package]]
 name = "pallet-revive-proc-macro"
-version = "0.7.1"
-source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2512-3#47f1ee9e5272eb9816561e502f93aa1e0d447856"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54d78626aaf92f2c5bd0e25f97a16815753e8e2e3328677986564b4155db7667"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -12715,7 +12716,6 @@ name = "ppview-runtime"
 version = "0.1.0"
 dependencies = [
  "cumulus-pallet-parachain-system",
- "hex-literal",
  "log",
  "pallet-content-registry",
  "parity-scale-codec",

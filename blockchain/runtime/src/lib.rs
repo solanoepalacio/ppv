@@ -13,7 +13,7 @@ mod tests;
 mod weights;
 
 extern crate alloc;
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 use smallvec::smallvec;
 
 use polkadot_sdk::{staging_parachain_info as parachain_info, *};
@@ -59,38 +59,11 @@ pub type TxExtension = cumulus_pallet_weight_reclaim::StorageWeightReclaim<
 		frame_system::CheckWeight<Runtime>,
 		pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 		frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
-		pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
 	),
 >;
 
-/// Default extensions applied to Ethereum transactions.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct EthExtraImpl;
-
-impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
-	type Config = Runtime;
-	type Extension = TxExtension;
-
-	fn get_eth_extension(nonce: u32, tip: Balance) -> Self::Extension {
-		(
-			frame_system::CheckNonZeroSender::<Runtime>::new(),
-			frame_system::CheckSpecVersion::<Runtime>::new(),
-			frame_system::CheckTxVersion::<Runtime>::new(),
-			frame_system::CheckGenesis::<Runtime>::new(),
-			frame_system::CheckMortality::from(generic::Era::Immortal),
-			frame_system::CheckNonce::<Runtime>::from(nonce),
-			frame_system::CheckWeight::<Runtime>::new(),
-			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
-			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
-			pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::new_from_eth_transaction(),
-		)
-			.into()
-	}
-}
-
-/// Unchecked extrinsic type supporting both Substrate and Ethereum transactions.
 pub type UncheckedExtrinsic =
-	pallet_revive::evm::runtime::UncheckedExtrinsic<Address, Signature, EthExtraImpl>;
+	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, TxExtension>;
 
 pub type Executive = frame_executive::Executive<
 	Runtime,
@@ -144,8 +117,8 @@ impl_opaque_keys! {
 	}
 }
 
-// VERSION is defined after the impl_runtime_apis_plus_revive_traits! macro at the
-// bottom of this file, because that macro generates RUNTIME_API_VERSIONS.
+// VERSION is defined after the impl_runtime_apis! macro at the bottom of this
+// file, because that macro generates RUNTIME_API_VERSIONS.
 
 mod block_times {
 	pub const MILLI_SECS_PER_BLOCK: u64 = 6000;
@@ -254,20 +227,9 @@ mod runtime {
 
 	#[runtime::pallet_index(50)]
 	pub type ContentRegistry = pallet_content_registry;
-
-	// Smart contracts (EVM + PVM via pallet-revive)
-	#[runtime::pallet_index(90)]
-	pub type Revive = pallet_revive;
 }
 
-// Runtime APIs including pallet-revive's ReviveApi (26+ methods for Ethereum RPC compatibility).
-// This macro also implements SetWeightLimit for RuntimeCall.
-pallet_revive::impl_runtime_apis_plus_revive_traits!(
-	Runtime,
-	Revive,
-	Executive,
-	EthExtraImpl,
-
+impl_runtime_apis! {
 	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
 		fn slot_duration() -> sp_consensus_aura::SlotDuration {
 			sp_consensus_aura::SlotDuration::from_millis(SLOT_DURATION)
@@ -434,7 +396,7 @@ pallet_revive::impl_runtime_apis_plus_revive_traits!(
 			genesis_config_presets::preset_names()
 		}
 	}
-);
+}
 
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {

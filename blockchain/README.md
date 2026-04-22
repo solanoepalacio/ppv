@@ -22,7 +22,7 @@ cargo build -p ppview-runtime --release
 cargo test -p pallet-content-registry
 
 # All workspace tests including benchmarks
-SKIP_PALLET_REVIVE_FIXTURES=1 cargo test --workspace --features runtime-benchmarks
+cargo test --workspace --features runtime-benchmarks
 ```
 
 ## Running Locally

@@ -100,27 +100,8 @@ fn local_testnet_genesis() -> Value {
 	)
 }
 
-/// Ethereum dev accounts (Alith, Baltathar, Charleth) with 0xEE padding to 32 bytes.
-/// These are the standard dev accounts recognized by the eth-rpc adapter.
-fn eth_dev_accounts() -> Vec<AccountId> {
-	use sp_core::crypto::AccountId32;
-	[
-		// Alith
-		hex_literal::hex!("f24ff3a9cf04c71dbc94d0b566f7a27b94566caceeeeeeeeeeeeeeeeeeeeeeee"),
-		// Baltathar
-		hex_literal::hex!("3cd0a705a2dc65e5b1e1205896baa2be8a07c6e0eeeeeeeeeeeeeeeeeeeeeeee"),
-		// Charleth
-		hex_literal::hex!("798d4ba9baf0064ec19eb4f0a1a45785ae9d6dfceeeeeeeeeeeeeeeeeeeeeeee"),
-	]
-	.into_iter()
-	.map(AccountId32::from)
-	.collect()
-}
-
 fn development_config_genesis() -> Value {
-	let mut endowed: Vec<AccountId> =
-		Sr25519Keyring::well_known().map(|k| k.to_account_id()).collect();
-	endowed.extend(eth_dev_accounts());
+	let endowed: Vec<AccountId> = Sr25519Keyring::well_known().map(|k| k.to_account_id()).collect();
 
 	testnet_genesis(
 		vec![

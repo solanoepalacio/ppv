@@ -1,4 +1,4 @@
-# Local development environment — parachain node + Ethereum JSON-RPC adapter.
+# Local development environment — parachain node.
 #
 # First build (compiles the runtime inside Docker, ~10-20 min):
 #   docker compose up -d
@@ -8,11 +8,8 @@
 #
 # Once running:
 #   Substrate RPC:  ws://127.0.0.1:9944
-#   Ethereum RPC:   http://127.0.0.1:8545
 #
-# Then deploy contracts and start the frontend on the host:
-#   cd contracts/evm && npm install && npm run deploy:local
-#   cd contracts/pvm && npm install && npm run deploy:local
+# Then start the frontend on the host:
 #   cd web && npm install && npm run dev
 #
 # Tear down:
@@ -44,27 +41,6 @@ services:
       timeout: 3s
       retries: 30
       start_period: 10s
-
-  eth-rpc:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.eth-rpc
-    ports:
-      - "8545:8545"
-    command: >
-      --node-rpc-url ws://node:9944
-      --rpc-port 8545
-      --rpc-cors all
-      --rpc-external
-    depends_on:
-      node:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_chainId\",\"params\":[]}' http://127.0.0.1:8545 | grep -q result"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-      start_period: 5s
 
 volumes:
   chain-data:

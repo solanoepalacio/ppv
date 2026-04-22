@@ -18,7 +18,6 @@ substrate-wasm-builder = { workspace = true, optional = true }
 [dependencies]
 codec = { features = ["derive"], workspace = true }
 cumulus-pallet-parachain-system.workspace = true
-hex-literal = { workspace = true, default-features = true }
 log = { workspace = true }
 pallet-content-registry.workspace = true
 polkadot-sdk = { workspace = true, features = [
@@ -35,7 +34,6 @@ polkadot-sdk = { workspace = true, features = [
 	"pallet-balances",
 	"pallet-collator-selection",
 	"pallet-message-queue",
-	"pallet-revive",
 	"pallet-session",
 	"pallet-statement",
 	"pallet-sudo",

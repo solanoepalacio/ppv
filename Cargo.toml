@@ -44,7 +44,6 @@ sp-statement-store = { version = "24.0.0" }
 subxt = { version = "0.38" }
 subxt-signer = { version = "0.38", features = ["sr25519", "subxt"] }
 tokio = { version = "1", features = ["full"] }
-alloy = { version = "1.8", features = ["contract", "provider-http", "signer-local"] }
 
 # content-unlock-service daemon dependencies
 anyhow = "1"
@@ -58,11 +57,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 futures = "0.3"
 hex = "0.4"
 async-stream = "0.3"
-
-# Patch pallet-revive-proc-macro to 0.7.1 from polkadot-sdk stable2512-3.
-# Version 0.7.2 on crates.io has a compilation bug with #[stable] host function attributes.
-[patch.crates-io]
-pallet-revive-proc-macro = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2512-3" }
 
 [profile.release]
 opt-level = 3

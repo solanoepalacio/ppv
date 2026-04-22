@@ -6,7 +6,6 @@ A Cumulus-based parachain runtime built on `polkadot-sdk stable2512-3`. Compatib
 
 - **Core pallets**: System, Balances, Aura, Session, Sudo, XCM
 - **ContentRegistry** (index 50): pay-per-view listings and purchase records — see [`../pallets/content-registry/`](../pallets/content-registry/)
-- **pallet-revive** (index 90): EVM and PVM smart contract execution with Ethereum RPC compatibility
 - **pallet-statement** + `sp-statement-store` runtime API for Statement Store support
 
 ## Source Layout
@@ -14,7 +13,7 @@ A Cumulus-based parachain runtime built on `polkadot-sdk stable2512-3`. Compatib
 | File | Purpose |
 |---|---|
 | `src/lib.rs` | Runtime definition, opaque types, version, runtime APIs |
-| `src/configs/mod.rs` | All pallet configuration (System, Balances, Revive, etc.) |
+| `src/configs/mod.rs` | All pallet configuration (System, Balances, ContentRegistry, etc.) |
 | `src/configs/xcm_config.rs` | XCM cross-chain messaging configuration |
 | `src/genesis_config_presets.rs` | Genesis presets for dev and testnet |
 | `src/tests.rs` | Runtime integration tests |

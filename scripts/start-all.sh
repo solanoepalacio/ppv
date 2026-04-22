@@ -5,7 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
-ETH_RPC_PID=""
 FRONTEND_PID=""
 
 cleanup() {
@@ -14,10 +13,6 @@ cleanup() {
     if [ -n "$FRONTEND_PID" ]; then
         kill "$FRONTEND_PID" 2>/dev/null || true
         wait "$FRONTEND_PID" 2>/dev/null || true
-    fi
-    if [ -n "$ETH_RPC_PID" ]; then
-        kill "$ETH_RPC_PID" 2>/dev/null || true
-        wait "$ETH_RPC_PID" 2>/dev/null || true
     fi
     cleanup_zombienet
 }
@@ -35,23 +30,19 @@ echo ""
 
 validate_full_stack_ports
 
-echo "[1/5] Building runtime..."
+echo "[1/4] Building runtime..."
 build_runtime
 
-echo "[2/5] Generating chain spec..."
+echo "[2/4] Generating chain spec..."
 generate_chain_spec
 
-echo "[3/5] Starting Zombienet (relay chain + parachain)..."
+echo "[3/4] Starting Zombienet (relay chain + parachain)..."
 log_info "This takes longer than dev mode because the relay chain must finalize"
 log_info "and the parachain must register before the collator starts authoring."
 start_zombienet_background
 wait_for_substrate_rpc
 
-echo "[4/5] Starting eth-rpc adapter..."
-start_eth_rpc_background
-wait_for_eth_rpc
-
-echo "[5/5] Starting frontend..."
+echo "[4/4] Starting frontend..."
 cd "$ROOT_DIR/web"
 npm install
 
@@ -70,7 +61,6 @@ cd "$ROOT_DIR"
 echo ""
 echo "=== Full local stack running ==="
 log_info "Substrate RPC: $SUBSTRATE_RPC_WS"
-log_info "Ethereum RPC:  $ETH_RPC_HTTP"
 log_info "Frontend:      $FRONTEND_URL"
 log_info "Zombienet dir: $ZOMBIE_DIR"
 echo ""
