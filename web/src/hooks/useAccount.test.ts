@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { getAliceSigner } from './useAccount';
+import { getAliceSigner, getAliceAddress } from './useAccount';
 import { ss58Address } from '@polkadot-labs/hdkd-helpers';
 
 describe('useAccount', () => {
@@ -13,5 +13,9 @@ describe('useAccount', () => {
 
   test('getAliceSigner returns a stable instance across calls', () => {
     expect(getAliceSigner()).toBe(getAliceSigner());
+  });
+
+  test('getAliceAddress returns the SS58 prefix-42 address for //Alice', () => {
+    expect(getAliceAddress()).toBe('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY');
   });
 });

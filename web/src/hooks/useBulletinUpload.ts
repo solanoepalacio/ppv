@@ -8,8 +8,7 @@ import {
 	type ProgressCallback,
 } from "@parity/bulletin-sdk";
 import { bulletin } from "@polkadot-api/descriptors";
-import { getAliceSigner } from "./useAccount";
-import { getUserSigner, getUserAddress } from "./signerManager";
+import { getAliceSigner, getAliceAddress } from "./useAccount";
 import { bulletinCidToGatewayUrl } from "../utils/bulletinCid";
 import type { BulletinCidFields } from "./useContentRegistry";
 
@@ -19,13 +18,11 @@ const BULLETIN_WS = "wss://paseo-bulletin-rpc.polkadot.io";
 // upload under the SDK's 2 MiB single-tx threshold.
 export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 
-// Quota issued by Alice when re-authorizing the user.
 export const AUTH_TX_COUNT = 10;
 export const AUTH_BYTES = 100n * 1024n * 1024n;
 
 let _bulletinPapiClient: PolkadotClient | null = null;
 let _aliceClient: AsyncBulletinClient | null = null;
-let _userClient: { address: string; client: AsyncBulletinClient } | null = null;
 
 function getPapiClient(): PolkadotClient {
 	if (!_bulletinPapiClient) {
@@ -44,21 +41,6 @@ function getAliceClient(): AsyncBulletinClient {
 	if (!_aliceClient) _aliceClient = buildClient(getAliceSigner());
 	return _aliceClient;
 }
-
-function getUserClient(): AsyncBulletinClient {
-	const address = getUserAddress();
-	if (!address) {
-		throw new Error('No user account selected — connect a wallet before uploading');
-	}
-	if (!_userClient || _userClient.address !== address) {
-		_userClient = { address, client: buildClient(getUserSigner()) };
-	}
-	return _userClient.client;
-}
-
-// Test hooks — not part of the public API.
-export function _resetUserClientForTests(): void { _userClient = null; }
-export function getUserClientForTests(): AsyncBulletinClient { return getUserClient(); }
 
 export interface RemainingAuthorization {
 	transactions: number;
@@ -85,31 +67,31 @@ export async function getRemainingAuthorization(
 }
 
 export interface UploadContext {
-	aliceClient?: BulletinClientInterface;
-	userClient?: BulletinClientInterface;
-	userAddress?: string;
+	client?: BulletinClientInterface;
+	address?: string;
 	getRemainingAuthorization?: (address: string) => Promise<RemainingAuthorization | null>;
 }
 
 async function ensureAuthorization(
-	aliceClient: BulletinClientInterface,
-	userAddress: string,
+	client: BulletinClientInterface,
+	address: string,
 	uploadBytes: number,
 	getQuota: (address: string) => Promise<RemainingAuthorization | null>,
 ): Promise<void> {
-	const quota = await getQuota(userAddress);
+	const quota = await getQuota(address);
 	if (quota && quota.transactions >= 1 && quota.bytes >= BigInt(uploadBytes)) return;
-	await aliceClient.authorizeAccount(userAddress, AUTH_TX_COUNT, AUTH_BYTES).send();
+	await client.authorizeAccount(address, AUTH_TX_COUNT, AUTH_BYTES).send();
 }
 
 /**
  * Upload bytes to Bulletin Chain.
  *
- * Two-signer flow:
- *   1. Query on-chain authorization for the user account.
- *      If insufficient quota for this upload, Alice signs
- *      `authorize_account(userAddress, AUTH_TX_COUNT, AUTH_BYTES)`.
- *   2. The user signs `store()` for the content.
+ * Single-signer flow: Alice signs both `authorize_account` and `store`.
+ * Bulletin is content-storage infrastructure; the user identity on-chain
+ * lives on the parachain (`publish_content`), not Bulletin. Signing
+ * Bulletin extrinsics with the user's extension wallet (Talisman) against
+ * a non-mainstream chain triggers BadProof via the PJS `withSignedTransaction`
+ * path, so we route Bulletin through the dev-chain Alice key.
  *
  * Idempotency comes from the on-chain check — there is no in-memory cache,
  * so browser refreshes, multiple tabs, and new sessions all behave correctly
@@ -126,13 +108,11 @@ export async function uploadToBulletin(
 		);
 	}
 
-	const aliceClient = ctx?.aliceClient ?? getAliceClient();
-	const userClient = ctx?.userClient ?? getUserClient();
-	const userAddress = ctx?.userAddress ?? getUserAddress();
+	const client = ctx?.client ?? getAliceClient();
+	const address = ctx?.address ?? getAliceAddress();
 	const getQuota = ctx?.getRemainingAuthorization ?? getRemainingAuthorization;
-	if (!userAddress) throw new Error("No connected user account for Bulletin upload");
 
-	await ensureAuthorization(aliceClient, userAddress, bytes.length, getQuota);
+	await ensureAuthorization(client, address, bytes.length, getQuota);
 
 	const progressCb: ProgressCallback = (event) => {
 		if (event.type === ChunkStatus.ChunkCompleted) {
@@ -140,7 +120,7 @@ export async function uploadToBulletin(
 		}
 	};
 
-	const result = await userClient.store(bytes).withCallback(progressCb).send();
+	const result = await client.store(bytes).withCallback(progressCb).send();
 
 	onProgress?.(100);
 

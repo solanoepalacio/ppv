@@ -1,15 +1,10 @@
 import { describe, test, expect, vi, afterEach } from 'vitest';
 import { MockBulletinClient } from '@parity/bulletin-sdk';
 
-vi.mock('./signerManager', () => ({
-  getUserSigner: vi.fn(),
-  getUserAddress: vi.fn(),
-}));
-
 import { fetchFromIpfs, uploadToBulletin } from './useBulletinUpload';
 import type { BulletinCidFields } from './useContentRegistry';
 
-// ── fetchFromIpfs (unchanged) ─────────────────────────────────────────────────
+// ── fetchFromIpfs ─────────────────────────────────────────────────────────────
 
 describe('fetchFromIpfs', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -52,20 +47,25 @@ describe('fetchFromIpfs', () => {
   });
 });
 
-// ── uploadToBulletin — two-signer flow with on-chain quota check ──────────────
+// ── uploadToBulletin — single-signer (Alice) flow ─────────────────────────────
+//
+// Bulletin is content storage, not a user-identity surface. The user wallet
+// (Talisman) is intentionally not used against Bulletin — its
+// `withSignedTransaction` path rebuilds extrinsics from its own chain
+// metadata and yields BadProof against non-mainstream chains like Paseo
+// Bulletin. Alice signs every Bulletin extrinsic. The `address` field
+// identifies whose authorization quota is checked/refreshed (Alice's).
 
 type QuotaFn = (address: string) => Promise<{ transactions: number; bytes: bigint } | null>;
 
 function makeCtx(partial: {
-  aliceClient?: MockBulletinClient;
-  userClient?: MockBulletinClient;
-  userAddress?: string;
+  client?: MockBulletinClient;
+  address?: string;
   getRemainingAuthorization?: QuotaFn;
 }) {
   return {
-    aliceClient: partial.aliceClient ?? new MockBulletinClient(),
-    userClient: partial.userClient ?? new MockBulletinClient(),
-    userAddress: partial.userAddress ?? '5Bob',
+    client: partial.client ?? new MockBulletinClient(),
+    address: partial.address ?? '5Alice',
     getRemainingAuthorization: partial.getRemainingAuthorization ?? (async () => null),
   };
 }
@@ -82,25 +82,18 @@ describe('uploadToBulletin', () => {
     expect(cid.digestBytes.length).toBeGreaterThan(0);
   });
 
-  test('when user has no authorization, Alice authorizes and user stores', async () => {
+  test('Alice signs both authorize_account and store when quota is missing', async () => {
     const ctx = makeCtx({ getRemainingAuthorization: async () => null });
     const bytes = new Uint8Array(64).fill(0xaa);
 
     await uploadToBulletin(bytes, undefined, ctx);
 
-    const aliceOps = ctx.aliceClient.getOperations();
-    const userOps = ctx.userClient.getOperations();
-
-    expect(aliceOps.some((op) => op.type === 'authorize_account' && op.who === '5Bob')).toBe(true);
-    expect(userOps.some((op) => op.type === 'store')).toBe(true);
-    // User must never sign an authorization extrinsic.
-    expect(userOps.every((op) => op.type !== 'authorize_account')).toBe(true);
-    expect(userOps.every((op) => op.type !== 'authorize_preimage')).toBe(true);
-    // Alice must never sign a store extrinsic.
-    expect(aliceOps.every((op) => op.type !== 'store')).toBe(true);
+    const ops = ctx.client.getOperations();
+    expect(ops.some((op) => op.type === 'authorize_account' && op.who === '5Alice')).toBe(true);
+    expect(ops.some((op) => op.type === 'store')).toBe(true);
   });
 
-  test('when user quota is sufficient, skip authorize_account entirely', async () => {
+  test('when quota is sufficient, skip authorize_account and only call store', async () => {
     const ctx = makeCtx({
       getRemainingAuthorization: async () => ({
         transactions: 5,
@@ -111,14 +104,12 @@ describe('uploadToBulletin', () => {
 
     await uploadToBulletin(bytes, undefined, ctx);
 
-    const aliceOps = ctx.aliceClient.getOperations();
-    expect(aliceOps.length).toBe(0);
-
-    const userOps = ctx.userClient.getOperations();
-    expect(userOps.some((op) => op.type === 'store')).toBe(true);
+    const ops = ctx.client.getOperations();
+    expect(ops.every((op) => op.type !== 'authorize_account')).toBe(true);
+    expect(ops.some((op) => op.type === 'store')).toBe(true);
   });
 
-  test('when user quota is too small for this upload, re-authorize', async () => {
+  test('when quota is too small for this upload, re-authorize first', async () => {
     const ctx = makeCtx({
       getRemainingAuthorization: async () => ({
         transactions: 0,
@@ -129,8 +120,8 @@ describe('uploadToBulletin', () => {
 
     await uploadToBulletin(bytes, undefined, ctx);
 
-    const aliceOps = ctx.aliceClient.getOperations();
-    expect(aliceOps.some((op) => op.type === 'authorize_account')).toBe(true);
+    const ops = ctx.client.getOperations();
+    expect(ops.some((op) => op.type === 'authorize_account')).toBe(true);
   });
 
   test('calls onProgress with values between 0 and 100', async () => {
@@ -163,51 +154,24 @@ describe('uploadToBulletin', () => {
 
     await expect(uploadToBulletin(bytes, undefined, ctx)).rejects.toThrow(/2 MiB/i);
 
-    expect(ctx.aliceClient.getOperations()).toEqual([]);
-    expect(ctx.userClient.getOperations()).toEqual([]);
+    expect(ctx.client.getOperations()).toEqual([]);
   });
 
   test('throws when storage fails', async () => {
-    const userClient = new MockBulletinClient({ simulateStorageFailure: true });
-    const ctx = makeCtx({ userClient });
+    const client = new MockBulletinClient({ simulateStorageFailure: true });
+    const ctx = makeCtx({ client });
     const bytes = new Uint8Array(8).fill(0x00);
 
     await expect(uploadToBulletin(bytes, undefined, ctx)).rejects.toThrow();
   });
 
   test('propagates authorization failure without calling store', async () => {
-    const aliceClient = new MockBulletinClient({ simulateAuthFailure: true });
-    const ctx = makeCtx({ aliceClient });
+    const client = new MockBulletinClient({ simulateAuthFailure: true });
+    const ctx = makeCtx({ client });
     const bytes = new Uint8Array(8).fill(0x00);
 
     await expect(uploadToBulletin(bytes, undefined, ctx)).rejects.toThrow();
 
-    expect(ctx.userClient.getOperations().some((op) => op.type === 'store')).toBe(false);
-  });
-});
-
-// ── user client address invalidation ─────────────────────────────────────────
-
-describe('user client address invalidation', () => {
-  test('rebuilds user client when selected address changes', async () => {
-    const { _resetUserClientForTests, getUserClientForTests } = await import('./useBulletinUpload');
-    // First address
-    const signerA = { publicKey: new Uint8Array([1]) };
-    const getUserSigner = (await import('./signerManager')).getUserSigner as ReturnType<typeof vi.fn>;
-    const getUserAddress = (await import('./signerManager')).getUserAddress as ReturnType<typeof vi.fn>;
-    getUserSigner.mockReturnValue(signerA);
-    getUserAddress.mockReturnValue('5AAAA');
-    const first = getUserClientForTests();
-    const firstAgain = getUserClientForTests();
-    expect(first).toBe(firstAgain); // same address → cached
-
-    // Address changes → rebuild
-    const signerB = { publicKey: new Uint8Array([2]) };
-    getUserSigner.mockReturnValue(signerB);
-    getUserAddress.mockReturnValue('5BBBB');
-    const second = getUserClientForTests();
-    expect(second).not.toBe(first);
-
-    _resetUserClientForTests();
+    expect(ctx.client.getOperations().some((op) => op.type === 'store')).toBe(false);
   });
 });
