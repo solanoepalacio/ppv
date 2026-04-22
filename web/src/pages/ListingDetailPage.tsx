@@ -13,6 +13,7 @@ import VideoPlayer from '../components/VideoPlayer';
 import { formatDot, truncateAddress } from '../utils/format';
 
 type PageState = 'loading' | 'not-found' | 'unpurchased' | 'purchased';
+type BuyPhase = 'idle' | 'signing' | 'confirming';
 
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +23,7 @@ export default function ListingDetailPage() {
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [pageState, setPageState] = useState<PageState>('loading');
-  const [buyStatus, setBuyStatus] = useState<string | null>(null);
+  const [buyPhase, setBuyPhase] = useState<BuyPhase>('idle');
   const [buyError, setBuyError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -68,13 +69,17 @@ export default function ListingDetailPage() {
   async function handleBuy() {
     if (!listing || !account || !encryptionKey.ready || !encryptionKey.publicKey) return;
     setBuyError(null);
-    setBuyStatus('Waiting for signature…');
+    setBuyPhase('signing');
     try {
-      await submitPurchaseMaybeBatched(listing.id, account, encryptionKey.publicKey);
-      setBuyStatus(null);
+      await submitPurchaseMaybeBatched(listing.id, account, encryptionKey.publicKey, {
+        onPhase: (phase) => {
+          if (phase === 'signed') setBuyPhase('confirming');
+        },
+      });
+      setBuyPhase('idle');
       setPageState('purchased');
     } catch (e) {
-      setBuyStatus(null);
+      setBuyPhase('idle');
       setBuyError(String(e));
     }
   }
@@ -142,11 +147,17 @@ export default function ListingDetailPage() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleBuy}
-                disabled={!canAfford || !!buyStatus || !encryptionKey.ready}
+                disabled={!canAfford || buyPhase !== 'idle' || !encryptionKey.ready}
                 className="w-full py-2.5 rounded-lg bg-polka-500 hover:bg-polka-400 text-white text-sm
                            font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {buyStatus ?? (encryptionKey.ready ? `Buy for ${formatDot(listing.price)}` : 'Preparing encryption key…')}
+                {buyPhase === 'signing'
+                  ? 'Waiting for signature…'
+                  : buyPhase === 'confirming'
+                    ? 'Confirming transaction…'
+                    : encryptionKey.ready
+                      ? `Buy for ${formatDot(listing.price)}`
+                      : 'Preparing encryption key…'}
               </button>
               <p className="text-xs text-text-muted">
                 Balance: {formatDot(balance)}

@@ -1,5 +1,15 @@
-import { describe, test, expect } from 'vitest';
-import { mapListing } from './useContentRegistry';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { mapListing, submitPurchaseMaybeBatched } from './useContentRegistry';
+
+vi.mock('./useParachainProvider', () => ({
+  getParachainApi: vi.fn(),
+}));
+vi.mock('./signerManager', () => ({
+  getUserSigner: vi.fn(() => ({} as unknown)),
+}));
+
+import { getParachainApi } from './useParachainProvider';
+const mockGetApi = getParachainApi as unknown as ReturnType<typeof vi.fn>;
 
 // Minimal mock of a raw pallet Listing value
 function rawListing(overrides: Record<string, unknown> = {}) {
@@ -43,5 +53,134 @@ describe('mapListing', () => {
   test('extracts content hash bytes', () => {
     const listing = mapListing(1n, rawListing());
     expect(listing.contentHash).toEqual(new Uint8Array(32).fill(0xcc));
+  });
+});
+
+// ── submitPurchaseMaybeBatched phase tracking ─────────────────────────────────
+
+type Observer = {
+  next: (ev: unknown) => void;
+  error: (err: unknown) => void;
+};
+
+function makeFakeTx() {
+  const observers: Observer[] = [];
+  const unsubscribe = vi.fn();
+  const tx = {
+    decodedCall: { __fake: true },
+    signSubmitAndWatch: vi.fn(() => ({
+      subscribe: (o: Observer) => {
+        observers.push(o);
+        return { unsubscribe };
+      },
+    })),
+  };
+  return { tx, observers, unsubscribe };
+}
+
+function makeApi(opts: {
+  encryptionKey?: { asBytes: () => Uint8Array } | undefined;
+  purchaseTx: ReturnType<typeof makeFakeTx>['tx'];
+  batchTx?: ReturnType<typeof makeFakeTx>['tx'];
+}) {
+  return {
+    query: {
+      ContentRegistry: {
+        EncryptionKeys: {
+          getValue: vi.fn().mockResolvedValue(opts.encryptionKey),
+        },
+      },
+    },
+    tx: {
+      ContentRegistry: {
+        purchase: vi.fn(() => opts.purchaseTx),
+        register_encryption_key: vi.fn(() => ({ decodedCall: { __reg: true } })),
+      },
+      Utility: {
+        batch_all: vi.fn(() => opts.batchTx ?? opts.purchaseTx),
+      },
+    },
+  };
+}
+
+describe('submitPurchaseMaybeBatched — phase tracking', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  test('fires onPhase("signed") then onPhase("finalized") on the single-tx branch', async () => {
+    const { tx, observers } = makeFakeTx();
+    mockGetApi.mockReturnValue(makeApi({
+      encryptionKey: { asBytes: () => new Uint8Array(32).fill(1) },
+      purchaseTx: tx,
+    }));
+
+    const phases: string[] = [];
+    const pending = submitPurchaseMaybeBatched(5n, 'addr', new Uint8Array(32), {
+      onPhase: (p) => phases.push(p),
+    });
+
+    // Wait for the async encryption-key check to complete and subscription to attach.
+    await vi.waitFor(() => expect(observers.length).toBe(1));
+
+    observers[0].next({ type: 'signed', txHash: '0x01' });
+    observers[0].next({ type: 'broadcasted', txHash: '0x01' });
+    observers[0].next({ type: 'txBestBlocksState', txHash: '0x01', found: false, isValid: true });
+    observers[0].next({ type: 'finalized', txHash: '0x01', ok: true, events: [], block: {} });
+
+    await pending;
+    expect(phases).toEqual(['signed', 'finalized']);
+  });
+
+  test('takes the batch branch when the encryption key is missing', async () => {
+    const { tx, observers } = makeFakeTx();
+    const api = makeApi({
+      encryptionKey: undefined,
+      purchaseTx: tx,
+      batchTx: tx,
+    });
+    mockGetApi.mockReturnValue(api);
+
+    const phases: string[] = [];
+    const pending = submitPurchaseMaybeBatched(7n, 'addr', new Uint8Array(32), {
+      onPhase: (p) => phases.push(p),
+    });
+
+    await vi.waitFor(() => expect(observers.length).toBe(1));
+    observers[0].next({ type: 'signed', txHash: '0x02' });
+    observers[0].next({ type: 'finalized', txHash: '0x02', ok: true, events: [], block: {} });
+
+    await pending;
+    expect(api.tx.Utility.batch_all).toHaveBeenCalledOnce();
+    expect(phases).toEqual(['signed', 'finalized']);
+  });
+
+  test('rejects when the finalized event reports ok=false', async () => {
+    const { tx, observers } = makeFakeTx();
+    mockGetApi.mockReturnValue(makeApi({
+      encryptionKey: { asBytes: () => new Uint8Array(32).fill(1) },
+      purchaseTx: tx,
+    }));
+
+    const pending = submitPurchaseMaybeBatched(9n, 'addr', new Uint8Array(32));
+    await vi.waitFor(() => expect(observers.length).toBe(1));
+
+    observers[0].next({ type: 'signed', txHash: '0x03' });
+    observers[0].next({ type: 'finalized', txHash: '0x03', ok: false, events: [], block: {} });
+
+    await expect(pending).rejects.toThrow(/purchase failed/);
+  });
+
+  test('rejects when the observable errors', async () => {
+    const { tx, observers } = makeFakeTx();
+    mockGetApi.mockReturnValue(makeApi({
+      encryptionKey: { asBytes: () => new Uint8Array(32).fill(1) },
+      purchaseTx: tx,
+    }));
+
+    const pending = submitPurchaseMaybeBatched(11n, 'addr', new Uint8Array(32));
+    await vi.waitFor(() => expect(observers.length).toBe(1));
+
+    observers[0].error(new Error('wallet rejected'));
+
+    await expect(pending).rejects.toThrow(/wallet rejected/);
   });
 });

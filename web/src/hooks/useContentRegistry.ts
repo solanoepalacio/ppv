@@ -215,6 +215,46 @@ async function signBatchAll(
   if (!result.ok) throw new Error(`batch_all failed: ${JSON.stringify(result)}`);
 }
 
+// ── Phase-tracked submission ──────────────────────────────────────────────────
+
+export type SubmitPhase = 'signed' | 'finalized';
+export interface SubmitOptions {
+  onPhase?: (phase: SubmitPhase) => void;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type WatchableTx = { signSubmitAndWatch: (signer: PolkadotSigner) => { subscribe: (o: any) => { unsubscribe: () => void } } };
+
+function signAndWatchFinalized(
+  tx: WatchableTx,
+  signer: PolkadotSigner,
+  label: string,
+  onPhase?: (phase: SubmitPhase) => void,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const sub = tx.signSubmitAndWatch(signer).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      next: (ev: any) => {
+        if (ev.type === 'signed') {
+          onPhase?.('signed');
+        } else if (ev.type === 'finalized') {
+          sub.unsubscribe();
+          if (!ev.ok) {
+            reject(new Error(`${label} failed: ${JSON.stringify(ev)}`));
+            return;
+          }
+          onPhase?.('finalized');
+          resolve();
+        }
+      },
+      error: (err: unknown) => {
+        sub.unsubscribe();
+        reject(err);
+      },
+    });
+  });
+}
+
 /**
  * Create a listing. If `EncryptionKeys[caller]` is missing, batches
  * `register_encryption_key(pubkey)` before `create_listing`. Returns
@@ -246,22 +286,40 @@ export async function submitCreateListingMaybeBatched(
 /**
  * Purchase a listing. If `EncryptionKeys[caller]` is missing, batches
  * `register_encryption_key(pubkey)` before `purchase`.
+ *
+ * Resolves after the extrinsic is finalized. `options.onPhase` is invoked
+ * when the user signs (`'signed'`) and again on finalization (`'finalized'`),
+ * so the UI can show progressive status.
  */
 export async function submitPurchaseMaybeBatched(
   listingId: bigint,
   callerAddress: string,
   pubkeyIfMissing: Uint8Array,
+  options: SubmitOptions = {},
 ): Promise<void> {
   const signer = getUserSigner();
   const already = await fetchEncryptionKey(callerAddress);
 
   if (already) {
-    const result = await purchaseCall(listingId).signAndSubmit(signer);
-    if (!result.ok) throw new Error(`purchase failed: ${JSON.stringify(result)}`);
+    await signAndWatchFinalized(
+      purchaseCall(listingId) as unknown as WatchableTx,
+      signer,
+      'purchase',
+      options.onPhase,
+    );
   } else {
-    await signBatchAll(signer, [
+    const api = getParachainApi();
+    const inner = [
       registerEncryptionKeyCall(pubkeyIfMissing),
       purchaseCall(listingId),
-    ]);
+    ].map((c) => (c as { decodedCall: unknown }).decodedCall);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tx = (api.tx as any).Utility.batch_all({ calls: inner });
+    await signAndWatchFinalized(
+      tx as WatchableTx,
+      signer,
+      'batch_all(register+purchase)',
+      options.onPhase,
+    );
   }
 }

@@ -150,7 +150,7 @@ export default function VideoPlayer({
     return (
       <div className="w-full aspect-video bg-surface-800 rounded-xl flex flex-col items-center justify-center gap-3 animate-pulse">
         <div className="w-8 h-8 rounded-full border-2 border-polka-500 border-t-transparent animate-spin" />
-        <p className="text-text-secondary text-xs">Preparing your content…</p>
+        <p className="text-text-secondary text-xs">Waiting for content unlock…</p>
       </div>
     );
   }

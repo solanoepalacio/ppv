@@ -160,7 +160,36 @@ describe('ListingDetailPage', () => {
       3n,
       expect.any(String),
       expect.any(Uint8Array),
+      expect.objectContaining({ onPhase: expect.any(Function) }),
     );
+  });
+
+  test('button label advances through signing → confirming → purchased', async () => {
+    mockFetchListing.mockResolvedValue(makeListing());
+    mockHasPurchased.mockResolvedValue(false);
+
+    let capturedOnPhase: ((p: 'signed' | 'finalized') => void) | undefined;
+    let resolvePurchase: (() => void) | undefined;
+    mockSubmitPurchase.mockImplementation((_id, _addr, _pk, opts) => {
+      capturedOnPhase = opts?.onPhase;
+      return new Promise<void>((resolve) => { resolvePurchase = resolve; });
+    });
+
+    renderAtId('3');
+    const buyBtn = await screen.findByRole('button', { name: /buy for/i });
+
+    fireEvent.click(buyBtn);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /waiting for signature/i })).toBeDisabled(),
+    );
+
+    capturedOnPhase!('signed');
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /confirming transaction/i })).toBeDisabled(),
+    );
+
+    resolvePurchase!();
+    await waitFor(() => expect(screen.getByTestId('video-player')).toBeInTheDocument());
   });
 
   test('shows listing id with a copy button that writes id to clipboard', async () => {

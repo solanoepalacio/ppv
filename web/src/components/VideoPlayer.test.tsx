@@ -36,7 +36,7 @@ beforeEach(() => {
 });
 
 describe('VideoPlayer (Phase 2)', () => {
-  it('shows "preparing" until the wrapped key lands', async () => {
+  it('shows content-unlock wait message until the wrapped key lands', async () => {
     vi.mocked(watchWrappedKey).mockImplementation((_a, _id, cb) => {
       cb(null);
       return { unsubscribe: () => {} };
@@ -51,7 +51,7 @@ describe('VideoPlayer (Phase 2)', () => {
         viewerPublicKey={new Uint8Array(32)}
       />,
     );
-    expect(await screen.findByText(/preparing/i)).toBeInTheDocument();
+    expect(await screen.findByText(/waiting for content unlock/i)).toBeInTheDocument();
   });
 
   it('decrypts from an already-stored WrappedKey (past purchase) and renders a video blob', async () => {
