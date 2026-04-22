@@ -43,21 +43,9 @@ Phasing is a fallback strategy — if time runs short, Phase 1 is the must-ship 
 - Flat pricing set by creator. No platform fee. Each extrinsic caller pays their own tx fees.
 - First-purchase UX via `pallet-utility::batch_all([register_encryption_key, purchase])`.
 
-## Execution protocol
-
-When executing a plan, these rules are non-negotiable:
-
-- **Commit directly to `main` after each completed task.** No branches, no worktrees, no PRs. One commit per task, combining code + tests.
-- **`docs/progress.md` is the canonical scoreboard.** Every plan's tasks are listed there. Flipping a `[ ]` to `[x]` is a separate, dedicated commit — never bundled with code.
-- **Wait for explicit user validation before ticking.** After each task commit, surface a short validation prompt (e.g. "run `<cmd>`, confirm green, and I'll tick the box") and wait for a reply. Never flip `[x]` unilaterally.
-- **Never commit under `docs/` without explicit per-commit approval.** This includes `progress.md`. Source commits are fine; doc commits always ask first.
-
-If you're about to take an action during plan execution that doesn't match one of the rules above, stop and ask.
-
 ## Working conventions
 - The canonical spec is `docs/design/spec.md`. When design decisions change, **edit the spec** — don't just note them in chat.
 - Research docs are reference material; design decisions belong in the spec.
 - When mentioning technology in the spec, stick to Polkadot-specific stack (FRAME, PAPI, Triangle, Bulletin, DotNS, OCW, Asset Hub, XCM, etc.). Non-Polkadot library choices (React, crypto libs, build tooling) are implementation-planning concerns and don't belong in the spec.
-- The user commits the spec and other docs themselves — **don't commit without explicit approval**.
 - `README.md` is user-owned; don't edit it unless asked.
 - Style preference: concise, one topic at a time, refine before implementing. Prefer Polkadot-idiomatic solutions over generic ones when at a fork.
