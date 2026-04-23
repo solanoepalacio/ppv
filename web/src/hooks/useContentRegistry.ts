@@ -48,7 +48,7 @@ export function mapListing(id: bigint, l: any): Listing {
 // ── Reads ─────────────────────────────────────────────────────────────────────
 
 export async function fetchAllListings(): Promise<Listing[]> {
-  const api = getParachainApi();
+  const api = await getParachainApi();
   const entries = await api.query.ContentRegistry.Listings.getEntries();
   return entries
     .map(({ keyArgs: [id], value: l }) => mapListing(id, l))
@@ -69,7 +69,7 @@ export interface ListingWithStats extends Listing {
  * absent are filtered out — shouldn't happen, but defensive.
  */
 export async function fetchListingsByCreator(account: string): Promise<ListingWithStats[]> {
-  const api = getParachainApi();
+  const api = await getParachainApi();
   // New storage items aren't in the type-generated descriptors yet; cast until
   // `npm run update-types` regenerates them against the rebuilt runtime.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -98,7 +98,7 @@ export async function fetchListingsByCreator(account: string): Promise<ListingWi
 }
 
 export async function fetchListing(id: bigint): Promise<Listing | undefined> {
-  const api = getParachainApi();
+  const api = await getParachainApi();
   const l = await api.query.ContentRegistry.Listings.getValue(id);
   if (!l) return undefined;
   return mapListing(id, l);
@@ -107,7 +107,7 @@ export async function fetchListing(id: bigint): Promise<Listing | undefined> {
 export async function fetchPurchases(
   address: string,
 ): Promise<Array<{ listingId: bigint; blockNumber: number }>> {
-  const api = getParachainApi();
+  const api = await getParachainApi();
   const entries = await api.query.ContentRegistry.Purchases.getEntries(address);
   return entries
     .map(({ keyArgs: [, listingId], value: blockNumber }) => ({
@@ -118,21 +118,21 @@ export async function fetchPurchases(
 }
 
 export async function hasPurchased(address: string, listingId: bigint): Promise<boolean> {
-  const api = getParachainApi();
+  const api = await getParachainApi();
   const result = await api.query.ContentRegistry.Purchases.getValue(address, listingId);
   return result !== undefined;
 }
 
 /** Read the 32-byte SVC_PUB baked into genesis. Panics on misconfigured chains. */
 export async function fetchServicePublicKey(): Promise<Uint8Array> {
-  const api = getParachainApi();
+  const api = await getParachainApi();
   const pub = await api.query.ContentRegistry.ServicePublicKey.getValue();
   return pub.asBytes();
 }
 
 /** Returns the registered x25519 pubkey for `address`, or null if none. */
 export async function fetchEncryptionKey(address: string): Promise<Uint8Array | null> {
-  const api = getParachainApi();
+  const api = await getParachainApi();
   const entry = await api.query.ContentRegistry.EncryptionKeys.getValue(address);
   return entry ? entry.asBytes() : null;
 }
@@ -145,7 +145,7 @@ export async function fetchWrappedKey(
   address: string,
   listingId: bigint,
 ): Promise<Uint8Array | null> {
-  const api = getParachainApi();
+  const api = await getParachainApi();
   const v = await api.query.ContentRegistry.WrappedKeys.getValue(address, listingId);
   return v ? v.asBytes() : null;
 }
@@ -159,12 +159,25 @@ export function watchWrappedKey(
   listingId: bigint,
   onChange: (sealed: Uint8Array | null) => void,
 ): { unsubscribe: () => void } {
-  const api = getParachainApi();
-  const sub = api.query.ContentRegistry.WrappedKeys.watchValue(address, listingId).subscribe({
-    next: (v) => onChange(v ? v.asBytes() : null),
-    error: (err) => console.error('WrappedKeys subscription error:', err),
-  });
-  return { unsubscribe: () => sub.unsubscribe() };
+  // Subscribe once the provider is ready. Returning a sync handle keeps the
+  // caller's effect cleanup contract intact.
+  let realSub: { unsubscribe: () => void } | null = null;
+  let cancelled = false;
+  getParachainApi()
+    .then((api) => {
+      if (cancelled) return;
+      realSub = api.query.ContentRegistry.WrappedKeys.watchValue(address, listingId).subscribe({
+        next: (v) => onChange(v ? v.asBytes() : null),
+        error: (err) => console.error('WrappedKeys subscription error:', err),
+      });
+    })
+    .catch((err) => console.error('WrappedKeys init failed:', err));
+  return {
+    unsubscribe: () => {
+      cancelled = true;
+      realSub?.unsubscribe();
+    },
+  };
 }
 
 // ── Writes ────────────────────────────────────────────────────────────────────
@@ -179,8 +192,8 @@ export interface CreateListingParams {
   lockedContentLockKey: Uint8Array; // exactly 80 bytes, sealed to SVC_PUB
 }
 
-function createListingCall(params: CreateListingParams) {
-  const api = getParachainApi();
+async function createListingCall(params: CreateListingParams) {
+  const api = await getParachainApi();
   if (params.lockedContentLockKey.length !== 80) {
     throw new Error(
       `lockedContentLockKey must be 80 bytes, got ${params.lockedContentLockKey.length}`,
@@ -203,24 +216,24 @@ function createListingCall(params: CreateListingParams) {
   });
 }
 
-function registerEncryptionKeyCall(pubkey: Uint8Array) {
-  const api = getParachainApi();
+async function registerEncryptionKeyCall(pubkey: Uint8Array) {
+  const api = await getParachainApi();
   if (pubkey.length !== 32) throw new Error(`pubkey must be 32 bytes, got ${pubkey.length}`);
   return api.tx.ContentRegistry.register_encryption_key({
     pubkey: FixedSizeBinary.fromBytes(pubkey),
   });
 }
 
-function purchaseCall(listingId: bigint) {
-  const api = getParachainApi();
+async function purchaseCall(listingId: bigint) {
+  const api = await getParachainApi();
   return api.tx.ContentRegistry.purchase({ listing_id: listingId });
 }
 
 /** Plain `create_listing`. Caller must have `EncryptionKeys[caller]` already. */
 export async function submitCreateListing(params: CreateListingParams): Promise<bigint> {
-  const api = getParachainApi();
+  const api = await getParachainApi();
   const signer = getUserSigner();
-  const tx = createListingCall(params);
+  const tx = await createListingCall(params);
   const result = await tx.signAndSubmit(signer);
   if (!result.ok) throw new Error(`create_listing failed: ${JSON.stringify(result)}`);
   const nextId = await api.query.ContentRegistry.NextListingId.getValue();
@@ -230,14 +243,16 @@ export async function submitCreateListing(params: CreateListingParams): Promise<
 /** Plain `register_encryption_key`. Rarely called directly — see batch helpers. */
 export async function submitRegisterEncryptionKey(pubkey: Uint8Array): Promise<void> {
   const signer = getUserSigner();
-  const result = await registerEncryptionKeyCall(pubkey).signAndSubmit(signer);
+  const call = await registerEncryptionKeyCall(pubkey);
+  const result = await call.signAndSubmit(signer);
   if (!result.ok) throw new Error(`register_encryption_key failed: ${JSON.stringify(result)}`);
 }
 
 /** Plain `purchase`. Caller must have `EncryptionKeys[caller]` already. */
 export async function submitPurchase(listingId: bigint): Promise<void> {
   const signer = getUserSigner();
-  const result = await purchaseCall(listingId).signAndSubmit(signer);
+  const call = await purchaseCall(listingId);
+  const result = await call.signAndSubmit(signer);
   if (!result.ok) throw new Error(`purchase failed: ${JSON.stringify(result)}`);
 }
 
@@ -247,7 +262,7 @@ async function signBatchAll(
   signer: PolkadotSigner,
   calls: ReturnType<typeof createListingCall>[] | unknown[],
 ): Promise<void> {
-  const api = getParachainApi();
+  const api = await getParachainApi();
   // Each call is a typed `Tx`; PAPI exposes its enum shape on `.decodedCall`,
   // which is exactly what `Utility.batch_all` expects.
   const inner = calls.map((c) => (c as { decodedCall: unknown }).decodedCall);
@@ -307,18 +322,20 @@ export async function submitCreateListingMaybeBatched(
   callerAddress: string,
   pubkeyIfMissing: Uint8Array,
 ): Promise<bigint> {
-  const api = getParachainApi();
+  const api = await getParachainApi();
   const signer = getUserSigner();
   const already = await fetchEncryptionKey(callerAddress);
 
   if (already) {
-    const result = await createListingCall(params).signAndSubmit(signer);
+    const tx = await createListingCall(params);
+    const result = await tx.signAndSubmit(signer);
     if (!result.ok) throw new Error(`create_listing failed: ${JSON.stringify(result)}`);
   } else {
-    await signBatchAll(signer, [
+    const calls = await Promise.all([
       registerEncryptionKeyCall(pubkeyIfMissing),
       createListingCall(params),
     ]);
+    await signBatchAll(signer, calls);
   }
 
   const nextId = await api.query.ContentRegistry.NextListingId.getValue();
@@ -343,18 +360,20 @@ export async function submitPurchaseMaybeBatched(
   const already = await fetchEncryptionKey(callerAddress);
 
   if (already) {
+    const call = await purchaseCall(listingId);
     await signAndWatchFinalized(
-      purchaseCall(listingId) as unknown as WatchableTx,
+      call as unknown as WatchableTx,
       signer,
       'purchase',
       options.onPhase,
     );
   } else {
-    const api = getParachainApi();
-    const inner = [
+    const api = await getParachainApi();
+    const calls = await Promise.all([
       registerEncryptionKeyCall(pubkeyIfMissing),
       purchaseCall(listingId),
-    ].map((c) => (c as { decodedCall: unknown }).decodedCall);
+    ]);
+    const inner = calls.map((c) => (c as { decodedCall: unknown }).decodedCall);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tx = (api.tx as any).Utility.batch_all({ calls: inner });
     await signAndWatchFinalized(

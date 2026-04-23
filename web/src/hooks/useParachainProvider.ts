@@ -1,13 +1,12 @@
 import { createClient, type PolkadotClient, type TypedApi } from "polkadot-api";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import { sandboxProvider, createPapiProvider, hostApi } from "@novasamatech/product-sdk";
+import { sandboxProvider, hostApi } from "@novasamatech/product-sdk";
 import { enumValue } from "@novasamatech/host-api";
 import { ppview } from "@polkadot-api/descriptors";
 import { useEffect } from "react";
 import { useChainStore } from "../store/chainStore";
 
-const PPVIEW_GENESIS = "0xf0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb";
 const DEV_WS = "ws://127.0.0.1:9944";
 
 type ParachainApi = TypedApi<typeof ppview>;
@@ -16,25 +15,43 @@ let _parachainClient: PolkadotClient | null = null;
 let _parachainApi: ParachainApi | null = null;
 let _initPromise: Promise<void> | null = null;
 
-export function getParachainApi(): ParachainApi {
-	if (!_parachainApi) throw new Error("Parachain provider not initialized");
+export async function getParachainApi(): Promise<ParachainApi> {
+	await ensureInit();
+	if (!_parachainApi) throw new Error("Parachain provider init returned without api");
 	return _parachainApi;
+}
+
+function ensureInit(): Promise<void> {
+	if (!_initPromise) {
+		_initPromise = initClient()
+			.then(() => {
+				useChainStore.getState().setConnected(true);
+			})
+			.catch((err) => {
+				console.error("Parachain client init failed:", err);
+				// Reset so a later caller can retry.
+				_initPromise = null;
+				throw err;
+			});
+	}
+	return _initPromise;
 }
 
 async function initClient(): Promise<void> {
 	if (_parachainClient) return;
-	const inHost = sandboxProvider.isCorrectEnvironment();
-	if (inHost) {
+	// The Triangle host's `createPapiProvider` only routes to chains the host
+	// whitelists by genesis hash, which excludes our dev parachain. Since the
+	// host sandbox allows direct outbound WebSockets (verified via /probe),
+	// connect directly to the node in both host and standalone modes.
+	if (sandboxProvider.isCorrectEnvironment()) {
 		await hostApi
-			.permission(enumValue("v1", { tag: "TransactionSubmit", value: undefined }))
+			.permission(enumValue("v1", { tag: "ExternalRequest", value: DEV_WS }))
 			.match(
 				() => {},
-				(err: unknown) => console.warn("Transaction permission denied:", err),
+				(err: unknown) => console.warn("ExternalRequest permission denied:", err),
 			);
-		_parachainClient = createClient(createPapiProvider(PPVIEW_GENESIS));
-	} else {
-		_parachainClient = createClient(withPolkadotSdkCompat(getWsProvider(DEV_WS)));
 	}
+	_parachainClient = createClient(withPolkadotSdkCompat(getWsProvider(DEV_WS)));
 	_parachainApi = _parachainClient.getTypedApi(ppview);
 }
 
@@ -48,20 +65,14 @@ export function useParachainProvider() {
 	const account = useChainStore((s) => s.account);
 	const connected = useChainStore((s) => s.connected);
 	const setBalance = useChainStore((s) => s.setBalance);
-	const setConnected = useChainStore((s) => s.setConnected);
 
-	// Init once.
+	// Init once. `ensureInit` is idempotent and also runs on demand from
+	// `getParachainApi()`, so effects firing before this one are safe.
 	useEffect(() => {
-		if (!_initPromise) {
-			_initPromise = initClient()
-				.then(() => {
-					setConnected(true);
-				})
-				.catch((err) => {
-					console.error("Parachain client init failed:", err);
-				});
-		}
-	}, [setConnected]);
+		void ensureInit().catch(() => {
+			// Error already logged inside ensureInit.
+		});
+	}, []);
 
 	// Resubscribe balance on account change OR once the client becomes ready.
 	// `connected` flips true inside initClient().then(); gating on it ensures
