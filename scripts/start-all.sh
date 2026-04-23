@@ -6,6 +6,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 FRONTEND_PID=""
+UNLOCK_PID=""
 
 cleanup() {
     echo ""
@@ -13,6 +14,10 @@ cleanup() {
     if [ -n "$FRONTEND_PID" ]; then
         kill "$FRONTEND_PID" 2>/dev/null || true
         wait "$FRONTEND_PID" 2>/dev/null || true
+    fi
+    if [ -n "$UNLOCK_PID" ]; then
+        kill "$UNLOCK_PID" 2>/dev/null || true
+        wait "$UNLOCK_PID" 2>/dev/null || true
     fi
     cleanup_zombienet
 }
@@ -30,19 +35,26 @@ echo ""
 
 validate_full_stack_ports
 
-echo "[1/4] Building runtime..."
+echo "[1/5] Building runtime..."
 build_runtime
 
-echo "[2/4] Generating chain spec..."
+echo "[2/5] Building content-unlock-service..."
+cargo build --release -p ppview-content-unlock-service
+
+echo "[3/5] Generating chain spec..."
 generate_chain_spec
 
-echo "[3/4] Starting Zombienet (relay chain + parachain)..."
+echo "[4/5] Starting Zombienet (relay chain + parachain)..."
 log_info "This takes longer than dev mode because the relay chain must finalize"
 log_info "and the parachain must register before the collator starts authoring."
 start_zombienet_background
 wait_for_substrate_rpc
 
-echo "[4/4] Starting frontend..."
+echo "[5/5] Starting content-unlock-service and frontend..."
+"$SCRIPT_DIR/start-content-unlock-service.sh" &
+UNLOCK_PID=$!
+log_info "content-unlock-service starting (pid $UNLOCK_PID)"
+
 cd "$ROOT_DIR/web"
 npm install
 
@@ -64,7 +76,7 @@ log_info "Substrate RPC: $SUBSTRATE_RPC_WS"
 log_info "Frontend:      $FRONTEND_URL"
 log_info "Zombienet dir: $ZOMBIE_DIR"
 echo ""
-log_info "Included: content-registry pallet, Statement Store, Bulletin upload, frontend"
+log_info "Included: content-registry pallet, Statement Store, Bulletin upload, content-unlock-service, frontend"
 echo ""
 log_info "Press Ctrl+C to stop all."
 wait "$ZOMBIE_PID"
