@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import MyListingsPage from './MyListingsPage';
 import type { ListingWithStats } from '../hooks/useContentRegistry';
 
@@ -24,10 +24,10 @@ function setAccount(account: string | null) {
   mockUseChainStore.mockImplementation((sel: (s: any) => any) => sel({ account }));
 }
 
-function makeListing(id: bigint, title: string, purchaseCount = 0): ListingWithStats {
+function makeListing(id: bigint, title: string, purchaseCount = 0, creator = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'): ListingWithStats {
   return {
     id,
-    creator: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+    creator,
     price: 1_000_000_000_000n,
     contentCid: { codec: 0x55, digestBytes: new Uint8Array(32) },
     thumbnailCid: { codec: 0x55, digestBytes: new Uint8Array(32) },
@@ -82,9 +82,83 @@ describe('MyListingsPage', () => {
     expect(screen.getByText(/2\.00 DOT earned/i)).toBeInTheDocument();
   });
 
+  test('renders total uploads and total earnings header summary', async () => {
+    mockFetch.mockResolvedValue([
+      makeListing(0n, 'Alpha', 2),
+      makeListing(1n, 'Beta', 1),
+    ]);
+    render(<MemoryRouter><MyListingsPage /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText('Alpha')).toBeInTheDocument());
+    // 2 uploads total
+    expect(screen.getByText(/2\s*uploads/i)).toBeInTheDocument();
+    // total earnings: (2 + 1) sales × 1 DOT = 3.00 DOT
+    expect(screen.getByText(/3\.00 DOT/)).toBeInTheDocument();
+    expect(screen.getByText(/total earnings/i)).toBeInTheDocument();
+  });
+
   test('shows error message on fetch failure', async () => {
     mockFetch.mockRejectedValue(new Error('node offline'));
     render(<MemoryRouter><MyListingsPage /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText(/node offline/i)).toBeInTheDocument());
+  });
+});
+
+describe('MyListingsPage as creator profile (/creator/:address)', () => {
+  const OTHER = '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setAccount('5Grwva'); // logged in as someone else
+  });
+
+  function renderAtCreatorRoute(address: string) {
+    return render(
+      <MemoryRouter initialEntries={[`/creator/${address}`]}>
+        <Routes>
+          <Route path="/creator/:address" element={<MyListingsPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  test('fetches listings for the :address param, not the connected account', async () => {
+    mockFetch.mockResolvedValue([]);
+    renderAtCreatorRoute(OTHER);
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(OTHER));
+  });
+
+  test('renders full SS58 in the title instead of "My Listings"', async () => {
+    mockFetch.mockResolvedValue([]);
+    renderAtCreatorRoute(OTHER);
+    await waitFor(() => expect(screen.getByRole('heading')).toBeInTheDocument());
+    expect(screen.getByRole('heading').textContent).toContain(OTHER);
+    expect(screen.queryByText(/^My Listings$/)).toBeNull();
+  });
+
+  test('renders totals for other-creator view', async () => {
+    mockFetch.mockResolvedValue([
+      makeListing(0n, 'Gamma', 3, OTHER),
+    ]);
+    renderAtCreatorRoute(OTHER);
+    await waitFor(() => expect(screen.getByText('Gamma')).toBeInTheDocument());
+    expect(screen.getByText(/1\s*upload/i)).toBeInTheDocument();
+    expect(screen.getByText(/3\.00 DOT total earnings/i)).toBeInTheDocument();
+  });
+
+  test('shows a neutral empty state (no "create your first" CTA) for other creators', async () => {
+    mockFetch.mockResolvedValue([]);
+    renderAtCreatorRoute(OTHER);
+    await waitFor(() =>
+      expect(screen.getByText(/no listings for this creator/i)).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole('link', { name: /upload|create/i })).toBeNull();
+  });
+
+  test('renders as self view when :address matches connected account', async () => {
+    mockFetch.mockResolvedValue([]);
+    renderAtCreatorRoute('5Grwva');
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /my listings/i })).toBeInTheDocument(),
+    );
   });
 });

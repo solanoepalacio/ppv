@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { Listing } from '../hooks/useContentRegistry';
 import { formatDot, truncateAddress } from '../utils/format';
 
@@ -34,7 +34,16 @@ export default function ListingCard({ listing, isPurchased, isOwn, stats }: Prop
 
       <div className="p-3 flex flex-col gap-1">
         <p className="text-sm font-medium text-text-primary line-clamp-2">{listing.title}</p>
-        <p className="text-xs text-text-muted font-mono">By: {truncateAddress(listing.creator)}</p>
+        <p className="text-xs text-text-muted font-mono">
+          By:{' '}
+          <Link
+            to={`/creator/${listing.creator}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-white hover:underline cursor-pointer"
+          >
+            {truncateAddress(listing.creator)}
+          </Link>
+        </p>
         <p
           className={`text-xs font-semibold text-right mt-0.5 ${
             isOwn ? 'text-text-muted' : isPurchased ? 'text-accent-green' : 'text-polka-300'

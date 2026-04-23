@@ -34,8 +34,10 @@ describe('ListingCard', () => {
 
   test('renders the creator address prefixed with "By:"', () => {
     render(<MemoryRouter><ListingCard listing={makeListing()} /></MemoryRouter>);
-    // Full address is 48 chars; truncated shows first 6 + … + last 6, prefixed with "By:"
-    expect(screen.getByText(/^By:\s*5Grwva.*GKutQY$/)).toBeInTheDocument();
+    // Text is now split across a text node and a <Link>; match on combined textContent.
+    expect(
+      screen.getByText((_, el) => el?.tagName === 'P' && /^By:\s*5Grwva.*GKutQY$/.test(el.textContent ?? '')),
+    ).toBeInTheDocument();
   });
 
   test('renders the price in DOT', () => {
@@ -72,6 +74,13 @@ describe('ListingCard', () => {
     render(<MemoryRouter><ListingCard listing={makeListing({ id: 7n })} /></MemoryRouter>);
     fireEvent.click(screen.getByText('My Test Video'));
     expect(mockNavigate).toHaveBeenCalledWith('/listing/7');
+  });
+
+  test('creator address is a link to /creator/:address', () => {
+    const addr = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
+    render(<MemoryRouter><ListingCard listing={makeListing({ id: 7n, creator: addr })} /></MemoryRouter>);
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('href', `/creator/${addr}`);
   });
 
   test('renders the thumbnail image', () => {

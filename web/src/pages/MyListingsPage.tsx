@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { useChainStore } from '../store/chainStore';
 import {
   fetchListingsByCreator,
@@ -7,25 +7,39 @@ import {
 } from '../hooks/useContentRegistry';
 import ListingCard from '../components/ListingCard';
 import SkeletonCard from '../components/SkeletonCard';
+import { formatDot } from '../utils/format';
 
 export default function MyListingsPage() {
+  const { address: paramAddress } = useParams<{ address: string }>();
   const account = useChainStore((s) => s.account);
+  const target = paramAddress ?? account;
+  const isSelf = !paramAddress || (account !== null && paramAddress === account);
+
   const [listings, setListings] = useState<ListingWithStats[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!account) {
+    if (!target) {
       setListings(null);
       return;
     }
     setError(null);
     setListings(null);
-    fetchListingsByCreator(account)
+    fetchListingsByCreator(target)
       .then(setListings)
       .catch((e) => setError(String(e)));
-  }, [account]);
+  }, [target]);
 
-  if (!account) {
+  const totals = useMemo(() => {
+    if (!listings) return null;
+    const earnings = listings.reduce(
+      (sum, l) => sum + l.price * BigInt(l.purchaseCount),
+      0n,
+    );
+    return { uploads: listings.length, earnings };
+  }, [listings]);
+
+  if (!target) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <h1 className="text-xl font-semibold text-text-primary">My Listings</h1>
@@ -36,14 +50,25 @@ export default function MyListingsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-text-primary">My Listings</h1>
-        {listings !== null && (
-          <span className="text-sm text-text-muted">
-            {listings.length} listing{listings.length !== 1 ? 's' : ''}
+      {isSelf ? (
+        <h1 className="text-xl font-semibold text-text-primary mb-2">My Listings</h1>
+      ) : (
+        <h1 className="text-xl font-semibold text-text-primary mb-2">
+          Listings of{' '}
+          <span className="font-mono text-white break-all">{target}</span>
+        </h1>
+      )}
+
+      {totals && (
+        <div className="flex items-center gap-6 mb-6 text-sm text-text-secondary">
+          <span className="text-text-primary">
+            {`${totals.uploads} upload${totals.uploads !== 1 ? 's' : ''}`}
           </span>
-        )}
-      </div>
+          <span className="text-accent-green font-mono">
+            {`${formatDot(totals.earnings)} total earnings`}
+          </span>
+        </div>
+      )}
 
       {error && <p className="text-accent-red text-sm">{error}</p>}
 
@@ -55,10 +80,16 @@ export default function MyListingsPage() {
 
       {listings !== null && listings.length === 0 && !error && (
         <div className="flex flex-col items-center justify-center py-24 gap-4">
-          <p className="text-text-secondary">You haven't published anything yet.</p>
-          <Link to="/upload" className="text-polka-400 hover:text-polka-300 text-sm">
-            Create your first listing
-          </Link>
+          {isSelf ? (
+            <>
+              <p className="text-text-secondary">You haven't published anything yet.</p>
+              <Link to="/upload" className="text-polka-400 hover:text-polka-300 text-sm">
+                Create your first listing
+              </Link>
+            </>
+          ) : (
+            <p className="text-text-secondary">No listings for this creator.</p>
+          )}
         </div>
       )}
 
@@ -68,7 +99,7 @@ export default function MyListingsPage() {
             <ListingCard
               key={String(l.id)}
               listing={l}
-              isOwn
+              isOwn={isSelf}
               stats={{ purchaseCount: l.purchaseCount }}
             />
           ))}

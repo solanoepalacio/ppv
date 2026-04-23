@@ -92,7 +92,12 @@ describe('ListingDetailPage', () => {
     mockHasPurchased.mockResolvedValue(false);
     renderAtId('3');
     await waitFor(() =>
-      expect(screen.getByText(/^Uploaded by\s+5FHneW.*M694ty$/)).toBeInTheDocument(),
+      expect(
+        screen.getByText(
+          (_, el) =>
+            el?.tagName === 'SPAN' && /^Uploaded by\s+5FHneW.*M694ty$/.test(el.textContent ?? ''),
+        ),
+      ).toBeInTheDocument(),
     );
   });
 
