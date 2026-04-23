@@ -9,7 +9,6 @@ const ListingDetailPage = lazy(() => import("./pages/ListingDetailPage"));
 const CreatePage = lazy(() => import("./pages/CreatePage"));
 const PurchasesPage = lazy(() => import("./pages/PurchasesPage"));
 const MyListingsPage = lazy(() => import("./pages/MyListingsPage"));
-const ProbePage = lazy(() => import("./pages/ProbePage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 const fallback = (
@@ -68,14 +67,6 @@ createRoot(document.getElementById("root")!).render(
 						element={
 							<Suspense fallback={fallback}>
 								<MyListingsPage />
-							</Suspense>
-						}
-					/>
-					<Route
-						path="probe"
-						element={
-							<Suspense fallback={fallback}>
-								<ProbePage />
 							</Suspense>
 						}
 					/>
